@@ -27,7 +27,7 @@ the following fields (fields with values shown have defaults and are not
 required in the file):
 ```yaml
 ---
-global_window: Parameters affecting the initial selection of a global pick window across all stations using the distribution of kurtosis extrema)
+global_window: # Parameters affecting the initial selection of a global pick window across all stations using the distribution of kurtosis extrema)
     frequency_band:     # cutoff frequencies [low, high] for kurtosis calculation
     sliding_length:     # sliding window length in seconds for kurtosis calculation
     extrema_samples: 40 # number of samples for the smoothing window when calculating extrema
@@ -43,8 +43,7 @@ SNR: # Parameters affecting the signal-to-noise level calculation and use
     threshold_parameter: 0.2  # Controls the SNR_threshold for SNR-based quality evaluation
                               # if between 0 and 1, then SNR_threshold = max(SNR)*threshold_parameter
                               # if < 0, then SNR_threshold = -threshold_parameter
-dip_rect_thresholds: # minimum rectilinearity thresholds needed to assign 'P' or 'S'
-                     # to an onset (P positive, S negative)
+dip_rect_thresholds: # minimum rectilinearity thresholds needed to assign 'P' or 'S' to an onset (P positive, S negative)
     P: 0.4
     S: -0.4
 kurtosis: # Parameters affecting Kurtosis calculations (except in inital global window selection)
@@ -74,11 +73,9 @@ station_parameters:  # List of objects with key = station_name
             wind:    # key from kurtosis:window_lengths
             smooth:  # key from kurtosis:smoothing_sequences
         polar:    # Use polarities (dip_rect thresholds) to assign P and S picks
-        nrg_win:  # only look at data from t-nrg_win to t when evaluating
-                  # energy, where t is the time of the peak waveform energy.
+        nrg_win:  # only look at data from t-nrg_win to t when evaluating energy, where t is the time of the peak waveform energy.
                   # If == 0, don't use energy criteria.
-        n_follow: # number of extrema to follow (1 or 2).  Generally use
-                  # 2 (S and P) unless data are problematic*
+        n_follow: # number of extrema to follow (1 or 2).  Generally use 2 (S and P) unless data are problematic
         resp:     # key from responses:filename
     - station2_name
       ...
