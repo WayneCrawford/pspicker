@@ -31,8 +31,8 @@ global_window: # Parameters affecting the initial selection of a global pick win
                # across all stations using the distribution of kurtosis extrema)
     frequency_band: [low, high] # cutoff frequencies for kurtosis calculation
     sliding_length:             # sliding window length in seconds for kurtosis calculation
-    extrema_samples:            # number of samples for the smoothing window when calculating extrema
-    n_extrema:                  # number of extrema to keep for each trace
+    extrema_samples: 40         # number of samples for the smoothing window when calculating extrema
+    n_extrema: 5                # number of extrema to use for each trace
     distri_secs:                # size of window in seconds in which to look for the maximum # of picks
     offsets: [left, right]      # final window offset in seconds [left, right] from peak distribution
     end_cutoff: 0.9             # don't look for extrema beyond this fraction of the overall time
@@ -41,6 +41,9 @@ SNR: # (Parameters affecting the signal-to-noise level calculation and use)*
     - signal_window_length:             # seconds to use for signal_window*
     - min_threshold_crossings:          # Minimum crossings of SNR needed to accept a trace*
     - pick_quality_thresholds: [4-list] # SNR levels associated with quality levels '3', '2', '1' and '0'
+    - threshold_parameter: 0.2          # Controls the SNR_threshold for SNR-based quality evaluation
+                                        # if between 0 and 1, then SNR_threshold = max(SNR)*threshold_parameter
+                                        # if < 0, then SNR_threshold = -threshold_parameter
 dip_rect_thresholds: # minimum rectilinearity thresholds needed to assign 'P' or 'S'
                      # to an onset (P positive, S negative)
     P: 0.4
@@ -55,13 +58,13 @@ kurtosis: # (Parameters affecting Kurtosis calculations (except in inital global
 association: # (Parameters affecting the association between different stations)*
     cluster_windows_P:     # Window length in seconds for cluster-based rejection of P arrivals*
     cluster_windows_S:     # Window length in seconds for cluster-based rejection of S arrivals*
-    distri_min_values:     # minimum number of values (P picks, S picks, or PS-times) needed for distribution-based rejection
+    distri_min_values: 4   # minimum number of values (P picks, S picks, or PS-times) needed for distribution-based rejection
     distri_nstd_picks: 3.2 # reject picks outside of this number of standard deviations*
     distri_nstd_delays: 4  # reject delays outside of this number of standard deviations*
 responses:
-    filetype: # 'GSE' or '': the latter means a Baillard PoleZeros-type format
-    filename: # object with one or more "keys", each followed by a filename
-              # e.g. {A: 'SPOBS2_response.txt', B: 'micrOBS_G1_response.txt'}
+    filetype: '' # 'GSE' or '': the latter means a Baillard PoleZeros-type format
+    filename:    # object with one or more "keys", each followed by a filename
+                 # e.g. {A: 'SPOBS2_response.txt', B: 'micrOBS_G1_response.txt'}
 station_parameters:  # List of objects with key = station_name and values a dictionary with the following values:
     station1_name
         P_comp:   # string of all components (one letter each) used for P-picks
