@@ -10,34 +10,34 @@ Examples
 ======================
 
 To pick one event from a database in `/SEISAN/MAYOBS`:
-```
-from ps_picker import PSPicker
-
-picker = PSPicker('/SEISAN/MAYOBS/WAV/MAYOB', 'parameters_C.yaml')
-picker.run_one('/SEISAN/MAYOBS/REA/MAYOB/2019/05/19-0607-59L.S201905')
-```
+::
+  from ps_picker import PSPicker
+  
+  picker = PSPicker('/SEISAN/MAYOBS/WAV/MAYOB', 'parameters_C.yaml')
+  picker.run_one('/SEISAN/MAYOBS/REA/MAYOB/2019/05/19-0607-59L.S201905')
 
 To pick events from May to September 2019 in the same database:
-```
-from ps_picker import PSPicker
-
-picker = PSPicker('/SEISAN/MAYOBS/WAV/MAYOB/', 'my_params.yaml')
-picker.run_many('/SEISAN/MAYOBS/REA/MAYOB/', '201905', '201909')
-```
+::
+  from ps_picker import PSPicker
+  
+  picker = PSPicker('/SEISAN/MAYOBS/WAV/MAYOB/', 'my_params.yaml')
+  picker.run_many('/SEISAN/MAYOBS/REA/MAYOB/', '201905', '201909')
 
 Parameters
 ======================
 Picker parameters are passed in a YAML_ file with the following fields (fields
  with values shown have defaults and so are not necessary in the file):
-
-- global_window: *(Parameters affecting the initial selection of a global pick window across all stations using the distribution of kurtosis extrema)*
-    - frequency_band: [left, right] *cutoff frequencies for kurtosis calculation*
-    - sliding_length:  *sliding window length in seconds for kurtosis calculation*
-    - extrema_samples: *number of samples for the smoothing window when calculating extrema*
-    - n_extrema: * number of extrema to keep for each trace*
-    - distri_secs: seconds *size of window in which to look for the maximum # of picks*
-    - offsets: [left, right] *final window offset [left, right] from peak distribution*
-    - end_cutoff: 0.9  * don't look for extrema beyond this fraction of the overall time*
+::
+  ---
+  global_window: # Parameters affecting the initial selection of a global pick window
+                 # across all stations using the distribution of kurtosis extrema)
+      frequency_band: [left, right] *cutoff frequencies for kurtosis calculation*
+      - sliding_length:  *sliding window length in seconds for kurtosis calculation*
+      - extrema_samples: *number of samples for the smoothing window when calculating extrema*
+      - n_extrema: * number of extrema to keep for each trace*
+      - distri_secs: seconds *size of window in which to look for the maximum # of picks*
+      - offsets: [left, right] *final window offset [left, right] from peak distribution*
+      - end_cutoff: 0.9  * don't look for extrema beyond this fraction of the overall time*
 - SNR: *(Parameters affecting the signal-to-noise level calculation and use)*
     - noise_window_length: *seconds to use for noise window*
     - signal_window_length: *seconds to use for signal_window*
