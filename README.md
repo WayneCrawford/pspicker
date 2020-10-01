@@ -7,19 +7,19 @@ Python port of the picker described in Baillard et al., 2014
 ## Examples
 
 To pick one event from a database in `/SEISAN/MAYOBS`:
-::
-  from ps_picker import PSPicker
-  
-  picker = PSPicker('/SEISAN/MAYOBS/WAV/MAYOB', 'parameters_C.yaml')
-  picker.run_one('/SEISAN/MAYOBS/REA/MAYOB/2019/05/19-0607-59L.S201905')
+```python
+from ps_picker import PSPicker
 
+picker = PSPicker('/SEISAN/MAYOBS/WAV/MAYOB', 'parameters_C.yaml')
+picker.run_one('/SEISAN/MAYOBS/REA/MAYOB/2019/05/19-0607-59L.S201905')
+```
 To pick events from May to September 2019 in the same database:
-::
-  from ps_picker import PSPicker
-  
-  picker = PSPicker('/SEISAN/MAYOBS/WAV/MAYOB/', 'my_params.yaml')
-  picker.run_many('/SEISAN/MAYOBS/REA/MAYOB/', '201905', '201909')
+```python
+from ps_picker import PSPicker
 
+picker = PSPicker('/SEISAN/MAYOBS/WAV/MAYOB/', 'my_params.yaml')
+picker.run_many('/SEISAN/MAYOBS/REA/MAYOB/', '201905', '201909')
+```
 ## Parameters
 Picker parameters are passed in a
 [YAML](https://tools.ietf.org/id/draft-pbryan-zyp-json-ref-03.html) file with
