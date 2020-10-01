@@ -27,7 +27,7 @@ picker.run_many('/SEISAN/MAYOBS/REA/MAYOB/', '201905', '201909')
 
 Parameters
 ======================
-Picker parameters are passed in a _YAML file with the following fields (fields
+Picker parameters are passed in a YAML_ file with the following fields (fields
  with values shown have defaults and so are not necessary in the file):
 
 - global_window: *(Parameters affecting the initial selection of a global pick window across all stations using the distribution of kurtosis extrema)*
