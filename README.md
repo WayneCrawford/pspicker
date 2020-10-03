@@ -30,19 +30,30 @@ required in the file):
 global_window: # Parameters affecting the initial selection of a global pick window across all stations using the distribution of kurtosis extrema)
     frequency_band:     # cutoff frequencies [low, high] for kurtosis calculation
     sliding_length:     # sliding window length in seconds for kurtosis calculation
-    extrema_samples: 40 # number of samples for the smoothing window when calculating extrema
-    n_extrema: 5        # number of extrema to use for each trace
     distri_secs:        # size of window in seconds in which to look for the maximum # of picks
     offsets:            # final window offset in seconds [left, right] from peak distribution
     end_cutoff: 0.9     # don't look for extrema beyond this fraction of the overall time
+    n_extrema: 5        # number of extrema to use for each trace
+    extrema_samples: 40 # number of samples for the smoothing window when calculating extrema
 SNR: # Parameters affecting the signal-to-noise level calculation and use
-    noise_window_length:      # seconds to use for noise window
-    signal_window_length:     # seconds to use for signal_window
-    min_threshold_crossings:  # Minimum crossings of SNR needed to accept a trace
-    pick_quality_thresholds:  # [4-list] of SNR levels associated with quality levels '3', '2', '1' and '0'
-    threshold_parameter: 0.2  # Controls the SNR_threshold for SNR-based quality evaluation
-                              # if between 0 and 1, then SNR_threshold = max(SNR)*threshold_parameter
-                              # if < 0, then SNR_threshold = -threshold_parameter
+    noise_window_length:       # seconds to use for noise window
+    signal_window_length:      # seconds to use for signal_window
+    max_threshold_crossings: 2 # Maximum allowed crossings of SNR threshold within global window
+    quality_thresholds:        # [4-list] of SNR levels associated with quality levels '3', '2', '1' and '0'
+    threshold_parameter: 0.2   # Controls the SNR_threshold for SNR-based quality evaluation
+                               # if between 0 and 1, then SNR_threshold = max(SNR)*threshold_parameter
+                               # if < 0, then SNR_threshold = -threshold_parameter
+channel_parameters: # Parameters affecting the choice of channels to pick on and save to
+    compZ: 'Z3'               # Component names that will be interpreted as 'Z'
+    compN: 'N1Y'              # Component names that will be interpreted as 'N'
+    compE: 'E2X'              # Component names that will be interpreted as 'E'
+    compH: 'HF'               # Component names that will be interpreted as 'H'
+    S_write_cmp: 'N'          # Assign S picks to this component (or equivalent as defined above)
+    P_write_cmp: 'Z'          # Assign P picks to this component (or equivalent as defined above)
+    P_write_phase: 'Pg'       # Give this phase hint to P picks
+    S_write_phase: 'Sg'       # Give this phase hint to S picks
+    band_order: 'GFDCEHSBMLV' # If multiple traces have the same component, chose the one with the earliest listed band code
+                              # 'GFDCEHSBMLV' prioritizes high sampling rates over low, and short period over broadband
 dip_rect_thresholds: # minimum rectilinearity thresholds needed to assign 'P' or 'S' to an onset (P positive, S negative)
     P: 0.4
     S: -0.4
@@ -61,7 +72,7 @@ association: # Parameters affecting the association between different stations
     distri_nstd_delays: 4  # reject delays outside of this number of standard deviations
 responses:
     filetype: '' # 'GSE' or '': the latter means a Baillard PoleZeros-type format
-    filename:    # object with one or more "keys", each followed by a filename
+    filenames:   # object with one or more "keys", each followed by a filename
                  # e.g. {A: 'SPOBS2_response.txt', B: 'micrOBS_G1_response.txt'}
 station_parameters:  # List of objects with key = station_name
     - station1_name

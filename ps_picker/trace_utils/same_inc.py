@@ -4,6 +4,21 @@ from obspy.core.trace import Trace
 
 def same_inc(traces_old, firsttime, lasttime):
     """
+    Just cut down trace to firsttime, lasttime
+
+    :param traces_old: trace or list of input traces
+    :param firsttime: time of first sample to keep
+    :param lasttime: time of last sample to keep
+    :returns: output trace or list of traces
+    """
+    if isinstance(traces_old, Trace):
+        return traces_old.slice(firsttime, lasttime)
+    else:
+        return [t.slice(firsttime, lasttime) for t in traces_old]
+
+
+def old_same_inc(traces_old, firsttime, lasttime):
+    """
     Return a section of an input trace and NaNs elsewhere
 
     :param traces_old: trace or list of input traces

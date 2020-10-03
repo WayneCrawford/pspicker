@@ -2,7 +2,7 @@
 # from smop.libsmop import *
 import warnings
 
-from obspy.core import Stream as obspy_Stream
+from obspy.core import Stream, Trace
 
 
 class PickerLoopParameters():
@@ -29,9 +29,9 @@ class PickerLoopParameters():
         """
         Adds datP, datS, dat_noH, dmin, dmax and t_begin attributes
         """
-        self.datP = obspy_Stream()
-        self.datS = obspy_Stream()
-        self.dat_noH = obspy_Stream()
+        self.datP = Stream()
+        self.datS = Stream()
+        self.dat_noH = Stream()
         self.dmin = 1.e99
         self.dmax = -1.e99
         for comp in self.station_params.P_comp:
@@ -44,7 +44,7 @@ class PickerLoopParameters():
                     continue
                 else:
                     warnings.warn('{:d)} traces found for {}, using first'.
-                        format(len(st), txt))
+                                  format(len(st), txt))
             self.datP += st[0]
             if self.datP[-1].data.max() > self.dmax:
                 self.dmax = self.datP[-1].data.max()
@@ -59,7 +59,7 @@ class PickerLoopParameters():
                     continue
                 else:
                     warnings.warn('{:d)} traces found for {}, using first'.
-                        format(len(st), txt))
+                                  format(len(st), txt))
             self.datS += st[0]
             # self.datP += stream.select(id=self.channel_map.__dict__[comp])
         for tr in stream.select(station=self.station):
@@ -73,10 +73,11 @@ class PickerLoopParameters():
 
         index: the index
         trace: the trace from which to get the start time and sampling_rate.
-            If None, uses self.datP[0]
+            If None, use self.datP[0]
         """
         if trace is None:
-            trace = self.datP
+            trace = self.datP[0]
+        assert isinstance(trace, Trace), f'trace is {type(trace)}, not Trace'
         sr = trace.stats.sampling_rate
         t_begin = trace.stats.starttime
         return t_begin + index/sr

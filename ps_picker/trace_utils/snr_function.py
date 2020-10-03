@@ -1,4 +1,4 @@
-import numpy as np
+# import numpy as np
 
 from obspy.signal.util import smooth as obspy_smooth
 
@@ -12,7 +12,7 @@ def snr_function(M, window_before, window_after):
         given time)
     :param window_after: length of "signal" window (seconds after a
         given time)
-    :returns: 20*log10(M(t...t+window_after)/M(t-window_before,t))
+    :returns: (M(t...t+window_after)/M(t-window_before,t))
     """
     sr = M.stats.sampling_rate
     samps_beforewind = round(sr * window_before)
@@ -30,7 +30,10 @@ def snr_function(M, window_before, window_after):
     w_after.trim(starttime=global_start, endtime=global_end)
     snr = w_after.copy()
     snr.data /= w_before.data
-    snr.data = 20 * np.log10(snr.data)
+
+    # Convert to dB here: I find this much less intuitive!
+    # snr.data = 20 * np.log10(snr.data)
+
     # B_before = concat([[Aa(arange(wa,end()),arange())],[zeros(wa - 1,n)]])
     # B_after = concat([[Aa(arange(wa,end()),arange())],[zeros(wa - 1,n)]])
     # Bb=copy(Ab)

@@ -4,7 +4,7 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
 
 
-class PSPickerPlotter():
+class Plotter():
     """
     Class to plot figures representing the work in PSPicker
 
@@ -63,8 +63,8 @@ class PSPickerPlotter():
     def global_window_timebounds(self, rect_start_time, rect_end_time,
                                  stations):
         """
-        Plot a rectangle representing the global time bounds and set axis limits
-        
+        Plot the global time bounds and set axis limits
+
         :param rect_start_time: global window start time
         :param rect_end_time: global window end time
         :param stations: list of stations in same order as iTrace above
@@ -123,7 +123,7 @@ class PSPickerPlotter():
         if not self.show_plots:
             return
         # Pick_Function.m:334
-        #fig, axs = plt.subplots(4, 1, num=2+iter)
+        # fig, axs = plt.subplots(4, 1, num=2+iter)
         fig, axs = plt.subplots(4, 1, num=trace.stats.station)
         fig.clf()
         axs[0].plot(trace.times(type="matplotlib"), trace.data, 'k')
@@ -135,7 +135,8 @@ class PSPickerPlotter():
         plt.show(block=False)
         plt.pause(0.001)
 
-    def station_window_add_snr_nrg(self, picker, snr, energy, all_mean_M,
+    def station_window_add_snr_nrg(self, starttime, endtime, snr_threshold,
+                                   trace, snr, energy, all_mean_M,
                                    kurto_modif):
         """
         Figure 3+: individual station plots of:
@@ -143,38 +144,34 @@ class PSPickerPlotter():
             b) Data
             c) kurtosis
             d) Energy and signal-to-noise
+
+        :param starttime: starttime for all plots
+        :param endtime: endtime for all plots
+        :param snr_threshold: minimum acceptable SNR
+        :param trace: data trace to plot
+        :param snr: signal-to-noise level trace
+        :param energy: energy trace
+        :param all_mean_M: mean Kurtosis trace?
+        :kurto_modif: modified kurtosis trace?
         """
         if not self.show_plots:
             return
         # Pick_Function.m:443
         axs = self.axs3
         fig = self.fig3
-        sr = snr.stats.sampling_rate
         imin, imax = np.nonzero(np.isfinite(all_mean_M))[0][[0, -1]]
-        xmin, xmax = snr.times(type="matplotlib")[[imin, imax]]
-        # xmin = find(not np.isnan(all_mean_M), 1)[0] / sr
-        # xmax = find(not np.isnan(all_mean_M), 1)[-1] / sr
-        w1_s = picker.run.global_first_time.matplotlib_date
-        w1_e = picker.run.global_last_time.matplotlib_dates
-        # plt.figure(2 + iter)
-        # plt.subplot(4, 1, 1)
+        tmin, tmax = all_mean_M.times(type="matplotlib")[[imin, imax]]
+        dmin, dmax = np.nanmin(trace.data), np.nanmax(trace.data)
         # Pick windows
-        patches = [Rectangle((xmin, picker.loop.dmin),
-                             width=xmax-xmin,
-                             height=picker.loop.dmax - picker.loop.dmin,
+        patches = [Rectangle((tmin, dmin),  width=tmax - tmin,
+                             height=dmax - dmin,
                              color=[.9, .9, .9], edgecolor=None)]
         axs[0].add_collection(PatchCollection(patches))
-        # plt.patch(concat([xmin, xmax, xmax, xmin, xmin]),
-        #       concat([self.loop.dmin, self.loop.dmin, self.loop.dmax,
-        #               self.loop.dmax, self.loop.dmin]),
-        #       dot(-0.1, ones(1, 5)), concat([0.9, 0.9, 0.9]),
-        #       'EdgeColor', 'none')
-        axs[0].set_xlim(w1_s, w1_e)
-        axs[0].set_ylim(picker.loop.dmin, picker.loop.dmax)
+        axs[0].set_xlim(starttime.matplotlib_date, endtime.matplotlib_date)
+        axs[0].set_ylim(dmin, dmax)
 
         # Data
-        tr = picker.loop.datP[0].copy()
-        tr.data[np.isnan(all_mean_M)] = np.nan
+        tr = trace.slice(tmin, tmax)
         axs[1].plot(tr.times(type='matplotlib'), tr.data, 'k')
         axs[1].set_xticklabels([])
 
@@ -184,52 +181,28 @@ class PSPickerPlotter():
         axs[2].tick_params(axis='y', labelcolor='b')
         axs[2].set_xticklabels([])
         ax2b = axs[2].twinx()  # Create a twin axis with a different y-scale
-        ax2b.plot(kurto_modif[0].times(type='matplotlib'), kurto_modif[0].data, 'r--')
-        ax2b.plot(kurto_modif[-1].times(type='matplotlib'), kurto_modif[-1].data, 'r')
+        ax2b.plot(kurto_modif[0].times(type='matplotlib'),
+                  kurto_modif[0].data, 'r--')
+        ax2b.plot(kurto_modif[-1].times(type='matplotlib'),
+                  kurto_modif[-1].data, 'r')
         ax2b.set_ylabel('Kurtosis Extrema', color='r')
         ax2b.tick_params(axis='y', labelcolor='r')
         fig.tight_layout()   # (to avoid clipping right label)
-        self.kmin, self.kmax = np.min(all_mean_M), np.max(all_mean_M)
-        # axa, h1, h2 = plotyy(xax, all_mean_M, xax, kurto_modif(arange(),
-        #                      concat([1, end()])), nargout=3)
-        # plt.hold(axa(1), 'on')
-        # plt.set(h1(1), 'Color', 'b')
-        # plt.set(axa(1), 'YColor', 'b')
-        # plt.set(h2(1), 'Color', 'r', 'LineStyle', '--')
-        # plt.set(h2(2), 'Color', 'r')
-        # plt.set(axa(2), 'YColor', 'r')
-        # kMinMax = concat([min(all_mean_M), max(all_mean_M)])
-        # plt.ylabel(axa(1), 'Kurtosis')
-        # plt.ylabel(axa(2), 'Kurtosis Extrem')
-        # plt.set(gca, 'XTickLabel', [])
+        self.kmin, self.kmax = np.min(all_mean_M.data), np.max(all_mean_M.data)
 
         # Energy and SNR
-        nrgplot = energy.copy()
+        nrgplot = energy.slice(tmin, tmax)
         nrgplot.data = 20 * np.log10(nrgplot.data)
-        nrgplot.data[np.isnan(all_mean_M)] = np.nan
-        snrplot = snr.copy()
-        snrplot.data[np.isnan(all_mean_M)] = np.nan
-        snrthresh = snrplot.copy()
-        snrthresh[np.isfinite(snrthresh)] = picker.param.SNR_thres[0]
-        axs[3].plot_date(snr.times(type='matplotlib'), snrplot.data, 'b')
-        axs[3].plot_date(snr.times(type='matplotlib'), snrthresh.data, 'b--')
+        snrplot = snr.slice(tmin, tmax)
+        axs[3].plot_date(snrplot.times(type='matplotlib'), snrplot.data, 'b')
+        axs[3].axhline(snr_threshold, color='b', ls='--')
         axs[3].set_ylabel('SNR (dB)', color='b')
         axs[3].tick_params(axis='y', labelcolor='b')
         ax3b = axs[3].twinx()  # Create a twin axis with a different y-scale
         ax3b.plot_date(nrgplot.times(type='matplotlib'), nrgplot.data, 'r')
         ax3b.set_ylabel('Energy (dB)', color='r')
         ax3b.tick_params(axis='y', labelcolor='r')
-        # axb, h1, h2 = plt.plotyy(
-        #     xax, concat([ravel(snrplot), ravel(snrthresh)]), xax, nrgplot)
-        # plt.set(h1(1), 'Color', 'b')
-        # plt.set(h1(2), 'Color', 'b', 'LineStyle', '--')
-        # plt.set(axb(1), 'YColor', 'b')
-        # plt.set(h2(1), 'Color', 'r')
-        # plt.set(axb(2), 'YColor', 'r')
-        # plt.ylim(axb(1), [0, max(snrplot)])
-        # plt.ylabel(axb(1), 'SNR (dB)')
-        # plt.ylabel(axb(2), 'Energy (dB)')
-        axs[3].xlabel('Time')
+        axs[3].set_xlabel('Time')
         plt.draw()
         plt.show(block=False)
 
@@ -242,11 +215,11 @@ class PSPickerPlotter():
         # Pick_Function.m:502
         for extremum in extrema:
             tval = picker.loop.index_to_time(extremum['i']).matplotlib_date
-            ax = self.axs[0]
+            ax = self.axs3[0]
             #  plt.subplot(4, 1, 1)
             ax.vlines(tval, picker.loop.dmin, picker.loop.dmax,
                       color=[0.8, 0.8, 0.8])
-            ax = self.axs[1]
+            ax = self.axs3[1]
             # plt.subplot(4, 1, 2)
             ax.vlines(tval, picker.loop.dmin, picker.loop.dmax,
                       color=[0.8, 0.8, 0.8])
@@ -290,13 +263,13 @@ class PSPickerPlotter():
             axs[0].vlines(p_time, picker.loop.dmin, picker.loop.dmax, 'b')
             axs[1].vlines(p_time, picker.loop.dmin, picker.loop.dmax, 'b')
             axs[2].vlines(p_time, self.kmin, self.kmax, 'b')
-            ax2.vlines(p_time, iter-0.5, iter+0.5, 'b:')
+            ax2.vlines(p_time, iter-0.5, iter+0.5, color='b', ls=':')
         if onset_S is not None:
             s_time = picker.loop.index_to_time(onset_S).matplotlib_date
             axs[0].plot(s_time, picker.loop.dmin, picker.loop.dmax, 'r')
             axs[1].plot(s_time, picker.loop.dmin, picker.loop.dmax, 'r')
             axs[2].plot(s_time, self.kmin, self.kmax, 'r')
-            ax2.vlines(s_time, iter-0.5, iter+0.5, 'r:')
+            ax2.vlines(s_time, iter-0.5, iter+0.5, color='r', ls=':')
 
     def pick_window_add_picks(self, picker, picks):
         """
@@ -309,27 +282,37 @@ class PSPickerPlotter():
             return
         # Pick_Function.m:811
         ax = self.ax2
-        delY = 1
-        for phase, color, rect_color in zip(['P', 'S'],
-                                            ['b', 'r'],
-                                            [[.8, .8, 1.], [1., .8, .8]]):
-            picks = [p for p in picks if p.phase_hint[0] == phase]
-            if len(picks) > 0:
-                window_start = picks[0].time.matplotlib_date
-                for pick in picks:
-                    j = picker.run.stations.index(pick.station)
-                    if pick.time < window_start:
-                        window_start = pick.time
-                    ax.vlines(pick.time.matplotlib_date,
-                              j - 0.5*delY, j + 0.5*delY, colors=color)
-                p = [Rectangle((window_start, 0.5),
-                               width=picker.param.assoc_cluster_windows[phase]/86400,
-                               height=picker.run.n_stations,
-                               color=rect_color, edgecolor=None, alpha=0.5)]
-                ax.add_collection(PatchCollection(p))
+        self._plot_picks_phase(picker, picks, 'P', 'b', [.8, .8, 1.],
+                               picker.param.assoc_cluster_window_P)
+        self._plot_picks_phase(picker, picks, 'S', 'r', [1., .8, .8],
+                               picker.param.assoc_cluster_window_S)
         ax.set_xlabel(picker.loop.t_begin.strftime('%Y-%m-%d'))
         plt.draw()
         plt.show(block=False)
+
+    def _plot_picks_phase(self, picker, picks, phase, color, rect_color,
+                          width):
+        """
+        :param phase: "P" or "S"
+        :param color: color for picks
+        :param rec_color: color for pick window
+        :parm width: width of pick window
+        """
+        ax = self.ax2
+        delY = 1
+        picks = [p for p in picks if p.phase_hint[0] == phase]
+        if len(picks) > 0:
+            window_start = picks[0].time.matplotlib_date
+            for pick in picks:
+                j = picker.run.stations.index(pick.station)
+                if pick.time < window_start:
+                    window_start = pick.time
+                ax.vlines(pick.time.matplotlib_date,
+                          j - 0.5*delY, j + 0.5*delY, colors=color)
+            p = [Rectangle((window_start, 0.5),
+                           width=width / 86400, height=picker.run.n_stations,
+                           color=rect_color, edgecolor=None, alpha=0.5)]
+            ax.add_collection(PatchCollection(p))
 
 # def move_figure(f, x, y):
 #     """Move figure's upper left corner to pixel (x, y)"""
@@ -342,19 +325,19 @@ class PSPickerPlotter():
 #         # This works for QT and GTK
 #         # You can also use window.setGeometry
 #         f.canvas.manager.window.move(x, y)
-# 
+#
 # def move_figure(position="top-right"):
 #     '''
 #     Move and resize a window to a set of standard positions on the screen.
 #     Possible positions are:
 #     top, bottom, left, right, top-left, top-right, bottom-left, bottom-right
 #     '''
-# 
+#
 #     mgr = plt.get_current_fig_manager()
 #     mgr.full_screen_toggle()  # primitive but works to get screen size
 #     py = mgr.canvas.height()
 #     px = mgr.canvas.width()
-# 
+#
 #     d = 10  # width of the window border in pixels
 #     if position == "top":
 #         # x-top-left-corner, y-top-left-corner, x-width, y-width (in pixels)
@@ -373,7 +356,7 @@ class PSPickerPlotter():
 #         mgr.window.setGeometry(d, py/2 + 5*d, px/2 - 2*d, py/2 - 4*d)
 #     elif position == "bottom-right":
 #         mgr.window.setGeometry(px/2 + d, py/2 + 5*d, px/2 - 2*d, py/2 - 4*d)
-# 
+#
 # import pyfig as fig
 # for ix in range(6): f = p.figure(ix)
 # fig.stack('all')
@@ -382,15 +365,15 @@ class PSPickerPlotter():
 # fig.restore(1)
 # fig.tile()
 # fig.pile()
-# 
+#
 # if __name__ == '__main__':
-# 
+#
 #     # Usage example for move_figure()
-# 
+#
 #     plt.figure(1)
 #     plt.plot([0, 1])
 #     move_figure("top-right")
-# 
+#
 #     plt.figure(2)
 #     plt.plot([0, 3])
 #     move_figure("bottom-right")

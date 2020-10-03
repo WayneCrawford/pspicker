@@ -13,6 +13,7 @@ class PickerRunParameters():
                  overall_distri=np.array(0),
                  global_first_time=None,
                  global_last_time=None,
+                 t_begin=None,
                  plotter=None):
         """
         :param rea_name: database file to read
@@ -34,6 +35,7 @@ class PickerRunParameters():
         self.global_first_time = global_first_time
         self.global_last_time = global_last_time
         self.plotter = plotter
+        self.t_begin = t_begin
 
     @property
     def stations(self):

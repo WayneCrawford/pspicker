@@ -3,7 +3,7 @@
 # readmain.m
 
 
-#class OtherParameters():
+# class OtherParameters():
 #    """
 #    Other parameters that were set for pickfunction
 #
@@ -38,4 +38,3 @@
 #        str += f"    cleandistri_PtoS = {self.cleandistri_PtoS}\n"
 #        str += f"    responseFileType = {self.responseFileType}\n"
 #        return str
-#

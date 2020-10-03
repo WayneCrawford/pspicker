@@ -19,19 +19,20 @@ class PickerParameters():
                  SNR_signal_window,
                  SNR_noise_window,
                  SNR_quality_thresholds,
-                 SNR_min_threshold_crossings,
-                 assoc_cluster_windows,
+                 assoc_cluster_window_P,
+                 assoc_cluster_window_S,
                  station_parameters,
                  channel_mapping_rules,
-                 dip_rect_thresholds={'P':-.4, 'S':-0.4},
-                 gw_distri_secs=2,
+                 gw_distri_secs,
+                 SNR_max_threshold_crossings=2,
+                 dip_rect_thresholds={'P': -.4, 'S': -0.4},
                  gw_n_extrema=5,
                  gw_extrema_samples=40,
                  gw_end_cutoff=0.9,
                  SNR_threshold_parameter=0.2,
-                 assoc_min_picks=1e9,
-                 assoc_max_std=3.2,
-                 assoc_max_std_PtoS=4,
+                 assoc_distri_min_values=4,
+                 assoc_distri_nstd_picks=3.2,
+                 assoc_distri_nstd_delays=4,
                  response_file_type=''):
         """
         Initialize Picker Parameters
@@ -60,21 +61,22 @@ class PickerParameters():
             if > 0 and less than 1, then SNR_threshold is this times the
                 maximum SNR
             if < 0, then SNR_threshold is abs(SNR_threshold_parameter)
-        :param SNR_min_threshold_crossings: Minimum crossings of SNR to accept
-            a trace
+        :param SNR_max_threshold_crossings: Maximum crossings of SNR threshold
+            level to accept a trace
         :param dip_rect_thresholds: DipRect thresholds {'P': value, 'S': value}
-        :param assoc_cluster_windows: Windows in seconds for clustering rejection
-            {'P': value, 'S':value}
+        :param assoc_cluster_window_P: Window [seconds] for P-pick rejection
+                                       based on clustering
+        :param assoc_cluster_window_P: Same as above, for S-pick
         :param station_parameters: dict with key=station names,
             items=StationParameters object
         :param channel_mapping_rules: ChannelMappingRules object
-        :param assoc_min_picks: Minimum number of values (P-picks, S-picks
-            or PS delays) needed to perform distribution-based rejection
-            (if > n_stations, will not attempt distribution-based rejection
-        :param assoc_max_std: maximum number of deviations from standard
-            distribution to accept for P picks, and for S picks
-        :param cleandistri_PtoS: maximum number of deviations from standard
-            distribution to accept for P-S delays
+        :param assoc_distri_min_values: Minimum number of values (P-picks,
+            S-picks or PS delays) needed to perform distribution-based
+            rejection (if > n_stations of n_picks, will not perform
+            distribution-based rejection
+        :param assoc_distri_nstd_picks: maximum number of deviations from
+            standard distribution to accept for P picks, and for S picks
+        :param assoc_distri_nstd_delays: same as above, for P-S delays
         :param response_file_type: Format of the response file(s).  'GSE' or
             empty.  If empty use Baillardesque PoleZero format.
         """
@@ -95,15 +97,16 @@ class PickerParameters():
         self.SNR_signal_window = SNR_signal_window
         self.SNR_noise_window = SNR_noise_window
         self.SNR_quality_thresholds = SNR_quality_thresholds
-        self.SNR_min_threshold_crossings = SNR_min_threshold_crossings
+        self.SNR_max_threshold_crossings = SNR_max_threshold_crossings
         self.dip_rect_thresholds = dip_rect_thresholds
-        self.assoc_cluster_windows = assoc_cluster_windows
+        self.assoc_cluster_window_P = assoc_cluster_window_P
+        self.assoc_cluster_window_S = assoc_cluster_window_S
         self.station_parameters = station_parameters
         self.channel_mapping_rules = channel_mapping_rules
         self.SNR_threshold_parameter = SNR_threshold_parameter
-        self.assoc_min_picks = float(assoc_min_picks)
-        self.assoc_max_std = assoc_max_std
-        self.assoc_max_std_PtoS = assoc_max_std_PtoS
+        self.assoc_distri_min_values = float(assoc_distri_min_values)
+        self.assoc_distri_nstd_picks = assoc_distri_nstd_picks
+        self.assoc_distri_nstd_delays = assoc_distri_nstd_delays
         self.response_file_type = response_file_type
 
     # def _make_seisan_paths(self, name):
@@ -135,7 +138,7 @@ class PickerParameters():
         return len(self.station_parameters)
 
     def __str__(self):
-        str = "PickerParamters:\n"
+        str = "PickerParameters:\n"
         str += f"    gw_frequency_band = {self.gw_frequency_band}\n"
         str += f"    gw_sliding_length = {self.gw_sliding_length}\n"
         str += f"    gw_distri_secs = {self.gw_distri_secs}\n"
@@ -146,16 +149,20 @@ class PickerParameters():
         str += f"    SNR_signal_window = {self.SNR_signal_window}\n"
         str += f"    SNR_quality_thresholds = "
         str += f"{self.SNR_quality_thresholds}\n"
-        str += f"    SNR_min_threshold_crossings = "
-        str += f"{self.SNR_min_threshold_crossings}\n"
+        str += f"    SNR_max_threshold_crossings = "
+        str += f"{self.SNR_max_threshold_crossings}\n"
         str += f"    dip_rect_thresholds = {self.dip_rect_thresholds}\n"
-        str += f"    assoc_cluster_windows = {self.assoc_cluster_windows}\n"
+        str += f"    assoc_cluster_window_P = {self.assoc_cluster_window_P}\n"
+        str += f"    assoc_cluster_window_S = {self.assoc_cluster_window_S}\n"
         str += f"    stations = {','.join(self.stations)}\n"
         str += f"    SNR_threshold_parameter = "
         str += f"{self.SNR_threshold_parameter}\n"
-        str += f"    assoc_min_picks = {self.assoc_min_picks}\n"
-        str += f"    assoc_max_std = {self.assoc_max_std}\n"
-        str += f"    assoc_max_std_PtoS = {self.assoc_max_std_PtoS}\n"
+        str += f"    assoc_distri_min_values = "
+        str += f"{self.assoc_distri_min_values}\n"
+        str += f"    assoc_distri_nstd_picks = "
+        str += f"{self.assoc_distri_nstd_picks}\n"
+        str += f"    assoc_distri_nstd_delays = "
+        str += f"{self.assoc_distri_nstd_delays}\n"
         str += f"    response_file_type = '{self.response_file_type}'\n"
         str += f"    channel_mapping_rules = {self.channel_mapping_rules}\n"
         return str
@@ -171,21 +178,37 @@ class PickerParameters():
         # Fill in station parameters
         sp = dict()
         kurtosis = params['kurtosis']
+        fnames = params['responses']['filenames']
         for station, values in params['station_parameters'].items():
             k_parms = values['k_parms']
             sp[station] = StationParameters(
                 P_comp=values['P_comp'],
                 S_comp=values['S_comp'],
                 f_energy=values['f_nrg'],
-                frequencies=kurtosis['frequency_bands'][k_parms['freqs']],
-                window_lengths=kurtosis['window_lengths'][k_parms['wind']],
-                smoothing_sequence=kurtosis['smoothing_sequences']
-                                           [k_parms['smooth']],
+                kurt_frequencies=kurtosis['frequency_bands']
+                                         [k_parms['freqs']],
+                kurt_window_lengths=kurtosis['window_lengths']
+                                            [k_parms['wind']],
+                kurt_smoothing_sequence=kurtosis['smoothing_sequences']
+                                                [k_parms['smooth']],
                 energy_window=values['nrg_win'],
-                response_file=params['responses'][values['resp']],
+                response_file=fnames[values['resp']],
                 use_polarity=values['polar'],
                 n_follow=values['n_follow'])
-
+        # Fill in channel_mapping parameters
+        cmr = ChannelMappingRules
+        if 'channel_parameters' in params:
+            cp = params['channel_parameters']
+            cmr.compZ = cp.get('compZ', cmr.compZ)
+            cmr.compN = cp.get('compN', cmr.compN)
+            cmr.compE = cp.get('compE', cmr.compE)
+            cmr.compH = cp.get('compH', cmr.compH)
+            cmr.S_write_cmp = cp.get('S_write_cmp', cmr.S_write_cmp)
+            cmr.P_write_cmp = cp.get('P_write_cmp', cmr.P_write_cmp)
+            cmr.S_write_phase = cp.get('S_write_phase', cmr.S_write_phase)
+            cmr.P_write_phase = cp.get('P_write_phase', cmr.P_write_phase)
+            cmr.band_order = cp.get('band_order', cmr.band_order)
+        # Fill in rest
         gw = params['global_window']
         SNR = params['SNR']
         assoc = params['association']
@@ -193,25 +216,29 @@ class PickerParameters():
             gw_frequency_band=gw['frequency_band'],
             gw_sliding_length=gw['sliding_length'],
             gw_offsets=gw['offsets'],
-            SNR_signal_window=SNR['window_lengths']['signal'],
-            SNR_noise_window=SNR['window_lengths']['noise'],
-            SNR_min_threshold_crossings=SNR['min_threshold_crossings'],
-            SNR_quality_thresholds=SNR['pick_quality_thresholds'],
-            assoc_cluster_windows=assoc['cluster_windows'],
+            gw_distri_secs=gw['distri_secs'],
+            SNR_signal_window=SNR['signal_window_length'],
+            SNR_noise_window=SNR['noise_window_length'],
+            SNR_quality_thresholds=SNR['quality_thresholds'],
+            assoc_cluster_window_P=assoc['cluster_window_P'],
+            assoc_cluster_window_S=assoc['cluster_window_S'],
             station_parameters=sp,
             channel_mapping_rules=ChannelMappingRules())
+        if 'max_threshold_crossings' in SNR:
+            val.SNR_max_threshold_crossings = int(
+                SNR['max_threshold_crossings'])
         if 'dip_rect_thresholds' in params:
-            val.dip_rect_thresholds=params['dip_rect_thresholds']
-        val.assoc_min_picks = float(assoc.get('min_picks', val.assoc_min_picks))
-        val.assoc_max_std = float(assoc.get('max_std', val.assoc_max_std))
-        val.assoc_max_std_PtoS = float(assoc.get('max_std_PtoS',
-                                       val.assoc_max_std_PtoS))
-        if 'responsefiletype' in params:
-            val.responsefiletype = params['responsefiletype']
+            val.dip_rect_thresholds = params['dip_rect_thresholds']
+        if 'distri_min_values' in assoc:
+            val.assoc_distri_min_values = float(assoc['distri_min_values'])
+        if 'distri_nstd_picks' in assoc:
+            val.assoc_distri_min_values = float(assoc['distri_nstd_picks'])
+        if 'distri_nstd_delays' in assoc:
+            val.assoc_distri_min_values = float(assoc['distri_nstd_delays'])
+        if 'filetype' in params['responses']:
+            val.responsefiletype = params['responses']['filetype']
         if 'threshold_parameter' in SNR:
             val.SNR_threshold_parameter = float(SNR['threshold_parameter'])
-        if 'distri_secs' in gw:
-            val.gw_distri_secs = float(gw['distri_secs'])
         if 'end_cutoff' in gw:
             val.gw_end_cutoff = float(gw['end_cutoff'])
         if 'n_extrema' in gw:

@@ -13,19 +13,20 @@ def select_traces(stream, map_rules, verbose=1):
     :param stream: obspy stream
     :param map_rules: ChannelMappingRules object
     :param verbose: talk
-    :returns: channel_mappings: dict with key=station, subkeys=Z,E,N,H,
-        P_write, S_write
+    :returns: channel_mappings: sorted dict of ChannelMap with key=station
     """
     channel_map = dict()
     stations = list(set([t.stats.station for t in stream]))
-    for station in stations:
+    for station in sorted(stations):
         channel_map[station] = ChannelMap(
             Z=findChannel(stream, station, map_rules.compZ),
             N=findChannel(stream, station, map_rules.compN),
             E=findChannel(stream, station, map_rules.compE),
             H=findChannel(stream, station, map_rules.compH),
-            P_write_to=map_rules.putPick_P_Comp,
-            S_write_to=map_rules.putPick_S_Comp)
+            P_write_cmp=map_rules.P_write_cmp,
+            S_write_cmp=map_rules.S_write_cmp,
+            P_write_phase=map_rules.P_write_phase,
+            S_write_phase=map_rules.S_write_phase)
 
     if verbose:
         print('Channel Map:')
@@ -45,19 +46,28 @@ def select_traces(stream, map_rules, verbose=1):
     return channel_map
 
 
-def findChannel(stream, station, compRegEx):
+def findChannel(stream, station, cmp_chars, band_order):
     """
     Return the seed ID matching the given station and channel regex
 
+    :param station: station name
+    :param cmp_chars: possible characters for component code
+    :band order: string listing band codes in order of preference (used only
+        if there is more than one trace with valid component code)
     :returns: None if none found, error if more than one found
     """
     id_match = [tr.get_id() for tr in stream.select(station=station)
-                if re.search(compRegEx, tr.stats.channel) is not None]
+                if re.search('[' + cmp_chars + ']', tr.stats.comp) is not None]
+    if len(id_match) > 1:
+        for band_code in band_order:
+            if band_code in [id.split('.')[-1][0] for id in id_match]:
+                id_match = [id for id in id_match
+                            if id.split['.'][0] == band_code]
     if len(id_match) == 0:
         return None
     assert len(id_match) == 1,\
-        'more than one match found for station = {}, channel = {}'.format(
-            station, compRegEx)
+        'more than one match found for station = {}, cmp = {}'.format(
+            station, cmp_chars)
     return id_match[0]
 
 

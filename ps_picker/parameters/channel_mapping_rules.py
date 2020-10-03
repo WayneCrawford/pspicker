@@ -7,36 +7,34 @@ class ChannelMappingRules:
     """
     Rules for mapping channels
     """
-    def __init__(self, compZ='[SHDE][HL][Z3]', compE='[SHDE][HL][XE2]',
-                 compN='[SHDE][HL][YN1]', compH='([SHDE]DH|P|SDF)',
-                 putPick_S_Comp='N', putPick_P_Comp='Z',
-                 putPick_P_Phase='Pg', putPick_S_Phase='Sg'):
+    def __init__(self, compZ='Z3', compE='E2X', compN='N1Y', compH='HF',
+                 S_write_cmp='N', P_write_cmp='Z',
+                 P_write_phase='Pg', S_write_phase='Sg'):
         """
-        :param compZ: channel name regexp to assign to Z component
-        :param compE: channel name regexp to assign to E component
-        :param compN: channel name regexp to assign to N component
-        :param compH: channel name regexp to assign to H component
-        :param putPick_S_Comp: save S picks to this component
-        :param putPick_P_Comp: save P picks to this component
-        :param putPick_S_Phase: call S picks this phase name
-        :param putPick_P_Phase: call P picks this phase name
-
-        The channel name regexps must match the end of the component name.
-        For example:
-            '[XE2]'         accepts names 'HDX', 'BHX', 'BHE', 'BH2'...
-            '(X|E|2)'       does the same
-            'SHX'           accepts the name 'SHX'
-            '(SHX|SHE|SH2)'	accepts the names 'SHX', 'SHE' or 'SH2'
-            ''              accepts nothing
+        :param compZ: comp characters to assign to Z component
+        :param compE: comp characters to assign to E component
+        :param compN: comp characters to assign to N component
+        :param compH: comp characters to assign to H component
+        :param S_write_cmp: save S picks to this component.  Should be
+            one of 'ZNEH': output will be written the the component matching
+            this value using the comp? regexp above
+        :param P_write_cmp: save P picks to this component.  Should be
+            one of 'ZNEH'
+        :param S_write_phase: call S picks this phase name
+        :param P_write_phase: call P picks this phase name
         """
+        assert S_write_cmp in 'ZNEH',\
+            f"S_write_cmp = {S_write_cmp}, not in 'ZNEH'"
+        assert P_write_cmp in 'ZNEH',\
+            f"P_write_cmp = {P_write_cmp}, not in 'ZNEH'"
         self.compZ = compZ
         self.compE = compE
         self.compN = compN
         self.compH = compH
-        self.putPick_S_Comp = putPick_S_Comp
-        self.putPick_P_Comp = putPick_P_Comp
-        self.putPick_P_Phase = putPick_P_Phase
-        self.putPick_S_Phase = putPick_S_Phase
+        self.S_write_cmp = S_write_cmp
+        self.P_write_cmp = P_write_cmp
+        self.P_write_phase = P_write_phase
+        self.S_write_phase = S_write_phase
 
     def __str__(self):
         str = "ChannelMappingRules\n"
@@ -44,8 +42,8 @@ class ChannelMappingRules:
         str += f"    compE = {self.compE}\n"
         str += f"    compN = {self.compN}\n"
         str += f"    compH = {self.compH}\n"
-        str += f"    putPick_S_Comp = {self.putPick_S_Comp}\n"
-        str += f"    putPick_P_Comp = {self.putPick_P_Comp}\n"
-        str += f"    putPick_P_Phase = {self.putPick_P_Phase}\n"
-        str += f"    putPick_S_Phase = {self.putPick_S_Phase}\n"
+        str += f"    S_write_cmp = {self.S_write_cmp}\n"
+        str += f"    P_write_cmp = {self.P_write_cmp}\n"
+        str += f"    P_write_phase = {self.P_write_phase}\n"
+        str += f"    S_write_phase = {self.S_write_phase}\n"
         return str

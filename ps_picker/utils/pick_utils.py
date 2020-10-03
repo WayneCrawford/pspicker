@@ -12,6 +12,8 @@ def picks_ps_times(picks):
     :rtype: list, list of UTCDateTime
     """
     matches = picks_matched_stations(picks)
+    if len(matches) == 0:
+        return None, None
     return ([(x['pickS'].time - x['pickP'].time) for x in matches],
             [x['pickP'].time for x in matches])
 

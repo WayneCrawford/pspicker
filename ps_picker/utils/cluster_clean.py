@@ -5,7 +5,7 @@ import numpy as np
 from scipy.cluster.hierarchy import fclusterdata
 
 
-def cluster_cleaning(window_sec=None, picks=None):
+def cluster_clean(window_sec=None, picks=None):
     """
     Return indices of picks that do not fit in the cluster
 
@@ -15,10 +15,11 @@ def cluster_cleaning(window_sec=None, picks=None):
     :returns: picks that fit the cluster criteria
     """
 
-    if (len(picks) > 1):
-        clust_group = fclusterdata([p.time for p in picks],
+    if len(picks) > 1:
+        clust_group = fclusterdata(np.array([[p.time for p in picks]]).T,
                                    t=window_sec,
                                    criterion='distance')
+        print(clust_group)
         # for kk in arange(1,max(clust_group)).reshape(-1):
         lengths = [len(x) for x in clust_group]
         i_clust_max = np.argmax(lengths)

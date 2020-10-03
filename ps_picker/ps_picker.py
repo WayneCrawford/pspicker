@@ -11,13 +11,14 @@ import numpy as np
 from scipy import stats
 from obspy.core import UTCDateTime
 from obspy.core.event import Catalog as obspy_Catalog
-from obspy.core.inventory.response import PolesZerosResponseStage
+# from obspy.core.inventory.response import PolesZerosResponseStage
 from obspy.core.event.base import QuantityError as obspy_QuantityError
 from obspy.core.event.magnitude import Amplitude as obspy_Amplitude
 from obspy.core.event.origin import Pick as obspy_Pick
+from obspy.core.event.origin import Origin as obspy_Origin
 from obspy.core.event import Event as obspy_Event
 from obspy.core.stream import Stream
-from obspy.signal.invsim import simulate_seismometer
+# from obspy.signal.invsim import simulate_seismometer
 from obspy.io.nordic.core import read_nordic
 from obspy.core import read as obspy_read
 
@@ -25,11 +26,11 @@ from obspy.core import read as obspy_read
 from .parameters import (PickerParameters, PickerRunParameters,
                          PickerLoopParameters)
 from .kurtosis import Kurtosis
-from .ps_picker_plotter import PSPickerPlotter
+from .plotter import Plotter
 from .trace_utils import (fast_polar_analysis, mean_trace, pk2pk, same_inc,
                           select_traces, smooth_filter, snr_function)
-from .utils import (clean_distri, cluster_cleaning,
-                    get_response, picks_ps_times, picks_matched_stations)
+from .utils import (clean_distri, cluster_clean, get_response,
+                    picks_ps_times, picks_matched_stations)
 
 
 class PSPicker():
@@ -134,31 +135,24 @@ class PSPicker():
         :param rea_name: database file to read (full path)
         :param show_plots: show plots (useful for training)
         """
+        # Run basic Kurtosis and assoc to find most likely window for picks
         self._setup(rea_name, show_plots)
-        self.run.plotter.global_window_timebounds(self.run.global_first_time,
-                                                  self.run.global_last_time,
-                                                  sorted(self.run.stations))
-        self.run.plotter.pick_window_start(self.run.global_first_time,
-                                           self.run.global_last_time,
-                                           sorted(self.run.stations))
 
-        # Now pick on the traces
         self.debug = debug
-        amplitudes = []
-        picks = []
-        iter = 0
-        for station_name, chan_map in self.run.channel_maps.items():
+        amplitudes, picks, iter = [], [], 0
+        # Pick on individual traces
+        for station_name, chan_map in sorted(self.run.channel_maps.items(),
+                                             key=lambda x: x[0]):
             # Reject stations not listed in parameter file
             if station_name not in self.param.stations:
                 continue
-            self.loop = PickerLoopParameters(
-                station=station_name,
-                station_params=self.param.station_parameters[station_name],
-                channel_map=chan_map)
+            sta_parans = self.param.station_parameters[station_name]
+            self.loop = PickerLoopParameters(station=station_name,
+                                             station_params=sta_parans,
+                                             channel_map=chan_map)
             self.loop.add_component_traces(self.run.stream)
             self.run.plotter.station_window_start(self.loop.datP[0], iter)
-
-            onset_P, onset_S = None, None  # samples after self.loop.t_begin
+            i_onset_P, i_onset_S = None, None  # samps after self.loop.t_begin
 
             # SNR analysis
             fe = self.loop.station_params.f_energy
@@ -166,28 +160,31 @@ class PSPicker():
                 'bandpass', corners=3, freqmin=fe[0], freqmax=fe[1])
             snr, energy = self._calc_snr(datS_filtered)
             if self._snr_trustworthy(snr):
-                extrema, onset_P, onset_S = self._run_Kurtosis(energy)
+                if self.verbose:
+                    print(f"{station_name}: snr is trustworthy")
+                extrema, i_onset_P, i_onset_S = self._run_Kurtosis(snr, energy)
+                print(f'i_onset_P={i_onset_P}, i_onset_S={i_onset_S}')
 
                 # Verify phases using Polarity analysis
-                if self.loop.station_parms.use_polarity\
+                if self.loop.station_params.use_polarity\
                         and (len(datS_filtered) == 3):
-                    onset_P, onset_S = self._polarity_analysis(
+                    i_onset_P, i_onset_S = self._polarity_analysis(
                         extrema, datS_filtered)
+                    print('polarity-verified i_onset_P={}, i_onset_S={}'
+                          .format(i_onset_P, i_onset_S))
+            elif self.verbose:
+                print(f"{station_name}: snr is not trustworthy, not picking")
 
             self.run.plotter.station_window_Ptrace(self, iter)
-            self.run.plotter.plot_onsets(self, iter, onset_P, onset_S)
+            self.run.plotter.plot_onsets(self, iter, i_onset_P, i_onset_S)
 
-            new_picks = self._make_picks(onset_P, onset_S, snr)
+            new_picks = self._make_picks(i_onset_P, i_onset_S, snr)
             picks.extend(new_picks)
             amplitudes.append(self._calc_amplitude(new_picks, snr))
             iter += 1
 
         # Jacknife ###########
         picks = self._remove_unassociated(picks)
-
-        # Only keep biggest amplitude between P and S
-        # Replaced by amplitudes.extend above?????
-        # G = cells2amp(P_picked_cell, S_picked_cell)
 
         self.run.plotter.pick_window_add_picks(self, picks)
         self._save_event(picks, amplitudes)
@@ -199,9 +196,11 @@ class PSPicker():
         :rea_name: database file to read (full path)
         :show_plots: whether to plot or not
         """
-        plotter = PSPickerPlotter(show_plots=show_plots)
+        plotter = Plotter(show_plots=show_plots)
         full_wavefile = self._setuprun_get_wavefile_name(rea_name)
         stream = obspy_read(full_wavefile, 'MSEED')
+        t_begin = min([t.stats.starttime for t in stream])
+        t_end = max([t.stats.endtime for t in stream])
         # get rid of bad last sample in some streams, and detrend
         for tr in stream:
             tr.data = tr.data[:-10]
@@ -209,9 +208,9 @@ class PSPicker():
         channel_maps = select_traces(stream, self.param.channel_mapping_rules)
         overall_distri, channel_maps, plotter =\
             self._setuprun_remove_problem_stations(stream, channel_maps,
-                                                   plotter)
+                                                   plotter, t_begin)
         ft, lt, overall_distri = self._setuprun_define_analysis_window(
-            stream, overall_distri)
+            stream, overall_distri, t_begin, t_end)
         self.run = PickerRunParameters(rea_name=rea_name,
                                        wavefile=full_wavefile,
                                        stream=stream,
@@ -219,7 +218,14 @@ class PSPicker():
                                        overall_distri=overall_distri,
                                        global_first_time=ft,
                                        global_last_time=lt,
+                                       t_begin=t_begin,
                                        plotter=plotter)
+        self.run.plotter.global_window_timebounds(self.run.global_first_time,
+                                                  self.run.global_last_time,
+                                                  sorted(self.run.stations))
+        self.run.plotter.pick_window_start(self.run.global_first_time,
+                                           self.run.global_last_time,
+                                           sorted(self.run.stations))
 
     def _setuprun_get_wavefile_name(self, rea_name):
         """
@@ -239,7 +245,7 @@ class PSPicker():
         return full_wav_name
 
     def _setuprun_remove_problem_stations(self, stream, channel_maps, plotter,
-                                          n_smooth=15):
+                                          t_begin, n_smooth=15):
         """
         Remove flat-lined stations
 
@@ -249,6 +255,7 @@ class PSPicker():
         :param stream: all traces
         :param channel_maps: mapping of channel names to components
         :param plotter: the plotter object
+        :param t_begin: global reference time for begin of traces
         :n_smooth: how many samples to smooth over for calculating Kurtosis
         :returns: overall_distribution of extrema, channel_maps, plotter
         """
@@ -262,6 +269,7 @@ class PSPicker():
         for station, channel_map in sorted(channel_maps.items(),
                                            key=lambda x: x[0]):
             trace = stream.select(id=channel_map.Z)[0]
+            trace_offset = trace.stats.starttime - t_begin
             sr = trace.stats.sampling_rate
             assert station == trace.stats.station,\
                 'trace station ({}) != iteration station ({})'.format(
@@ -277,7 +285,7 @@ class PSPicker():
                 warnings.warn('kurto_cum is empty, ignoring station "{}"'
                               .format(station))
                 # REMOVE THIS STATION FROM KURTOSIS CALCULATION
-                rm_stations.extend(station)
+                rm_stations.append(station)
                 continue
 
             mean_kurto = mean_trace(kurto_cum)
@@ -285,7 +293,7 @@ class PSPicker():
                 Kurtosis.follow_extrem(mean_kurto, 'mini', p.gw_n_extrema,
                                        [p.gw_extrema_samples], 'no-normalize',
                                        'no-sense')
-            ext_seconds = [i/sr for i in ind_ext]
+            ext_seconds = [trace_offset + i/sr for i in ind_ext]
             if self.debug:
                 debug_stream = Stream([trace, mean_kurto, kurto_ext[0]])
                 debug_stream[1].stats.channel = 'KUR'
@@ -301,24 +309,23 @@ class PSPicker():
                         if s not in rm_stations}
         return overall_distri, channel_maps, plotter
 
-    def _setuprun_define_analysis_window(self, stream, overall_distri):
+    def _setuprun_define_analysis_window(self, stream, overall_distri, t_begin,
+                                         t_end):
         """
         Define size of new analysis window
 
         :param stream: stream containing all data traces
-        :param overall_distri: array of extrema on all stations (seconds from t_begin)
+        :param overall_distri: array of extrema on all stations (seconds from
+            t_begin)
+        :param t_begin: reference starttime for all traces
+        :param t_end: end of all traces
         :returns: first_time, last_time, overall_distri
         """
         # Pick_Function.m:204
-        n_samples = len(stream[0].data)
-        sr = stream[0].stats.sampling_rate
-        start_time = stream[0].stats.starttime
-
-        # last_sample is n_samples * pick_window_end in percentage
-        last_sample = n_samples * self.param.gw_end_cutoff
+        # max_offset is data length * gw_end_cutoff
+        max_offset = self.param.gw_end_cutoff * (t_end - t_begin)
         # Cut down picks to those within global bounds
-        overall_distri = [s for s in overall_distri if s <= last_sample/sr]
-
+        overall_distri = [s for s in overall_distri if s <= max_offset]
         min_global = center_distri(overall_distri,
                                    self.param.gw_distri_secs)
 
@@ -328,23 +335,25 @@ class PSPicker():
         last_offset = min_global + T_right
         if first_offset < 0:
             first_offset = 0
-        if last_offset >= n_samples/sr:
-            last_offset = n_samples/sr
+        if last_offset >= max_offset:
+            last_offset = max_offset
 
-        return (start_time + first_offset,
-                start_time + last_offset,
+        return (t_begin + first_offset,
+                t_begin + last_offset,
                 overall_distri)
 
-    def _calc_snr(self, datS_filtered):
+    def _calc_snr(self, datS_filtered, debug=False):
         """
         Calculate the signal-to-noise relation using the S-wave channel(s)
+
+        Calculates energy first, then the SNR based on variations in energy
+        :param datS_filtered: S-wave stream, filtered
         """
         # energy = sqrt(sum(filt**2, 2))
         # snr = snr_function(energy, rsample, param.SNR_wind(1),
         #                    param.SNR_wind(2))
         # filt=filterbutter(3, station_param.f_energy(1),
         #                   station_param.f_energy(2), rsample, datS)
-        # energy = sqrt(sum(filt**2, 2))
         squared = datS_filtered.copy()
         for tr in squared:
             tr.data = np.power(tr.data, 2)
@@ -355,14 +364,22 @@ class PSPicker():
         snr = snr_function(energy,
                            self.param.SNR_noise_window,
                            self.param.SNR_signal_window)
+        if debug:
+            snr_dB = snr.copy()
+            snr_dB.data = 20*np.log10(snr_dB.data)
+            snr_dB.stats.channel = 'SDB'
+            energy.stats.channel = 'NRG'
+            snr.stats.channel = 'SNR'
+            Stream([snr_dB, snr, energy]).plot(equal_scale=False)
         return snr, energy
 
-    def _snr_trustworthy(self, snr, n_smooth=100):
+    def _snr_trustworthy(self, snr, n_smooth=100, debug=False):
         """
         Check if the signal can be trusted or not.
 
-        Considers the signal trustworthy if the SNR crosses the specified
-        threshold at least SNR_threshold_crossings times
+        Considers the signal trustworthy if, within the global pick window,
+        the SNR crosses (from below to above) the specified threshold at least
+        once and no more than SNR_threshold_crossings times
 
         :param snr: signal-to-noise ratio trace
         :n_smooth: length of moving average filter to apply before analysis
@@ -373,52 +390,83 @@ class PSPicker():
         snr_smooth = smooth_filter(snr, n_smooth)
         snr_smooth = same_inc(snr_smooth, self.run.global_first_time,
                               self.run.global_last_time)
-        SNR_threshold = self.get_SNR_threshold(snr_smooth)
-        sign_change = np.diff(np.sign(snr_smooth - SNR_threshold))
+        SNR_threshold = self._get_SNR_threshold(snr_smooth)
+        sign_change = np.diff(np.sign(snr_smooth.data - SNR_threshold))
         SNR_crossings = len(sign_change[sign_change == 2])
-        return SNR_crossings >= self.param.SNR_min_threshold_crossings
+        # print('SNR_threshold={}, SNR_crossings={}'.format(
+        #         SNR_threshold, SNR_crossings), flush=True)
+        if debug:
+            snr_smooth.plot()
+        return (SNR_crossings <= self.param.SNR_max_threshold_crossings
+                and SNR_crossings > 0)
 
-    def get_SNR_threshold(self, snr):
+    def _get_SNR_threshold(self, snr_smooth):
         """
         Calculate the signal-to-noise threshold value
 
-        Can be set as an absolute value or as a fraction of the maximum SNR,
+        Can be set as an absolute value or as a fraction of max(SNR) - 1,
         using the parameter SNR_threshold_parameter
-        :param snr: trace of smoothed signal-to-noise ratio
+        :param snr_smooth: trace of smoothed signal-to-noise ratio
         """
+        # Pick_Function.m:382
         tp = self.param.SNR_threshold_parameter
-        if (tp > 0 and tp < 1):
-            threshold = tp * snr.data.max()
+        if (tp > 0 and tp <= 1):
+            threshold = 1 + tp * (np.nanmax(snr_smooth.data) - 1)
+            # print('tp={}, snr_max={}, snr_dB_max={}'.format(
+            #       tp, np.nanmax(snr_smooth.data),
+            #       np.nanmax(snr_smooth.data)))
         else:
             assert tp < 0, f'Illegal SNR_threshold_parameter value: {tp:g}'
             threshold = -tp
         # Minimum possible SNR threshold is the quality = '3' SNR
-        if threshold < self.param.SNR_quality_thresholds[0]:
-            threshold = self.param.SNR_quality_thresholds[0]
+        if threshold < min(self.param.SNR_quality_thresholds):
+            threshold = min(self.param.SNR_quality_thresholds)
         return threshold
 
-    def _run_Kurtosis(self, snr, energy):
+    def _run_Kurtosis(self, snr, energy, debug=False):
         """
-        calculate extrema and estimate onset_P, onset_S using the Kurtosis
+        calculate extrema and estimate P and S onsets using the Kurtosis
+
+        :param snr: signal-to-noise trace
+        :param energy: energy trace
+        :returns: i_onsetP, i_onset_S, samples from start of trace
         """
         first_time, last_time = self._refine_pick_window(energy)
+        if self.debug:
+            print('_run_Kurtosis: refined pick window = {}-{}'.format(
+                  first_time, last_time))
+        if len(self.loop.datP) > 1:
+            warnings.warn('Only working on first trace in datP')
         all_mean_M, _ = Kurtosis.trace2FWkurto(
-            self.loop.datP, self.loop.station_params.Kurto_F,
-            self.loop.station_params.Kurto_W, 1, first_time, last_time)
+            self.loop.datP[0], self.loop.station_params.kurt_frequencies,
+            self.loop.station_params.kurt_window_lengths, 1,
+            first_time, last_time, debug=self.debug)
+        if self.debug:
+            print('plotting all_mean_M')
+            all_mean_M.plot()
         # Pick_Function.m:430
         kurto_modif, ind_ext, ext_value = Kurtosis.follow_extrem(
             all_mean_M, 'mini', self.loop.station_params.n_follow,
-            self.loop.station_params.Kurto_S,
+            self.loop.station_params.kurt_smoothing_sequence,
             'no-normalize', 'no-sense')
-        extrema = [{'i': i, 'snr': snr[ind_ext]} for i in ind_ext]
         self.run.plotter.station_window_add_snr_nrg(
-                self, snr, energy, all_mean_M, kurto_modif)
+            self.run.global_first_time, self.run.global_last_time,
+            min(self.param.SNR_quality_thresholds), self.loop.datP[0],
+            snr, energy, all_mean_M, kurto_modif)
+        extrema = [{'i': i, 'snr': snr.data[i]} for i in ind_ext]
+        # print(extrema)
+        min_thresh = min(self.param.SNR_quality_thresholds)
+        # print(self.param.SNR_quality_thresholds, min_thresh)
+        extrema = [x for x in extrema if x['snr'] > min_thresh]
+        if self.debug:
+            print(f'_run_Kurtosis: extrema indices: {ind_ext}')
+            print(f'extrema={extrema}')
         if len(extrema) == 0:
-            onset_P, onset_S = None, None
+            i_onset_P, i_onset_S = None, None
         else:
             self.run.plotter.station_window_add_extrema(self, extrema)
-            extrema, onset_P, onset_S = self._calc_follows(ind_ext)
-        return extrema, onset_P, onset_S
+            i_onset_P, i_onset_S = self._calc_follows(extrema)
+        return extrema, i_onset_P, i_onset_S
 
     def _refine_pick_window(self, energy):
         """
@@ -437,22 +485,26 @@ class PSPicker():
         energy_smooth = same_inc(energy_smooth,
                                  self.run.global_first_time,
                                  self.run.global_last_time)
-        __, ind_max = np.max(energy_smooth)
+        # print(energy_smooth, type(energy_smooth), energy_smooth.data)
+        ind_max = np.nanargmax(energy_smooth.data)
         last_sample = ind_max.copy()
-        maxKurtoWind = np.max(self.loop.station_params.Kurto_W)
+        max_kurto_wind = np.max(self.loop.station_params.kurt_window_lengths)
         max_precursor = np.floor(
-            sr * (self.loop.station_params.energy_window
-                  + maxKurtoWind))
+            sr * (self.loop.station_params.energy_window + max_kurto_wind))
         first_sample = ind_max - max_precursor
         if first_sample < 0:
             first_sample = 0
             last_sample = max_precursor
         # Pick_Function.m:417
-        return tr_start + (first_sample/sr, last_sample/sr)
+        return tr_start + first_sample/sr, tr_start + last_sample/sr
 
     def _polarity_analysis(self, extrema, datS_filtered):
         """
-        Set onset_P and onset_S from extrema based on signal polarity
+        Return P and S onsets from extrema based on signal polarity
+
+        :param extrema: list of 1 or 2 dicts {'i': index, 'value'?: value}
+        :param datS_filtered: stream of traces used for S picking, filtered
+        :returns: i_onset_P, i_onset_S
         """
         # Pick_Function.m:543
         rectP, aziP, dipP = fast_polar_analysis([e['i'] for e in extrema],
@@ -469,82 +521,82 @@ class PSPicker():
         if len(extrema) == 0:
             return None, None
         else:
-            onset_P, onset_S = None, None
+            i_onset_P, i_onset_S = None, None
             if len(extrema) == 1:
                 mat_DR = DR(np.arange(np.floor(extrema[0]['i']) - 200,
                                       np.floor(extrema[0]['i']) + 200))
                 tmp = np.max(np.abs(mat_DR)) * np.sign(np.mean(mat_DR))
                 if tmp >= self.param.dip_rect_thresholds['P']:
-                    onset_P = extrema[0]['i']
+                    i_onset_P = extrema[0]['i']
                 elif tmp <= self.param.dip_rect_thresholds['S']:
-                    onset_S = extrema[0]['i']
+                    i_onset_S = extrema[0]['i']
             elif len(extrema) == 2:
                 mat_DR1 = DR(np.arange(np.floor(extrema[0]['i']) - 200,
                                        np.floor(extrema[0]['i'] + 200)))
                 mat_DR2 = DR(np.arange(np.floor(extrema[1]['i']) - 200,
                                        np.floor(extrema[1]['i'] + 200)))
                 if np.mean(mat_DR1) > np.mean(mat_DR2):
-                    onset_P = extrema[0]['i']
-                    onset_S = extrema[1]['i']
-        return onset_P, onset_S
+                    i_onset_P = extrema[0]['i']
+                    i_onset_S = extrema[1]['i']
+        return i_onset_P, i_onset_S
 
-    def _calc_follows(self, extrema, ind_ext):
+    def _calc_follows(self, extrema):
         """
-        returns offsets depending on number of extrema to follow_extrem
+        returns offsets depending on number of extrema to follow
 
-        :returns extrema (cleaned), onset_P, onset_S
-        :rtype: dict, int, int
+        :param extrema: list of {'snr': 'i':} dicts
+        :returns i_onset_P, i_onset_S
+        :rtype: int, int
         """
         # Pick_Function.m:507
         # eliminate extrema whose snr is less than SNR_thresh
-        extrema = [x for x in extrema if x['snr'] > self.param.SNR_thresh]
-        assert self.loop.sation_params.nfollow == 1 \
-            or self.loop.sation_params.nfollow == 2, \
-            'n_follow is not 1 or 2'
-        if self.loop.station_params.n_follow == 1:
-            if len(extrema) == 0:
-                return [], 0, 0
+        n_follow = self.loop.station_params.n_follow
+        assert n_follow in (1, 2), 'n_follow is not 1 or 2'
+        if len(extrema) == 0:
+            return None, None
+        if n_follow == 1:
+            return extrema[0]['i'], None
+        else:
+            print(extrema)
+            extrema.sort(key=lambda x: x['i'])
+            if len(extrema) == 1:
+                return extrema[0]['i'], None
             else:
-                return extrema, ind_ext.copy(), 0
-        elif self.loop.station_params.n_follow == 2:
-            extrema.sort(key='i')
-            if len(extrema) == 0:
-                return [], 0, 0
-            elif len(extrema) == 1:
-                return extrema, extrema[0]['i'], 0
-            else:
-                return extrema, extrema[0]['i'], extrema[1]['i']
+                return extrema[0]['i'], extrema[1]['i']
 
-    def _make_picks(self, onset_P, onset_S, snr):
+    def _make_picks(self, i_onset_P, i_onset_S, snr):
         """
         Put onset_P and onset_S into list of obspy Picks
         """
         picks = []
-        base_waveid = self.loop.datP[0].get_id()[:-2]
-        if onset_P is not None:
-            cmp = self.loop.station_params.putPick_P_Comp
-            picks.extend(obspy_Pick(
-                time=self.loop.index_to_time(onset_P),
-                time_errors=self._SNR_to_time_error(snr.data[onset_P]),
-                waveform_id=base_waveid + cmp,
-                phase_hint=self.loop.station_params.putPick_P_Phase))
-        if onset_S is not None:
-            cmp = self.loop.station_params.putPick_S_Comp
-            picks.extend(obspy_Pick(
-                time=self.loop.index_to_time(onset_S),
-                time_errors=2*self._SNR_to_time_error(snr.data[onset_S]),
-                waveform_id=base_waveid + cmp,
-                phase_hint=self.loop.station_params.putPick_S_Phase))
+        waveid = self.loop.datP[0].get_id()
+        if i_onset_P is not None:
+            picks.append(obspy_Pick(
+                time=self.loop.index_to_time(i_onset_P),
+                time_errors=self._SNR_to_time_error(snr.data[i_onset_P], 'P'),
+                waveform_id=waveid[:-2] + self.loop.channel_map.P_write_cmp,
+                phase_hint=self.loop.channel_map.P_write_phase))
+
+        if i_onset_S is not None:
+            picks.append(obspy_Pick(
+                time=self.loop.index_to_time(i_onset_S),
+                time_errors=self._SNR_to_time_error(snr.data[i_onset_S], 'S'),
+                waveform_id=waveid[:-2] + self.loop.channel_map.S_write_cmp,
+                phase_hint=self.loop.channel_map.S_write_phase))
         return picks
 
     def _calc_amplitude(self, picks, snr):
         """
         Calculate maximum Woods-Anderson amplitude
 
-        :param picks: obspy picks for this station
+        :param picks: list of obspy picks for this station
         :param snr: trace containing signal-to-noise ratio
         :returns: obspy.core.event.magnitude.Amplitude
         """
+        if len(picks) == 0:
+            return None
+        assert isinstance(picks[0], obspy_Pick),\
+            f'picks[0] is a {type(picks[0])}, not a Pick'
         pick_P = [x for x in picks if x.phase_hint[0] == 'P']
         pick_S = [x for x in picks if x.phase_hint[0] == 'S']
 
@@ -566,7 +618,7 @@ class PSPicker():
             wood = self.loop.datP.copy()
         for tr in wood:
             tr.simulate(paz_remove=paz, paz_simulate=paz_wa, water_level=60.0)
-            #tr.data = simulate_seismometer(
+            # tr.data = simulate_seismometer(
             #    tr.detrend().data, tr.stats.sampling_rate, paz, paz_wa)
         if len(pick_S) > 0:
             pick = pick_S[0]
@@ -583,8 +635,7 @@ class PSPicker():
                 #                      "period", "integral", "other"]
                 unit='m/s',  # obspy.core.event.header.AmplitudeUnit,
                 period=Amp['period'],
-                snr=Amp['snr'],
-                pick_id=pick.id,
+                pick_id=pick.resource_id,
                 waveform_id=pick.waveform_id)
         return amplitude
 
@@ -601,7 +652,7 @@ class PSPicker():
         # S_picked_cell=rm_cell_line(S_picked_cell[2] == 0,S_picked_cell)
 
         picks = self._remove_unclustered(picks)
-        if self.param.assoc_min_picks <= self.run.n_stations:
+        if self.param.assoc_distri_min_values <= self.run.n_stations:
             picks = self._remove_badly_distributed(picks)
             picks = self._remove_bad_delays(picks)
         return picks
@@ -615,11 +666,15 @@ class PSPicker():
         :returns: modified picks
         """
         # Pick_Function.m:746
-        picksP = cluster_cleaning(self.param.assoc_cluster_windows['P'],
-                                  [p for p in picks if p.phase_hint[0] == 'P'])
-        picksS = cluster_cleaning(self.param.assoc_cluster_windows['S'],
-                                  [p for p in picks if p.phase_hint[0] == 'S'])
-        return picksP + picksS
+        p_picks = [p for p in picks if p.phase_hint[0] == 'P']
+        if len(p_picks) >= self.param.assoc_distri_min_values:
+            p_picks = cluster_clean(self.param.assoc_cluster_window_P, p_picks)
+
+        s_picks = [p for p in picks if p.phase_hint[0] == 'S']
+        if len(s_picks) >= self.param.assoc_distri_min_values:
+            s_picks = cluster_clean(self.param.assoc_cluster_window_S, s_picks)
+
+        return p_picks + s_picks
 
     def _remove_badly_distributed(self, picks):
         """
@@ -628,12 +683,14 @@ class PSPicker():
         :param picks: input Picks
         """
         _, iP = clean_distri([p.time for p in picks if p.phase_hint[0] == 'P'],
-                             self.param.assoc_min_std, 'median',
-                             self.param.assoc_min_picks)
+                             self.param.assoc_distri_nstd_picks,
+                             'median',
+                             self.param.assoc_distri_min_values)
         _, iS = clean_distri([p.time for p in picks if p.phase_hint[0] == 'S'],
-                             self.param.assoc_min_std, 'median',
-                             self.param.assoc_min_picks)
-        return picks[iP] + picks[iS]
+                             self.param.assoc_distri_nstd_picks,
+                             'median',
+                             self.param.assoc_distri_min_values)
+        return [picks[i] for i in iP + iS]
 
     def _remove_bad_delays(self, picks):
         """
@@ -645,13 +702,12 @@ class PSPicker():
             return picks
         delay_stations = [m['station'] for m in matches]
         delays = [m['pickS'].time - m['pickP'].time for m in matches]
-        _, i_clean = clean_distri(
-            delays,
-            self.param.assoc_min_std_PtoS,
-            'median',
-            self.param.assoc_min_picks)
+        _, i_PS = clean_distri(delays,
+                               self.param.assoc_distri_nstd_delays,
+                               'median',
+                               self.param.assoc_distri_min_values)
         # Include good delay stations AND non-delay stations
-        good_delay = [delay_stations[i] for i in i_clean]
+        good_delay = [delay_stations[i] for i in i_PS]
         bad_delay = [s for s in delay_stations if s not in good_delay]
         good_picks = [p for p in picks if p.station not in bad_delay]
         return good_picks
@@ -661,12 +717,17 @@ class PSPicker():
         Save event to NORDIC file
         """
         # Replaces a large section from Pick_Function.m 840-887
-        first_time = UTCDateTime(np.min([p.time.matplotlib_date for p in picks]))
+        if len(picks) == 0:
+            warnings.warn('No picks saved!')
+            o_time = self.run.global_first_time
+        else:
+            o_time = estimate_origin_time(picks)
         event = obspy_Event(
             event_type='earthquake',
             picks=picks,
-            origin=obspy_Origin(time=estimate_origin_time(picks))
+            origins=[obspy_Origin(time=o_time)],
             amplitudes=amplitudes)
+        print(event)
         cat = obspy_Catalog(events=[event])
         # How can I change uncertainties to "0", "1", "2", "3"?
         # By creating an associated arrival and setting it's time_weight
@@ -680,16 +741,17 @@ class PSPicker():
                   wavefiles=[self.run.wavefile],
                   high_accuracy=True)
 
-    def _SNR_to_time_error(self, snr):
+    def _SNR_to_time_error(self, snr, phase='P'):
         """
         Return approximate pick time errors corresponding to SNR
 
         :param snr: pick signal-to-noise ratio
-
+        :param phase:   'P' or 'S', errrors are 2* more for 'S'
         :returns: time_errors
         :rtype: obspy QuantityError
         """
-        sr = self.run.datP[0].stats.sampling_rate
+        assert phase in 'PS', "phase '{phase}' not in 'PS'"
+        sr = self.loop.datP[0].stats.sampling_rate
         if snr > self.param.SNR_quality_thresholds[3]:
             uncertainty = 2. / sr
         elif snr >= self.param.SNR_quality_thresholds[2]:
@@ -700,13 +762,15 @@ class PSPicker():
             uncertainty = 128. / sr
         else:
             uncertainty = 2000. / sr
+        if phase == 'S':
+            uncertainty *= 2.
         return obspy_QuantityError(uncertainty)
 
 
 def center_distri(v, win_size, n_steps=1000):
     """
     Return the center of the window containing the most values in an array
-    
+
     :param v: array of values
     :param win_size: window size
     :param n_steps: number of values between min(v) and max(v) to test
@@ -731,36 +795,37 @@ def center_distri(v, win_size, n_steps=1000):
 def estimate_origin_time(picks, vp_over_vs=1.7):
     """
     estimate EQ origin time based on pick times
-    
-    Uses P-S delays if possible
-    If not, return earliest pick
-    
+
+    Uses P-S delays if possible. If not, return the earliest pick
     :param picks: list of obspy Pick objects
     :param vp_over_vs: assumed velocity ratio
     """
-    origin_time = _average_ps_o_time(picks)
+    origin_time = _average_ps_o_time(picks, vp_over_vs)
     if origin_time is not None:
         return origin_time
     else:
-        return sorted(picks, key=lambda p: p.time)[0]
+        times = list(sorted([p.time for p in picks]))
+        # print(f'times={times}, picks={picks}', flush=True)
+        return times[0]
 
 
 def _average_ps_o_time(picks, vp_over_vs):
     """
     Find origin times for each P-S pair
-    
+
     Uses the equation: o_time = p_time - (s_time - p_time)/(vp/vs - 1)
     :param picks: list of obspy Pick objects
     :param vp_over_vs: assumed velocity ratio
     """
     o_times = []
-    for ps_delay, p_time in picks_ps_times(picks):
-        o_times.append(p_time - ps_delay/(vp_over_vs - 1))
-    if len(o_times) == 0:
+    ps_delays, p_times = picks_ps_times(picks)
+    if ps_delays is None:
         return None
+    for ps, p in zip(ps_delays, p_times):
+        o_times.append(p - ps/(vp_over_vs - 1))
     # Throw out values more than 3 std away
-    z = np.abs(starts.zscore(o_times))
-    return np.mean(o_times[np.nonzero(z<3)[0]])     
+    zs = np.abs(stats.zscore(o_times))
+    return np.mean([o for o, z in zip(o_times, zs) if z < 3])
 
 
 def _wood_anderson_paz():
@@ -768,9 +833,9 @@ def _wood_anderson_paz():
     Return PoleZerosStage for Wood-Anderson seismometer
     """
     return {'gain': 1.0,
-           'poles': [(-6.283-4.7124j), (-6.283+4.7124j)],
-           'sensitivity': 2080,
-           'zeros': [0 + 0j]}
+            'poles': [(-6.283-4.7124j), (-6.283+4.7124j)],
+            'sensitivity': 2080,
+            'zeros': [0 + 0j]}
     # return PolesZerosResponseStage(
     #     pz_transfer_function_type='LAPLACE (RADIANS)',
     #     stage_gain=2800,

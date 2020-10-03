@@ -30,7 +30,7 @@ class Kurtosis():
         :param trace: waveform trace
         :param Fc: frequency bandwidth [low, high]
         :param T: sliding window length (s)
-        :param n_smooth: smoothing sequence (samples)
+        :param n_smooth: smoothing to apply samples
         :returns: kurto_cum: cumulative kurtosis stream
                   ind_gmin: global minimum indices
                   gmin: global minimum value
@@ -58,7 +58,7 @@ class Kurtosis():
 
     @staticmethod
     def trace2FWkurto(trace, FBs, window_lengths, n_smooth, starttime,
-                      endtime):
+                      endtime, debug=False):
         """
         Calculate cumulative kurtosis over bandwidths and windows
 
@@ -75,6 +75,7 @@ class Kurtosis():
                   kurtosises for each window and frequency bandwidth
         """
         # trace2FWkurto.m:26
+        assert isinstance(trace, Trace), "trace is not an obspy Trace"
         sr = trace.stats.sampling_rate
         data_length = trace.stats.endtime - trace.stats.starttime
         if starttime < trace.stats.starttime:
@@ -86,8 +87,10 @@ class Kurtosis():
         B = []
         for FB in FBs:
             f = trace.copy()
+            if debug:
+                print(f'trace2FWkurto: filtering from {FB[0]} to {FB[1]} Hz')
             f.filter(type='bandpass', freqmin=FB[0], freqmax=FB[1], corners=3)
-            f.data = same_inc(f.data, starttime, endtime)
+            f = same_inc(f, starttime, endtime)
             B.append(f)
 
         K = []  # all kurtosises: 1st dim: window_lengths, 2nd dim: freq bands
@@ -98,19 +101,32 @@ class Kurtosis():
                     '({:2g}s > {:4g}s), skipping!'.format(win_len,
                                                           data_length / sr))
             else:
-                win_samps = np.floor(win_len * sr) + 1
+                win_samps = int(np.floor(win_len * sr)) + 1
                 if win_samps > len(trace.data):
                     win_samps = len(trace.data)
-                kurtos = [Kurtosis.fast_kurtosis(t, win_samps) for t in B]
+                kurtos = []
+                for t in B:
+                    k = Kurtosis.fast_kurtosis(t, win_samps)
+                    if debug:
+                        print('plotting trace, kurtosis for win_samps='
+                              f'{win_samps}, f = {FBs[0]}')
+                        k.stats.channel = 'KUR'
+                        Stream([k, t]).plot(equal_scale=False)
+                    kurtos.append(k)
                 f_kurto_cums = smooth_filter(kurtos, n_smooth)
-                kurto_cums = Kurtosis.f_cumul(f_kurto_cums)
+                kurto_cums, _ = Kurtosis.f_cumul(f_kurto_cums)
                 lines = Kurtosis.f_segment(kurto_cums)
                 corr_kurto_cums = kurto_cums.copy()
+                if debug:
+                    print(f'trace2FWkurto: plotting kurt_cums & fit lines')
                 for c, l in zip(corr_kurto_cums, lines):
-                    c -= l
+                    if debug:
+                        l.stats.channel = 'LIN'
+                        Stream([c, l]).plot()
+                    c.data -= l.data
                 K.append(corr_kurto_cums)
 
-        mean_K = K[0]
+        mean_K = K[0][0].copy()
         mean_K.data = np.zeros(len(mean_K.data))
         for a in K:
             for b in a:
@@ -129,6 +145,7 @@ class Kurtosis():
         :param win_samps: number of samples in the sliding window
         :returns: Kurtosis trace
         """
+        assert isinstance(trace, Trace), "trace is not an obspy Trace"
         win_samps = int(round(win_samps))
         # fast_kurtosis.m:11
         if win_samps == 1:
@@ -137,7 +154,7 @@ class Kurtosis():
         # Set NaNs to 0 for computational stability
         f = trace.copy()
         f.detrend(type='demean')
-        f.data[np.isnan(f.data)] = 0
+        # f.data[np.isnan(f.data)] = 0
 
         # Compute kurtosis
         a = np.divide(np.ones(win_samps), float(win_samps))
@@ -159,7 +176,7 @@ class Kurtosis():
 
     @staticmethod
     def follow_extrem(f, type_='mini', n_follow=2, smooth_vec=[1, 5, 10],
-                      option=None, sense=None):
+                      option=None, sense=None, debug=False):
         """
         Find extremas using several smoothed versions of a function
 
@@ -172,7 +189,7 @@ class Kurtosis():
         :param type: 'mini' or 'maxi', depending on wheter you want to
             follow minima or maxima
         :param n_follow: number of extrema to follow
-        :param smooth_vec: vector containing the different smoothings to apply
+        :param smooth_vec: list of the different smoothings to apply
         :param option:
             'normalize': normalize the gradient
             otherwise:   don't normalize
@@ -198,34 +215,41 @@ class Kurtosis():
             v_smooth = Kurtosis.cum2grad(v_smooth, option)
             ext_indices, _ = Kurtosis._loca_ext(v_smooth, f.stats.starttime,
                                                 f.stats.endtime, type_)
+            if debug:
+                print(f'smoothing={smoothing}: i_extrema={ext_indices}')
+            # v_smooth.plot()
             smoothed.append({'indices': ext_indices, 'trace': v_smooth})
 
         # create a list of {index:  value:} dictionaries with all of the
         # detected extrema in the smoothest trace
-        A = [{'index': i, 'value': smoothed[0]['trace'].data[i]}
-             for i in smoothed[0]['indices']]
+        all_extrema = [{'index': i, 'value': smoothed[0]['trace'].data[i]}
+                       for i in smoothed[0]['indices']]
+        # print(f'all_extrema = {all_extrema}')
+        # print(f'smoothed[0] = {smoothed[0]}')
         # Choose up to 'n_follow' extrema in the smoothest trace
         if sense == 'first':
             # If extrema are tiny, take the biggest
-            B = [x for x in A if x['value'] >= 0.1]  # eliminate tiny extrema?
-            if len(B) == 0:
-                iA = sorted(A, key=lambda k: np.abs(k['value']), reverse=True)
+            big_extrema = [x for x in all_extrema if x['value'] >= 0.1]
+            if len(big_extrema) > 1:
+                ext = sorted(big_extrema, key=lambda k: k['index'])
                 try:
-                    b = [x for x in iA[:n_follow]]
+                    b = [x for x in ext[:n_follow:-1]]
                 except Exception:
-                    b = [x for x in iA]
+                    b = [x for x in ext[::-1]]
             else:
-                iA = sorted(B, key=lambda k: k['index'])
+                ext = sorted(all_extrema, key=lambda k: np.abs(k['value']),
+                             reverse=True)
                 try:
-                    b = [x for x in iA[:n_follow:-1]]
+                    b = [x for x in ext[:n_follow]]
                 except Exception:
-                    b = [x for x in iA[::-1]]
+                    b = [x for x in ext]
         else:
-            iA = sorted(A, key=lambda k: np.abs(k['value']), reverse=True)
+            ext = sorted(all_extrema, key=lambda k: np.abs(k['value']),
+                         reverse=True)
             try:
-                b = [x for x in iA[:n_follow]]
+                b = [x for x in ext[:n_follow]]
             except Exception:
-                b = [x for x in iA]
+                b = [x for x in ext]
         if len(b) == 0:
             return [x['trace'] for x in smoothed], b, []
 
@@ -239,14 +263,17 @@ class Kurtosis():
             else:
                 # for j in arange(1, len(b)).reshape(-1):
                 c = []
+                # print(f'b = {b}')
                 for extrem in b:
+                    # print(f'extrem = {extrem}')
+                    # print(f'M = {M}')
                     differ = abs(extrem['index'] - M['indices'])
                     if np.any(differ <= 40):
                         i = np.argmin(differ)
-                        c.extend({'index': M['indices'][i],
+                        c.append({'index': M['indices'][i],
                                   'value': M['trace'].data[i]})
                     else:
-                        c.extend(extrem)
+                        c.append(extrem)
                 b = c.copy()
 
         return ([x['trace'] for x in smoothed],
@@ -277,12 +304,12 @@ class Kurtosis():
             bare_trace = True
         g = f.copy()
         for t in g:
-            trace = t.copy()    # Backup copy for info
+            tdata = t.data.copy()    # Backup copy for info
             t.data[np.isnan(t.data)] = 0
             t.differentiate(method='gradient')
             t.data[t.data < 0] = 0
             t.data = np.cumsum(t.data)
-            t.data[np.isnan(trace)] = np.nan
+            t.data[np.isnan(tdata)] = np.nan
 
         p = g.copy()
 
@@ -311,10 +338,12 @@ class Kurtosis():
         if isinstance(f, Trace):
             f = [f]
             bare_trace = True
+        assert isinstance(f[0], Trace), f'f is list of {type(f[0])}s!'
         # f_segment.m:12
         segments = []
         # for i in arange(1,n).reshape(-1):
         for trace in f:
+            # print(type(trace), trace)
             # clear('a','b','ya','yb','lin')
             a = np.nonzero(np.isfinite(trace.data))[0][0]
             b = np.nonzero(np.isfinite(trace.data))[0][-1]
