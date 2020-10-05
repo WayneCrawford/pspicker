@@ -18,12 +18,15 @@ class Plotter():
         3) Kurtosis
         4) Energy and signal-to-noise level
     """
-    def __init__(self, show_plots=True):
+    def __init__(self, plot_global=True, plot_stations=True):
         """
-        :param show_plots: make the plots or not?
-        :kind show_plots: bool
+        :param plot_global: show global selection and picks plots
+        :kind plot_global: bool
+        :param plot_stations: show individual station plots
+        :kind plot_stations: bool
         """
-        self.show_plots = show_plots
+        self.plot_stations = plot_stations
+        self.plot_global = plot_global
         self.fig1 = None  # Global plot figure
         self.ax1 = None   # Global plot axis
         self.fig2 = None  # Global pick plot figure
@@ -35,7 +38,7 @@ class Plotter():
         """
         Create Figure 1 (global picking window) (figure 1)
         """
-        if not self.show_plots:
+        if not self.plot_global:
             return
         self.fig1, self.ax1 = plt.subplots(num='PSPicker: Overview')
 
@@ -43,10 +46,10 @@ class Plotter():
         """
         :param trace: trace to plot
         :param iTrace: y-index of the trace (used to separate traces)
-        :param extrema: offset time of all extrema for this trace
+        :param extrema_s: offset time of all extrema for this trace
         """
         # Pick_Function.m: ~160?
-        if not self.show_plots:
+        if not self.plot_global:
             return
         ax = self.ax1
         t_begin = trace.stats.starttime.matplotlib_date
@@ -69,15 +72,16 @@ class Plotter():
         :param rect_end_time: global window end time
         :param stations: list of stations in same order as iTrace above
         """
-        if not self.show_plots:
+        if not self.plot_global:
             return
         # Pick_Function.m:231
         ax = self.ax1
-        w1_s = rect_start_time.matplotlib_date
-        w1_e = rect_end_time.matplotlib_date
         N = len(stations)
-        patches = [Rectangle((w1_s, -0.5), width=w1_e-w1_s, height=N + 1,
-                   color='lightblue', alpha=0.1, edgecolor=None)]
+        patches = [Rectangle((rect_start_time.matplotlib_date, -0.5),
+                             width=rect_end_time.matplotlib_date
+                             -rect_start_time.matplotlib_date,
+                             height=N + 1, color='lightblue', alpha=0.1,
+                             edgecolor=None)]
         ax.add_collection(PatchCollection(patches))
         ax.set_title('Phase 1: Calculate global window')
         ax.set_xlabel(rect_start_time.strftime('%Y-%m-%d'))
@@ -88,39 +92,90 @@ class Plotter():
         plt.show(block=False)
         plt.pause(0.001)
 
-    def pick_window_start(self, starttime, endtime, stations):
+    def pick_window_setup(self, starttime, endtime, stations):
         """
         :param starttime: plot start time
         :param endtime: plot end time
         :param stations: sorted list of stations
         """
-        if not self.show_plots:
+        if not self.plot_global:
             return
         # Pick_Function.m:250
         fig, ax = plt.subplots(num='PSPicker: all picks')
         N = len(stations)
-        fig.clf()
-        ax.set_xlim(starttime.matplotlib_date, endtime.matplotlib_date)
+        # fig.clf()
+        ax.set_title('Phase 3: Select final picks based on clustering')
+        # ax.set_xlim(starttime.matplotlib_date, endtime.matplotlib_date)
+        ax.set_xlim((starttime-30).datetime, endtime.datetime)
         ax.set_ylim(-0.5, N - 0.5)
         ax.set_yticks(np.arange(0, N))
         ax.set_yticklabels(stations)
-        ax.set_title('Phase 3: Select final picks based on clustering')
         self.fig2 = fig
         self.ax2 = ax
         plt.draw()
         plt.show(block=False)
         plt.pause(0.001)
-        # datetick('keeplimits')
-        # hold('on')
 
-    def station_window_start(self, trace, iter):
+    def pick_window_add_picks(self, picks, stations, t_begin,
+                              P_cluster_width, S_cluster_width):
+        """
+        Plot initial and final P and S picks for all stations
+
+        :picks: all picks
+        :stations: ordered list of stations.  The y position depends on the
+                   position of the pick's station in this list
+        :param t_begin: begin time for all plots
+        :param P_cluster_width: width of P cluster window
+        :param S_cluster_width: with of S cluster window
+        """
+        if not self.plot_global:
+            return
+        # Pick_Function.m:811
+        self._plot_picks_phase(picks, 'P', 'b', [.8, .8, 1.],
+                               P_cluster_width, stations)
+        self._plot_picks_phase(picks, 'S', 'r', [1., .8, .8],
+                               S_cluster_width, stations)
+        self.ax2.set_xlabel(t_begin.strftime('%Y-%m-%d'))
+        plt.draw()
+        plt.show(block=False)
+        plt.pause(0.001)
+
+    def _plot_picks_phase(self, picks, phase, color, rect_color,
+                          width, stations):
+        """
+        :param phase: "P" or "S"
+        :param color: color for picks
+        :param rec_color: color for pick window
+        :parm width: width of pick window in seconds
+        :param stations: ordered list of stations
+        """
+        ax = self.ax2
+        picks = [p for p in picks if p.phase_hint[0] == phase]
+        if len(picks) > 0:
+            window_start = picks[0].time
+            for pick in picks:
+                if pick.time < window_start:
+                    window_start = pick.time
+                j = stations.index(pick.waveform_id.station_code)
+                # ax.vlines(pick.time.matplotlib_date,
+                ax.vlines(pick.time.datetime, j - 0.5, j + 0.5, colors=color)
+                print('plotting {} pick at {}, {} to {}'.format(
+                      color, pick.time, j-0.5, j+0.5))
+            p = [Rectangle((window_start.matplotlib_date, 0.5),
+                           width=width / 86400, height=len(stations),
+                           color=rect_color, edgecolor=None, alpha=0.5)]
+            print('plotting rectangle from {},{}, width={}, height={}'
+                  .format(window_start, 0.5, width / 86400, len(stations)))
+            ax.add_collection(PatchCollection(p))
+
+    def station_window_setup(self, trace, iter):
         """
         Plot pick phases on Figure 3+
 
         :param trace: trace to plot
         :param iter: station iteration number
         """
-        if not self.show_plots:
+        if not self.plot_stations:
             return
         # Pick_Function.m:334
         # fig, axs = plt.subplots(4, 1, num=2+iter)
@@ -154,7 +209,7 @@ class Plotter():
         :param all_mean_M: mean Kurtosis trace?
         :kurto_modif: modified kurtosis trace?
         """
-        if not self.show_plots:
+        if not self.plot_stations:
             return
         # Pick_Function.m:443
         axs = self.axs3
@@ -210,7 +265,7 @@ class Plotter():
         """
         Add extrema to figure 3+ axis[2]
         """
-        if not self.show_plots:
+        if not self.plot_stations:
             return
         # Pick_Function.m:502
         for extremum in extrema:
@@ -232,7 +287,7 @@ class Plotter():
 
         iter is used to separate the traces on the y axis
         """
-        if not self.show_plots:
+        if not self.plot_stations:
             return
         ax2 = self.ax2
         # Pick_Function.m:601
@@ -251,68 +306,31 @@ class Plotter():
         onsets are indices
         iter is used to separate the traces on the y axis
         """
-        if not self.show_plots:
+        if not self.plot_stations and not self.plot_global:
             return
-        axs = self.axs3
-        ax2 = self.ax2
+        if self.plot_global:
+            ax2 = self.ax2
+        if self.plot_stations:
+            axs = self.axs3
         # Pick_Function.m:576
 
         # Pick Window: add picks to subplots 1, 2 and 3
         if onset_P is not None:
-            p_time = picker.loop.index_to_time(onset_P).matplotlib_date
-            axs[0].vlines(p_time, picker.loop.dmin, picker.loop.dmax, 'b')
-            axs[1].vlines(p_time, picker.loop.dmin, picker.loop.dmax, 'b')
-            axs[2].vlines(p_time, self.kmin, self.kmax, 'b')
-            ax2.vlines(p_time, iter-0.5, iter+0.5, color='b', ls=':')
+            t = picker.loop.index_to_time(onset_P).matplotlib_date
+            if self.plot_stations:
+                axs[0].vlines(t, picker.loop.dmin, picker.loop.dmax, 'b')
+                axs[1].vlines(t, picker.loop.dmin, picker.loop.dmax, 'b')
+                axs[2].vlines(t, self.kmin, self.kmax, 'b')
+            if self.plot_global:
+                ax2.vlines(t, iter-0.5, iter+0.5, color='b', ls=':')
         if onset_S is not None:
-            s_time = picker.loop.index_to_time(onset_S).matplotlib_date
-            axs[0].plot(s_time, picker.loop.dmin, picker.loop.dmax, 'r')
-            axs[1].plot(s_time, picker.loop.dmin, picker.loop.dmax, 'r')
-            axs[2].plot(s_time, self.kmin, self.kmax, 'r')
-            ax2.vlines(s_time, iter-0.5, iter+0.5, color='r', ls=':')
-
-    def pick_window_add_picks(self, picker, picks):
-        """
-        Plot initial and final P and S picks for all stations
-
-        station waveforms are plotted at positions corresponding to the order
-        of stations in self.run.stations
-        """
-        if not self.show_plots:
-            return
-        # Pick_Function.m:811
-        ax = self.ax2
-        self._plot_picks_phase(picker, picks, 'P', 'b', [.8, .8, 1.],
-                               picker.param.assoc_cluster_window_P)
-        self._plot_picks_phase(picker, picks, 'S', 'r', [1., .8, .8],
-                               picker.param.assoc_cluster_window_S)
-        ax.set_xlabel(picker.loop.t_begin.strftime('%Y-%m-%d'))
-        plt.draw()
-        plt.show(block=False)
-
-    def _plot_picks_phase(self, picker, picks, phase, color, rect_color,
-                          width):
-        """
-        :param phase: "P" or "S"
-        :param color: color for picks
-        :param rec_color: color for pick window
-        :parm width: width of pick window
-        """
-        ax = self.ax2
-        delY = 1
-        picks = [p for p in picks if p.phase_hint[0] == phase]
-        if len(picks) > 0:
-            window_start = picks[0].time.matplotlib_date
-            for pick in picks:
-                j = picker.run.stations.index(pick.station)
-                if pick.time < window_start:
-                    window_start = pick.time
-                ax.vlines(pick.time.matplotlib_date,
-                          j - 0.5*delY, j + 0.5*delY, colors=color)
-            p = [Rectangle((window_start, 0.5),
-                           width=width / 86400, height=picker.run.n_stations,
-                           color=rect_color, edgecolor=None, alpha=0.5)]
-            ax.add_collection(PatchCollection(p))
+            t = picker.loop.index_to_time(onset_S).matplotlib_date
+            if self.plot_stations:
+                axs[0].plot(t, picker.loop.dmin, picker.loop.dmax, 'r')
+                axs[1].plot(t, picker.loop.dmin, picker.loop.dmax, 'r')
+                axs[2].plot(t, self.kmin, self.kmax, 'r')
+            if self.plot_global:
+                ax2.vlines(t, iter-0.5, iter+0.5, color='r', ls=':')
 
 # def move_figure(f, x, y):
 #     """Move figure's upper left corner to pixel (x, y)"""

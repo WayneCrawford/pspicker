@@ -25,14 +25,14 @@ def picks_matched_stations(picks):
     :param picks: list of obspy Pick objects
     :returns: list of {'station', 'pickP', 'pickS'}
     """
-    picksP = [p for p in picks if p.phase_hint[0] == 'P']
-    picksS = [p for p in picks if p.phase_hint[0] == 'S']
+    p_picks = [p for p in picks if p.phase_hint[0] == 'P']
+    s_picks = [p for p in picks if p.phase_hint[0] == 'S']
     matches = []
-    for pickP in picksP:
-        for pickS in picksS:
-            if pickP.station == pickS.station:
-                matches.append({'station': pickP.station,
-                                'pickP': pickP, 'pickS': pickS})
+    for p in p_picks:
+        for s in s_picks:
+            if p.waveform_id.station_code == s.waveform_id.station_code:
+                matches.append({'station': p.waveform_id.station_code,
+                                'pickP': p, 'pickS': s})
                 break
     return matches
 

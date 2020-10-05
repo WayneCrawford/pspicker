@@ -13,3 +13,6 @@ Allow user to set ChannelMappingRules and make them more generic
 (by default, only select based on the component code).  If more
 than one channel is selected, keep the one with the highest sample rate.
 If two with highest sample rate choose least broadband(?)
+
+Integrate "ChannelMappingRules" into "ChannelMapping"?  Make select_traces() part
+of ChannelMapping?

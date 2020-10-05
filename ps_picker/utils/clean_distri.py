@@ -5,7 +5,7 @@ def clean_distri(values, n_std=3, mode='median', min_vals=3):
     """
     Remove extreme values in a vector
 
-    :param values: input vector
+    :param values: list of values
     :param n_std: erase values for which x is more than n_std standard
         deviations from mode(x)
     :param mode: 'mean' or 'median' [ default = 'median' ]

@@ -16,17 +16,19 @@ def cluster_clean(window_sec=None, picks=None):
     """
 
     if len(picks) > 1:
-        clust_group = fclusterdata(np.array([[p.time for p in picks]]).T,
-                                   t=window_sec,
-                                   criterion='distance')
-        print(clust_group)
-        # for kk in arange(1,max(clust_group)).reshape(-1):
-        lengths = [len(x) for x in clust_group]
-        i_clust_max = np.argmax(lengths)
-        if len(i_clust_max) > 1:
-            picks = []  # Don't even chose one?
-        else:
-            picks = picks[clust_group[i_clust_max]]
+        cluster_data = fclusterdata(np.array([[p.time for p in picks]]).T,
+                                    t=window_sec,
+                                    criterion='distance')
+        cluster_groups = dict()
+        for cnum in cluster_data:
+            cluster_groups[cnum] = cluster_groups.get(cnum, 0) + 1
+        max_length = max(cluster_groups.values())
+        max_keys = [k for k, v in cluster_groups.items() if v==max_length]
+             
+        if len(max_keys) > 1:
+            warnings.warn('{} clusters of max_length ({:d}), returning first'
+                          .format(len(max_keys), max_length))
+        picks = [p for p, i in zip(picks, cluster_data) if i==max_keys[0]]
     return picks
 
 

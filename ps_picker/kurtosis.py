@@ -8,7 +8,7 @@ from scipy.signal import lfilter
 from obspy.core.stream import Stream
 from obspy.core.trace import Trace
 
-from .trace_utils import same_inc, smooth_filter
+from .trace_utils import smooth_filter
 
 
 class Kurtosis():
@@ -66,7 +66,6 @@ class Kurtosis():
         several frequency bandwidth and window sizes
 
         :param trace: the raw trace (works one trace, not a stream)
-        :param h: is the sampling frequency
         :param FBs: list of n [min, max] frequency bands
         :param window_lengths: list of m window lengths (seconds)
         :param starttime: is the first time of interest
@@ -90,7 +89,7 @@ class Kurtosis():
             if debug:
                 print(f'trace2FWkurto: filtering from {FB[0]} to {FB[1]} Hz')
             f.filter(type='bandpass', freqmin=FB[0], freqmax=FB[1], corners=3)
-            f = same_inc(f, starttime, endtime)
+            f = f.slice(starttime, endtime)
             B.append(f)
 
         K = []  # all kurtosises: 1st dim: window_lengths, 2nd dim: freq bands
@@ -413,7 +412,7 @@ class Kurtosis():
         """
         diff = trace.copy()
         diff.data = np.diff(np.sign(np.diff(trace.data)))
-        diff = same_inc(diff, starttime, endtime)
+        diff = diff.slice(starttime, endtime)
         if debug:
             diff.plot()
         if type_ == 'maxi':

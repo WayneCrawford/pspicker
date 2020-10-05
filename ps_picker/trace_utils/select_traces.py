@@ -19,10 +19,10 @@ def select_traces(stream, map_rules, verbose=1):
     stations = list(set([t.stats.station for t in stream]))
     for station in sorted(stations):
         channel_map[station] = ChannelMap(
-            Z=findChannel(stream, station, map_rules.compZ),
-            N=findChannel(stream, station, map_rules.compN),
-            E=findChannel(stream, station, map_rules.compE),
-            H=findChannel(stream, station, map_rules.compH),
+            Z=findChannel(stream, station, map_rules.compZ, map_rules.band_order),
+            N=findChannel(stream, station, map_rules.compN, map_rules.band_order),
+            E=findChannel(stream, station, map_rules.compE, map_rules.band_order),
+            H=findChannel(stream, station, map_rules.compH, map_rules.band_order),
             P_write_cmp=map_rules.P_write_cmp,
             S_write_cmp=map_rules.S_write_cmp,
             P_write_phase=map_rules.P_write_phase,
@@ -30,19 +30,11 @@ def select_traces(stream, map_rules, verbose=1):
 
     if verbose:
         print('Channel Map:')
-        fmt = '{:8s}|{:^16s}|{:^16s}|{:^16s}|{:^16s}|'
-        print(fmt.format('Station', 'Z', 'N', 'E', 'H'))
-        print('{:-<8s}+{:-<16s}+{:-<16s}+{:-<16s}+{:-<16s}|'.format(
-            '', '', '', '', ''))
+        print(f'{"Station":8s}|'
+              + channel_map[stations[0]].__str__(format='table_header'))
         for station in sorted(stations):
-            H = channel_map[station].H
-            if H is None:
-                H = 'None'
-            print(fmt.format(station,
-                             channel_map[station].Z,
-                             channel_map[station].N,
-                             channel_map[station].E,
-                             H))
+            print(f'{station:8s}|'
+                  + channel_map[station].__str__(format='table_row'))
     return channel_map
 
 
@@ -57,7 +49,7 @@ def findChannel(stream, station, cmp_chars, band_order):
     :returns: None if none found, error if more than one found
     """
     id_match = [tr.get_id() for tr in stream.select(station=station)
-                if re.search('[' + cmp_chars + ']', tr.stats.comp) is not None]
+                if re.search('[' + cmp_chars + ']', tr.stats.channel[-1]) is not None]
     if len(id_match) > 1:
         for band_code in band_order:
             if band_code in [id.split('.')[-1][0] for id in id_match]:

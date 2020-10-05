@@ -9,7 +9,8 @@ class ChannelMappingRules:
     """
     def __init__(self, compZ='Z3', compE='E2X', compN='N1Y', compH='HF',
                  S_write_cmp='N', P_write_cmp='Z',
-                 P_write_phase='Pg', S_write_phase='Sg'):
+                 P_write_phase='Pg', S_write_phase='Sg',
+                 band_order='GFDCEHSBMLV'):
         """
         :param compZ: comp characters to assign to Z component
         :param compE: comp characters to assign to E component
@@ -22,6 +23,8 @@ class ChannelMappingRules:
             one of 'ZNEH'
         :param S_write_phase: call S picks this phase name
         :param P_write_phase: call P picks this phase name
+        :param band_order: order of preference for band codes (if component
+            choice does not yield unique selection)
         """
         assert S_write_cmp in 'ZNEH',\
             f"S_write_cmp = {S_write_cmp}, not in 'ZNEH'"
@@ -35,6 +38,7 @@ class ChannelMappingRules:
         self.P_write_cmp = P_write_cmp
         self.P_write_phase = P_write_phase
         self.S_write_phase = S_write_phase
+        self.band_order = band_order
 
     def __str__(self):
         str = "ChannelMappingRules\n"

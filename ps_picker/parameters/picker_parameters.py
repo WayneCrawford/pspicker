@@ -196,7 +196,7 @@ class PickerParameters():
                 use_polarity=values['polar'],
                 n_follow=values['n_follow'])
         # Fill in channel_mapping parameters
-        cmr = ChannelMappingRules
+        cmr = ChannelMappingRules()
         if 'channel_parameters' in params:
             cp = params['channel_parameters']
             cmr.compZ = cp.get('compZ', cmr.compZ)
