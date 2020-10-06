@@ -6,17 +6,17 @@ import numpy as np
 import scipy.linalg as la
 
 
-def fast_polar_analysis(indices, compute_wind, tracex, tracey, tracez,
+def fast_polar_analysis(times, compute_wind, tracex, tracey, tracez,
                         analyze_wind=4.):
     """
     Compute the polarity parameters of a 3 component seismogram.
 
-    Computes polarity around user specified value since this analysis is
-    really time consuming
-    :param indices: array of indices around which to compute polarity
-    :param compute_wind: seconds before and after indices to analyze
+    Only computes around user specified times since this analysis is time
+    consuming.  Other values are set to zero
+    :param times: list of times around which to compute polarity
+    :param compute_wind: seconds around times to analyze
     :param trace?: traces
-    :param analyze_wind = length of analysis window for each compute sample
+    :param analyze_wind = length of analysis window for each calculation
         (seconds)
     :returns: rect, azi, dip
     """
@@ -27,11 +27,15 @@ def fast_polar_analysis(indices, compute_wind, tracex, tracey, tracez,
     assert tracez.stats.sampling_rate == sr,\
         "tracez has a different sampling rate from tracex"
 
-    n_half_compute = round(sr * compute_wind)
+    # Create a list of all indices to investigate: the specified compute
+    # window around all picks minus any duplicate samples or any that are
+    # too close to the window edges for a proper analysis
+    n_half_compute = round(sr * compute_wind / 2)
     nsamps_min = np.min([len(tracex.data), len(tracey.data), len(tracez.data)])
     ind_vec = []
     # for i in arange(1, length(indices)).reshape(-1):
-    for index in indices:
+    for t in times:
+        index = tracex.times('utcdatetime').searchsorted(t)
         iwind = np.arange(index - n_half_compute, index + n_half_compute)
         ind_vec = np.concat([ind_vec, iwind])
 

@@ -26,13 +26,13 @@ from obspy.core import read as obspy_read
 
 # module libraries
 from .parameters import (PickerParameters, PickerRunParameters,
-                         PickerLoopParameters)
+                         PickerStationParameters)
 from .kurtosis import Kurtosis
 from .plotter import Plotter
-from .trace_utils import (fast_polar_analysis, mean_trace, pk2pk,
+from .trace_utils import (fast_polar_analysis, pk2pk,
                           select_traces, smooth_filter, snr_function)
 from .utils import (clean_distri, cluster_clean, get_response,
-                    picks_ps_times, picks_matched_stations)
+                    picks_ps_times, picks_matched_stations, ChannelMap)
 
 
 class PSPicker():
@@ -143,78 +143,87 @@ class PSPicker():
         :param plot_stations: show individual station plots
         """
         # Run basic Kurtosis and assoc to find most likely window for picks
-        self._setup(rea_name, plot_global, plot_stations)
-
+        plotter = Plotter(plot_global, plot_stations)
+        self._setup(rea_name, plotter)
         self.debug = debug
         if verbose is not None:
             self.verbose = verbose
-
-        amplitudes, picks, iter = [], [], 0
+        amplitudes, picks = [], []
+        i_sta = 0
         # Pick on individual traces
-        for station_name, chan_map in sorted(self.run.channel_maps.items(),
-                                             key=lambda x: x[0]):
+        for sta, chan_map in sorted(self.run.channel_maps.items(),
+                                    key=lambda x: x[0]):
             # Reject stations not listed in parameter file
-            if station_name not in self.param.stations:
-                continue
-            sta_parans = self.param.station_parameters[station_name]
-            self.loop = PickerLoopParameters(station=station_name,
-                                             station_params=sta_parans,
-                                             channel_map=chan_map)
-            self.loop.add_component_traces(self.run.stream)
-            self.run.plotter.station_window_setup(self.loop.datP[0], iter)
-            i_onset_P, i_onset_S = None, None  # samps after self.loop.t_begin
-
-            # SNR analysis
-            fe = self.loop.station_params.f_energy
-            datS_filtered = self.loop.datS.copy().filter(
-                'bandpass', corners=3, freqmin=fe[0], freqmax=fe[1])
-            snr, energy = self._calc_snr(datS_filtered)
-            if self._snr_trustworthy(snr):
+            if sta not in self.param.stations:
                 if self.verbose:
-                    self.log(f"{station_name}: snr is trustworthy", level='verbose')
-                extrema, i_onset_P, i_onset_S = self._run_Kurtosis(snr, energy)
-                self.log(f'i_onset_P={i_onset_P}, i_onset_S={i_onset_S}',
-                         level='debug')
-
-                # Verify phases using Polarity analysis
-                if self.loop.station_params.use_polarity\
-                        and (len(datS_filtered) == 3):
-                    i_onset_P, i_onset_S = self._polarity_analysis(
-                        extrema, datS_filtered)
-                    self.log('polarity-verified i_onset_P={}, i_onset_S={}'
-                          .format(i_onset_P, i_onset_S))
-            elif self.verbose:
-                self.log(f"{station_name}: snr is not trustworthy, not picking", level='verbose')
-
-            self.run.plotter.station_window_Ptrace(self, iter)
-            self.run.plotter.plot_onsets(self, iter, i_onset_P, i_onset_S)
-
-            new_picks = self._make_picks(i_onset_P, i_onset_S, snr)
-            picks.extend(new_picks)
-            amp = self._calc_amplitude(new_picks, snr)
-            if amp is not None:
-                amplitudes.append(amp)
-            iter += 1
-
-        # Jacknife ###########
+                    self.log(f'{sta}: not in station_parameters list, '
+                             'ignoring', level='verbose')
+                i_sta += 1
+                continue
+            new_p, new_a = self._one_station(sta, chan_map, plotter, i_sta)
+            picks.extend(new_p)
+            if new_a is not None:
+                amplitudes.append(new_a)
+            i_sta += 1
         picks = self._remove_unassociated(picks)
-
-        self.run.plotter.pick_window_add_picks(
-            picks, self.run.stations, self.loop.t_begin,
-            self.param.assoc_cluster_window_P,
-            self.param.assoc_cluster_window_S)
+        plotter.pw.picks(picks, self.run.stations, self.loop.t_begin,
+                         self.param.assoc_cluster_window_P,
+                         self.param.assoc_cluster_window_S)
         self._save_event(picks, amplitudes)
 
-    def _setup(self, rea_name, plot_global, plot_stations):
+    def _one_station(self, station_name, chan_map, plotter, i_station):
+        """
+        Calculate picks and amplitudes for one station
+
+        :param station_name: station name
+        :param chan_map: ChannelMap object
+        :param plotter: Plotter object
+        :param i_station: station index number (0 to N-1)
+        """
+        station_params = self.param.station_parameters[station_name]
+        self.loop = PickerStationParameters(station=station_name,
+                                            station_params=station_params,
+                                            channel_map=chan_map,
+                                            stream=self.run.stream)
+        plotter.sw.setup(self.loop.datP[0], i_station)
+        t_P, t_S = None, None
+
+        # SNR analysis
+        fe = station_params.f_energy
+        datS_filt = self.loop.datS.copy().filter('bandpass', corners=3,
+                                                 freqmin=fe[0], freqmax=fe[1])
+        snr, energy = self._calc_snr(datS_filt)
+        if self._snr_trustworthy(snr):
+            if self.verbose:
+                self.log(f"{station_name}: snr trustworthy", level='verbose')
+            extrema, t_P, t_S = self._run_Kurtosis(snr, energy, plotter)
+            # self.log(f't_P={t_P}, t_S={t_S}', level='debug')
+
+            # Verify phases using Polarity analysis
+            if station_params.use_polarity and (len(datS_filt) == 3):
+                t_P, t_S = self._polarity_analysis(extrema, datS_filt)
+                self.log(f'polarity-verified t_P={t_P}, t_S={t_S}')
+        elif self.verbose:
+            self.log(f"{station_name}: snr not trustworthy, not picking",
+                     level='verbose')
+
+        plotter.pw.Ptraces_onsets(self.loop.datP, t_P, t_S, i_station)
+        # plotter.pw.Ptraces(self.loop.datP, i_station)
+        # plotter.pw.onsets(i_station, t_P, t_S)
+        plotter.sw.onsets(t_P, t_S, self.loop.data_limits)
+
+        new_picks = self._make_picks(t_P, t_S, snr)
+        new_amp = self._calc_amplitude(new_picks, snr)
+        return new_picks, new_amp
+
+    def _setup(self, rea_name, plotter):
         """
         Setup starting parameters and objects
 
         :rea_name: database file to read (full path)
-        :param plot_global: show global and overall pick plots
-        :param plot_stations: show individual station plots
+        :param plotter: Plotter object
         """
-        plotter = Plotter(plot_global, plot_stations)
-        full_wavefile = self._setuprun_get_wavefile_name(rea_name)
+        full_wavefile = self._setup_get_wavefile_name(rea_name)
         stream = obspy_read(full_wavefile, 'MSEED')
         t_begin = min([t.stats.starttime for t in stream])
         t_end = max([t.stats.endtime for t in stream])
@@ -224,11 +233,13 @@ class PSPicker():
             tr.detrend(type='demean')
         # self.log(self.param.channel_mapping_rules, level='debug')
         channel_maps = select_traces(stream, self.param.channel_mapping_rules)
+        if self.verbose:
+            str = self._channel_maps_str(channel_maps)
+            self.log(str, level='verbose')
         # self.log(channel_maps, level='debug')
-        overall_distri, channel_maps, plotter =\
-            self._setuprun_remove_problem_stations(stream, channel_maps,
-                                                   plotter, t_begin)
-        ft, lt, overall_distri = self._setuprun_define_analysis_window(
+        overall_distri, channel_maps =\
+            self._setup_get_overall(stream, channel_maps, plotter)
+        ft, lt, overall_distri = self._setup_set_pick_window(
             stream, overall_distri, t_begin, t_end)
         if self.verbose:
             self.log(f'Global window bounds: {ft} to {lt}', level='verbose')
@@ -236,19 +247,23 @@ class PSPicker():
                                        wavefile=full_wavefile,
                                        stream=stream,
                                        channel_maps=channel_maps,
-                                       overall_distri=overall_distri,
-                                       global_first_time=ft,
-                                       global_last_time=lt,
-                                       t_begin=t_begin,
-                                       plotter=plotter)
-        self.run.plotter.global_window_timebounds(self.run.global_first_time,
-                                                  self.run.global_last_time,
-                                                  sorted(self.run.stations))
-        self.run.plotter.pick_window_setup(self.run.global_first_time,
-                                           self.run.global_last_time,
-                                           sorted(self.run.stations))
+                                       first_time=ft,
+                                       last_time=lt,
+                                       t_begin=t_begin)
+        plotter.gw.plot_timebounds(ft, lt, self.run.stations)
+        plotter.pw.setup(ft, lt, self.run.stations)
 
-    def _setuprun_get_wavefile_name(self, rea_name):
+    def _channel_maps_str(self, channel_maps):
+        s = 'Channel Map:\n'
+        first_iter = True
+        for key, v in channel_maps.items():
+            if first_iter:
+                s += f'{"Station":8s}|{v.__str__(format="table_header")}\n'
+                first_iter = False
+            s += f'{key:8s}|{v.__str__(format="table_row")}\n'
+        return s
+
+    def _setup_get_wavefile_name(self, rea_name):
         """
         Get the full WAV filename
 
@@ -265,10 +280,9 @@ class PSPicker():
                                      wav_names[0][0])
         return full_wav_name
 
-    def _setuprun_remove_problem_stations(self, stream, channel_maps, plotter,
-                                          t_begin, n_smooth=15):
+    def _setup_get_overall(self, stream, channel_maps, plotter, n_smooth=15):
         """
-        Remove flat-lined stations
+        Get overall pick distribution (and remove flat-lined stations)
 
         Finding the Global minimum on all the stations
         Filtering parameters + first window + smooth
@@ -276,22 +290,20 @@ class PSPicker():
         :param stream: all traces
         :param channel_maps: mapping of channel names to components
         :param plotter: the plotter object
-        :param t_begin: global reference time for begin of traces
         :n_smooth: how many samples to smooth over for calculating Kurtosis
         :returns: overall_distribution of extrema, channel_maps, plotter
         """
         # Pick_Function.m:134
         p = self.param
         overall_distri = []
-        plotter.global_window_setup()
-        i_trace = 0
+        i_station = 0
         rm_stations = []
         # for station, channel_map in sorted(channel_maps.items(),
         #                                    key=lambda x: x[0]):
         for station, channel_map in channel_maps.items():
             trace = stream.select(id=channel_map.Z)[0]
-            trace_offset = trace.stats.starttime - t_begin
-            sr = trace.stats.sampling_rate
+            # trace_offset = trace.stats.starttime - t_begin
+            # sr = trace.stats.sampling_rate
             assert station == trace.stats.station,\
                 'trace station ({}) != iteration station ({})'.format(
                     trace.stats.station, station)
@@ -300,71 +312,67 @@ class PSPicker():
                          level='warning')
                 rm_stations.append(station)
                 continue
-            # k = Kurtosis(p.gw_frequency_band, p.gw_sliding_length, n_smooth)
-            # i_picks, k_picks = k.pick_trace(trace)
-            kurto_cum, _, _ =\
-                Kurtosis.trace2kurto(trace, p.gw_frequency_band,
-                                     p.gw_sliding_length, n_smooth)
-            if len(kurto_cum.data) == 0:
-                warnings.warn('kurto_cum is empty, ignoring station "{}"'
-                              .format(station))
-                # REMOVE THIS STATION FROM KURTOSIS CALCULATION
-                rm_stations.append(station)
-                continue
-
-            mean_kurto = mean_trace(kurto_cum)
-            kurto_ext, ind_ext, _ =\
-                Kurtosis.follow_extrem(mean_kurto, 'mini', p.gw_n_extrema,
-                                       [p.gw_extrema_samples], 'no-normalize',
-                                       'no-sense')
-            ext_seconds = [trace_offset + i/sr for i in ind_ext]
-            if self.debug:
-                debug_stream = Stream([trace, mean_kurto, kurto_ext[0]])
-                debug_stream[1].stats.channel = 'KUR'
-                debug_stream[2].stats.channel = 'EXT'
-                self.log(str(station, ind_ext, ext_seconds), level='debug')
-                debug_stream.plot(equal_scale=False)
-            overall_distri.extend(ext_seconds)
-            plotter.global_window_onetrace(trace, i_trace, ext_seconds)
-            i_trace += 1
+            k = Kurtosis([p.gw_frequency_band], [p.gw_window_length],
+                         n_smooth)
+            t_picks, k_picks = k.pick_trace(
+                trace, p.gw_n_picks, extrem_smooths=[p.gw_extrema_smoothing])
+            # kurto_cum, _, _ =\
+            #     Kurtosis.trace2kurto(trace, p.gw_frequency_band,
+            #                          p.gw_window_length, n_smooth)
+            # if len(kurto_cum.data) == 0:
+            #     warnings.warn('kurto_cum is empty, ignoring station "{}"'
+            #                   .format(station))
+            #     # REMOVE THIS STATION FROM KURTOSIS CALCULATION
+            #     rm_stations.append(station)
+            #     continue
+            # mean_kurto = mean_trace(kurto_cum)
+            # kurto_ext, ind_ext, _ =\
+            #     Kurtosis.follow_extrem(mean_kurto, 'mini', p.gw_n_picks,
+            #                          [p.gw_extrema_samples], 'no-normalize',
+            #                          'no-sense')
+            # ext_seconds = [trace_offset + i/sr for i in i_picks]
+            # if self.debug:
+            #     debug_stream = Stream([trace, mean_kurto, kurto_ext[0]])
+            #     debug_stream[1].stats.channel = 'KUR'
+            #     debug_stream[2].stats.channel = 'EXT'
+            #     self.log(str(station, ind_ext, ext_seconds), level='debug')
+            #     debug_stream.plot(equal_scale=False)
+            overall_distri.extend(t_picks)
+            plotter.gw.plot_trace(trace, i_station, t_picks)
+            i_station += 1
 
         # REMOVE PROBLEM STATIONS (if necessary)
         channel_maps = {s: v for s, v in channel_maps.items()
                         if s not in rm_stations}
-        return overall_distri, channel_maps, plotter
+        return overall_distri, channel_maps
 
-    def _setuprun_define_analysis_window(self, stream, overall_distri, t_begin,
-                                         t_end):
+    def _setup_set_pick_window(self, stream, overall_distri, t_begin, t_end):
         """
         Define size of new analysis window
 
         :param stream: stream containing all data traces
-        :param overall_distri: array of extrema on all stations (seconds from
-            t_begin)
+        :param overall_distri: array of extrema on all stations (UTCDateTimes)
         :param t_begin: reference starttime for all traces
         :param t_end: end of all traces
         :returns: first_time, last_time, overall_distri
         """
         # Pick_Function.m:204
         # max_offset is data length * gw_end_cutoff
-        max_offset = self.param.gw_end_cutoff * (t_end - t_begin)
+        max_time = t_begin + self.param.gw_end_cutoff * (t_end - t_begin)
         # Cut down picks to those within global bounds
-        overall_distri = [s for s in overall_distri if s <= max_offset]
-        min_global = center_distri(overall_distri,
-                                   self.param.gw_distri_secs)
+        overall_distri = [t for t in overall_distri if t <= max_time]
+        min_global = UTCDateTime(center_distri([t.timestamp
+                                                for t in overall_distri],
+                                 self.param.gw_distri_secs))
 
-        T_left = self.param.gw_offsets[0]
-        T_right = self.param.gw_offsets[1]
-        first_offset = min_global + T_left
-        last_offset = min_global + T_right
-        if first_offset < 0:
-            first_offset = 0
-        if last_offset >= max_offset:
-            last_offset = max_offset
+        first_time = min_global + self.param.gw_offsets[0]
+        last_time = min_global + self.param.gw_offsets[1]
+        if first_time < t_begin:
+            first_time = t_begin
+        if last_time >= t_end:
+            last_time = t_end
 
-        return (t_begin + first_offset,
-                t_begin + last_offset,
-                overall_distri)
+        return (first_time, last_time, overall_distri)
 
     def _calc_snr(self, datS_filtered, debug=False):
         """
@@ -412,8 +420,7 @@ class PSPicker():
         # stations{iter}
         # Pick_Function.m:380
         snr_smooth = smooth_filter(snr, n_smooth)
-        snr_smooth = snr_smooth.slice(self.run.global_first_time,
-                              self.run.global_last_time)
+        snr_smooth.trim(self.run.first_time, self.run.last_time)
         SNR_threshold = self._get_SNR_threshold(snr_smooth)
         sign_change = np.diff(np.sign(snr_smooth.data - SNR_threshold))
         SNR_crossings = len(sign_change[sign_change == 2])
@@ -447,68 +454,66 @@ class PSPicker():
             threshold = min(self.param.SNR_quality_thresholds)
         return threshold
 
-    def _run_Kurtosis(self, snr, energy, debug=False):
+    def _run_Kurtosis(self, snr, energy, plotter, debug=False):
         """
         calculate extrema and estimate P and S onsets using the Kurtosis
 
         :param snr: signal-to-noise trace
         :param energy: energy trace
-        :returns: i_onsetP, i_onset_S, samples from start of trace
+        :param plotter: Plotter object
+        :returns: t_P, t_S, onset times for P and S waves
         """
         first_time, last_time = self._refine_pick_window(energy)
         # if self.debug:
-        self.log('_run_Kurtosis: refined pick window = {}-{}'.format(
-              first_time, last_time), level='debug')
+        # self.log('_run_Kurtosis: refined pick window = {}-{}'.format(
+        #       first_time, last_time), level='debug')
         if len(self.loop.datP) > 1:
             warnings.warn('Only working on first trace in datP')
-        all_mean_M, _ = Kurtosis.trace2FWkurto(
-            self.loop.datP[0], self.loop.station_params.kurt_frequencies,
-            self.loop.station_params.kurt_window_lengths, 1,
-            first_time, last_time, debug=self.debug)
-        if self.debug:
-            self.log('plotting all_mean_M', level='debug')
-            all_mean_M.plot()
-        # Pick_Function.m:430
-        kurto_modif, ind_ext, ext_value = Kurtosis.follow_extrem(
-            all_mean_M, 'mini', self.loop.station_params.n_follow,
-            self.loop.station_params.kurt_smoothing_sequence,
-            'no-normalize', 'no-sense')
-        self.run.plotter.station_window_add_snr_nrg(
-            self.run.global_first_time, self.run.global_last_time,
-            min(self.param.SNR_quality_thresholds), self.loop.datP[0],
-            snr, energy, all_mean_M, kurto_modif)
-        extrema = [{'i': i, 'snr': snr.data[i]} for i in ind_ext]
+        k = Kurtosis(self.loop.station_params.kurt_frequencies,
+                     self.loop.station_params.kurt_window_lengths,
+                     1)
+        t_picks, k_picks = k.pick_trace(
+            self.loop.datP[0], self.loop.station_params.n_follow,
+            first_time, last_time,
+            extrem_smooths=self.loop.station_params.kurt_extrema_smoothings)
+        plotter.sw.data(self.run.first_time,
+                        self.run.last_time,
+                        min(self.param.SNR_quality_thresholds),
+                        self.loop.datP[0], snr, energy,
+                        # k.mean_cumulative_kurtosis,
+                        k.mean_kurtosis,
+                        k.kurto_gradients)
+
+        times = snr.times('utcdatetime')
+        extrema = [{'t': t, 'snr': snr.data[times.searchsorted(t)]}
+                   for t in t_picks]
         # print(extrema)
         min_thresh = min(self.param.SNR_quality_thresholds)
         # print(self.param.SNR_quality_thresholds, min_thresh)
         extrema = [x for x in extrema if x['snr'] > min_thresh]
         if self.debug:
-            self.log(f'_run_Kurtosis: extrema indices: {ind_ext}',
-                     level='debug')
+            self.log(f'_run_Kurtosis: extrema times: {t_picks}', level='debug')
             print(f'extrema={extrema}', level='debug')
         if len(extrema) == 0:
-            i_onset_P, i_onset_S = None, None
+            t_P, t_S = None, None
         else:
-            self.run.plotter.station_window_add_extrema(self, extrema)
-            i_onset_P, i_onset_S = self._calc_follows(extrema)
-        return extrema, i_onset_P, i_onset_S
+            plotter.sw.extrema([x['t'] for x in extrema],
+                               self.loop.data_limits)
+            t_P, t_S = self._calc_follows(extrema)
+        return extrema, t_P, t_S
 
     def _refine_pick_window(self, energy):
         """
         Refine pick window if requested
         """
-        # choose the first datP trace as the time and sr reference
-        tr = self.loop.datP[0]
-        sr = tr.stats.sampling_rate
-        tr_start = tr.stats.starttime
-
         if self.loop.station_params.energy_window == 0:
-            return (self.run.global_first_time,
-                    self.run.global_last_time)
+            return (self.run.first_time,
+                    self.run.last_time)
 
         energy_smooth = smooth_filter(energy, 50)
-        energy_smooth = energy_smooth.slice(self.run.global_first_time,
-                                            self.run.global_last_time)
+        energy_smooth.trim(self.run.first_time, self.run.last_time)
+        starttime = energy_smooth.stats.starttime
+        sr = energy_smooth.stats.sampling_rate
         # print(energy_smooth, type(energy_smooth), energy_smooth.data)
         ind_max = np.nanargmax(energy_smooth.data)
         last_sample = ind_max.copy()
@@ -520,55 +525,71 @@ class PSPicker():
             first_sample = 0
             last_sample = max_precursor
         # Pick_Function.m:417
-        return tr_start + first_sample/sr, tr_start + last_sample/sr
+        return starttime + first_sample/sr, starttime + last_sample/sr
 
     def _polarity_analysis(self, extrema, datS_filtered):
         """
         Return P and S onsets from extrema based on signal polarity
 
-        :param extrema: list of 1 or 2 dicts {'i': index, 'value'?: value}
+        :param extrema: list of 1 or 2 dicts {'t': UTCDateTime,
+            'value': snr value}
         :param datS_filtered: stream of traces used for S picking, filtered
-        :returns: i_onset_P, i_onset_S
+        :returns: t_P, t_S
         """
-        # Pick_Function.m:543
-        rectP, aziP, dipP = fast_polar_analysis([e['i'] for e in extrema],
-                                                2, datS_filtered[0],
-                                                datS_filtered[1],
-                                                datS_filtered[2])
-        # dip_rect = np.multiply(np.sin(np.abs(np.radians(dipP))), rectP)
-        dipp = np.sin(np.abs(np.radians(dipP)))
-        smooth_dipp = np.lfilter(np.ones(100) / 100, 1, dipp)
-        smooth_rectilinP = np.lfilter(np.ones(100) / 100, 1, rectP)
-        Drb = np.sign(1.3 * smooth_dipp - smooth_rectilinP)
-        DR = np.lfilter(np.ones(200) / 200, 1, np.multiply(rectP, Drb))
-        DR[rectP == 0] = 0
         if len(extrema) == 0:
             return None, None
-        else:
-            i_onset_P, i_onset_S = None, None
-            if len(extrema) == 1:
-                mat_DR = DR(np.arange(np.floor(extrema[0]['i']) - 200,
-                                      np.floor(extrema[0]['i']) + 200))
-                tmp = np.max(np.abs(mat_DR)) * np.sign(np.mean(mat_DR))
-                if tmp >= self.param.dip_rect_thresholds['P']:
-                    i_onset_P = extrema[0]['i']
-                elif tmp <= self.param.dip_rect_thresholds['S']:
-                    i_onset_S = extrema[0]['i']
-            elif len(extrema) == 2:
-                mat_DR1 = DR(np.arange(np.floor(extrema[0]['i']) - 200,
-                                       np.floor(extrema[0]['i'] + 200)))
-                mat_DR2 = DR(np.arange(np.floor(extrema[1]['i']) - 200,
-                                       np.floor(extrema[1]['i'] + 200)))
-                if np.mean(mat_DR1) > np.mean(mat_DR2):
-                    i_onset_P = extrema[0]['i']
-                    i_onset_S = extrema[1]['i']
-        return i_onset_P, i_onset_S
+
+        # Pick_Function.m:543
+        compute_window = 4   # seconds
+        analyze_window = 4   # seconds
+        smooth_time = 1      # seconds
+        sr = datS_filtered[0].stats.sampling_rate
+        rectP, aziP, dipP = fast_polar_analysis([e['t'] for e in extrema],
+                                                compute_window,
+                                                datS_filtered[0],
+                                                datS_filtered[1],
+                                                datS_filtered[2],
+                                                analyze_window)
+        # dip_rect = np.multiply(np.sin(np.abs(np.radians(dipP))), rectP)
+        dipp = np.sin(np.abs(np.radians(dipP.data)))
+        smooth_samples = int(np.round(smooth_time*sr))
+        if smooth_samples < 2:
+            smooth_samples = 2
+        a = np.ones(smooth_samples) / smooth_samples
+        a2 = np.ones(2*smooth_samples) / (2 * smooth_samples)
+        smooth_dipp = np.lfilter(a, 1, dipp)
+        smooth_rectilinP = np.lfilter(a, 1, rectP.data)
+        Drb = np.sign(1.3 * smooth_dipp - smooth_rectilinP)
+        DR = rectP.copy()
+        DR.data = np.lfilter(a2, 1, np.multiply(rectP.data, Drb))
+        DR.data[rectP.data == 0] = 0
+        t_P, t_S = None, None
+        if len(extrema) == 1:
+            pick_time = extrema[0]['t']
+            mat_DR = DR.slice(pick_time - compute_window/2,
+                              pick_time + compute_window/2)
+            tmp = np.max(np.abs(mat_DR.data)) * np.sign(np.mean(mat_DR.data))
+            if tmp >= self.param.dip_rect_thresholds['P']:
+                t_P = pick_time
+            elif tmp <= self.param.dip_rect_thresholds['S']:
+                t_S = pick_time
+        elif len(extrema) == 2:
+            first_pick = extrema[0]['t']
+            second_pick = extrema[1]['t']
+            mat_DR1 = DR.slice(first_pick - compute_window/2,
+                               first_pick + compute_window/2)
+            mat_DR2 = DR.slice(second_pick - compute_window/2,
+                               second_pick + compute_window/2)
+            if np.mean(mat_DR1.data) > np.mean(mat_DR2.data):
+                t_P = first_pick
+                t_S = second_pick
+        return t_P, t_S
 
     def _calc_follows(self, extrema):
         """
         returns offsets depending on number of extrema to follow
 
-        :param extrema: list of {'snr': 'i':} dicts
+        :param extrema: list of {'snr': 't':} dicts
         :returns i_onset_P, i_onset_S
         :rtype: int, int
         """
@@ -579,35 +600,40 @@ class PSPicker():
         if len(extrema) == 0:
             return None, None
         if n_follow == 1:
-            return extrema[0]['i'], None
+            return extrema[0]['t'], None
         else:
-            self.log(extrema, level='debug')
-            extrema.sort(key=lambda x: x['i'])
+            # self.log(extrema, level='debug')
+            extrema.sort(key=lambda x: x['t'])
             if len(extrema) == 1:
-                return extrema[0]['i'], None
+                return extrema[0]['t'], None
             else:
-                return extrema[0]['i'], extrema[1]['i']
+                return extrema[0]['t'], extrema[1]['t']
 
-    def _make_picks(self, i_onset_P, i_onset_S, snr):
+    def _make_picks(self, onset_P, onset_S, snr):
         """
         Put onset_P and onset_S into list of obspy Picks
+
+        :param onset_P: P arrival time or None
+        :param onset_S: S arrival time or None
+        :param snr: signal-to-noise levels Trace
         """
         picks = []
-        waveid = self.loop.datP[0].get_id()
-        if i_onset_P is not None:
+        if onset_P is not None:
+            i_snr = snr.times('utcdatetime').searchsorted(onset_P)
             picks.append(obspy_Pick(
-                time=self.loop.index_to_time(i_onset_P),
-                time_errors=self._SNR_to_time_error(snr.data[i_onset_P], 'P'),
+                time=onset_P,
+                time_errors=self._SNR_to_time_error(snr.data[i_snr], 'P'),
                 waveform_id=WaveformStreamID(
                     seed_string=self.loop.channel_map.P_write_cmp),
                 phase_hint=self.loop.channel_map.P_write_phase,
                 evaluation_mode='automatic',
                 evaluation_status='preliminary'))
 
-        if i_onset_S is not None:
+        if onset_S is not None:
+            i_snr = snr.times('utcdatetime').searchsorted(onset_S)
             picks.append(obspy_Pick(
-                time=self.loop.index_to_time(i_onset_S),
-                time_errors=self._SNR_to_time_error(snr.data[i_onset_S], 'S'),
+                time=onset_S,
+                time_errors=self._SNR_to_time_error(snr.data[i_snr], 'S'),
                 waveform_id=WaveformStreamID(
                     seed_string=self.loop.channel_map.S_write_cmp),
                 phase_hint=self.loop.channel_map.S_write_phase,
@@ -752,7 +778,7 @@ class PSPicker():
         # Replaces a large section from Pick_Function.m 840-887
         if len(picks) == 0:
             warnings.warn('No picks saved!')
-            o_time = self.run.global_first_time
+            o_time = self.run.first_time
         else:
             o_time = estimate_origin_time(picks)
         event = obspy_Event(
@@ -803,7 +829,7 @@ class PSPicker():
         """
         Prints a colorful and fancy string and logs the same string.
 
-        :param level: the log level. 
+        :param level: the log level
             'info' gives a green output and no level text
             'debug' gives a magenta output and 'DEBUG' text
             Everything else gives a red color and level text.
@@ -814,11 +840,11 @@ class PSPicker():
         # Info is green
         if level == "info":
             print(bcolors.BRIGHTGREEN + f">>> {string}" + bcolors.RESET)
-        elif level=="debug":
+        elif level == "debug":
             level = level.upper()
             print(bcolors.BRIGHTMAGENTA + f">>> {level}: {string}"
                   + bcolors.RESET)
-        elif level=="verbose":
+        elif level == "verbose":
             level = level.upper()
             print(bcolors.BRIGHTYELLOW + f">>> {level}: {string}"
                   + bcolors.RESET)
@@ -827,6 +853,7 @@ class PSPicker():
             print(bcolors.BRIGHTRED + f">>> {level}: {string}" + bcolors.RESET)
             # print("\033[1;31m" + ">>> " + level + ": " + string + "\033[1;m")
         sys.stdout.flush()
+
 
 class bcolors:
     RED = '\033[30m'
@@ -846,7 +873,8 @@ class bcolors:
     ENDC = '\033[1;m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-    
+
+
 def center_distri(v, win_size, n_steps=1000):
     """
     Return the center of the window containing the most values in an array
@@ -905,7 +933,8 @@ def _average_ps_o_time(picks, vp_over_vs):
         o_times.append(p - ps/(vp_over_vs - 1))
     # Throw out values more than 3 std away
     zs = np.abs(stats.zscore([x.timestamp for x in o_times]))
-    mean_timestamp = np.mean([o.timestamp for o, z in zip(o_times, zs) if z < 3])
+    mean_timestamp = np.mean([o.timestamp for o, z in zip(o_times, zs)
+                              if z < 3])
     return UTCDateTime(mean_timestamp)
 
 

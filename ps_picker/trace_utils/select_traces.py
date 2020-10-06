@@ -4,7 +4,7 @@ import re
 from ..utils import ChannelMap
 
 
-def select_traces(stream, map_rules, verbose=1):
+def select_traces(stream, map_rules, debug=False):
     """
     select traces and other stuff
 
@@ -17,18 +17,19 @@ def select_traces(stream, map_rules, verbose=1):
     """
     channel_map = dict()
     stations = list(set([t.stats.station for t in stream]))
+    mr = map_rules
     for station in sorted(stations):
         channel_map[station] = ChannelMap(
-            Z=findChannel(stream, station, map_rules.compZ, map_rules.band_order),
-            N=findChannel(stream, station, map_rules.compN, map_rules.band_order),
-            E=findChannel(stream, station, map_rules.compE, map_rules.band_order),
-            H=findChannel(stream, station, map_rules.compH, map_rules.band_order),
-            P_write_cmp=map_rules.P_write_cmp,
-            S_write_cmp=map_rules.S_write_cmp,
-            P_write_phase=map_rules.P_write_phase,
-            S_write_phase=map_rules.S_write_phase)
+            Z=findChannel(stream, station, mr.compZ, mr.band_order),
+            N=findChannel(stream, station, mr.compN, mr.band_order),
+            E=findChannel(stream, station, mr.compE, mr.band_order),
+            H=findChannel(stream, station, mr.compH, mr.band_order),
+            P_write_cmp=mr.P_write_cmp,
+            S_write_cmp=mr.S_write_cmp,
+            P_write_phase=mr.P_write_phase,
+            S_write_phase=mr.S_write_phase)
 
-    if verbose:
+    if debug:
         print('Channel Map:')
         print(f'{"Station":8s}|'
               + channel_map[stations[0]].__str__(format='table_header'))
@@ -49,7 +50,8 @@ def findChannel(stream, station, cmp_chars, band_order):
     :returns: None if none found, error if more than one found
     """
     id_match = [tr.get_id() for tr in stream.select(station=station)
-                if re.search('[' + cmp_chars + ']', tr.stats.channel[-1]) is not None]
+                if re.search(f'[{cmp_chars}]', tr.stats.channel[-1])
+                is not None]
     if len(id_match) > 1:
         for band_code in band_order:
             if band_code in [id.split('.')[-1][0] for id in id_match]:

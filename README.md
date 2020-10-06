@@ -28,13 +28,14 @@ required in the file):
 ```yaml
 ---
 global_window: # Parameters affecting the initial selection of a global pick window across all stations using the distribution of kurtosis extrema)
-    frequency_band:     # cutoff frequencies [low, high] for kurtosis calculation
-    sliding_length:     # sliding window length in seconds for kurtosis calculation
+    kurtosis:
+        frequency_band:       # cutoff frequencies [low, high] for kurtosis calculation
+        window_length:        # sliding window length in seconds for kurtosis calculation
+        extrema_smoothing: 40 # number of samples to smooth extrema by when looking for pick
     distri_secs:        # size of window in seconds in which to look for the maximum # of picks
     offsets:            # final window offset in seconds [left, right] from peak distribution
     end_cutoff: 0.9     # don't look for extrema beyond this fraction of the overall time
-    n_extrema: 5        # number of extrema to use for each trace
-    extrema_samples: 40 # number of samples for the smoothing window when calculating extrema
+    n_picks: 5          # number of picks to use for each trace
 SNR: # Parameters affecting the signal-to-noise level calculation and use
     noise_window_length:       # seconds to use for noise window
     signal_window_length:      # seconds to use for signal_window
@@ -62,7 +63,7 @@ kurtosis: # Parameters affecting Kurtosis calculations (except in inital global 
                          # e.g. {A: [[3, 15], [8, 30]]}
     window_lengths:      # object with one or more "keys", each followed by a list of window lengths in seconds
                          # e.g. {A: [0.3, 0.5, 1, 2, 4, 8]}
-    smoothing_sequences: # object with one or more "keys", each followed by a list of smoothing sequences in samples
+    extrema_smoothings:  # object with one or more "keys", each followed by a list of smoothing sequences in samples
                          # e.g. {A: [2, 4, 6, 8, 10, 20, 30, 40, 50]}
 association: # Parameters affecting the association between different stations
     cluster_windows_P:     # Window length in seconds for cluster-based rejection of P arrivals
@@ -82,7 +83,7 @@ station_parameters:  # List of objects with key = station_name
         k_parms:  # Kurtosis parameters
             freqs:   # key from kurtosis:frequency_bands
             wind:    # key from kurtosis:window_lengths
-            smooth:  # key from kurtosis:smoothing_sequences
+            smooth:  # key from kurtosis:extrema_smoothings
         polar:    # Use polarities (dip_rect thresholds) to assign P and S picks
         nrg_win:  # only look at data from t-nrg_win to t when evaluating energy, where t is the time of the peak waveform energy.
                   # If == 0, don't use energy criteria.

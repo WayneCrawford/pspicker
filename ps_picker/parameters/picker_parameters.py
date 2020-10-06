@@ -14,7 +14,7 @@ class PickerParameters():
     """
     def __init__(self,
                  gw_frequency_band,
-                 gw_sliding_length,
+                 gw_window_length,
                  gw_offsets,
                  SNR_signal_window,
                  SNR_noise_window,
@@ -26,8 +26,8 @@ class PickerParameters():
                  gw_distri_secs,
                  SNR_max_threshold_crossings=2,
                  dip_rect_thresholds={'P': -.4, 'S': -0.4},
-                 gw_n_extrema=5,
-                 gw_extrema_samples=40,
+                 gw_n_picks=5,
+                 gw_extrema_smoothing=40,
                  gw_end_cutoff=0.9,
                  SNR_threshold_parameter=0.2,
                  assoc_distri_min_values=4,
@@ -39,13 +39,13 @@ class PickerParameters():
 
         :param gw_frequency_band: The frequency band for kurtosis calculation
             during global rewindowing  [low, high]
-        :param gw_sliding_length: Length in seconds of sliding window for
+        :param gw_window_length: Length in seconds of sliding window for
             Kurtosis during global rewindowing
         :param gw_distri_secs: Length in seconds of sliding window to use
             to find the densest pick time over all stations
-        :param gw_n_extrema: Number of extrema to use for each trace
-            when looking at overall extrema distribution
-        :param gw_extrema_samples: Number of samples to use in smoothing
+        :param gw_n_picks: Number of "picks" to calculate for each trace
+            when looking at overall pick distribution
+        :param gw_extrema_smoothing: Number of samples to use in smoothing
             window when calculating extrema
         :param gw_offsets: Offsets in seconds from densest pick
             time for global (all station based) rewindowing [left, right]
@@ -88,12 +88,12 @@ class PickerParameters():
         assert len(gw_offsets) == 2, "len(gw_offsets) != 2"
 
         self.gw_frequency_band = gw_frequency_band
-        self.gw_sliding_length = gw_sliding_length
+        self.gw_window_length = gw_window_length
         self.gw_offsets = gw_offsets
         self.gw_end_cutoff = gw_end_cutoff
         self.gw_distri_secs = gw_distri_secs
-        self.gw_n_extrema = gw_n_extrema
-        self.gw_extrema_samples = gw_extrema_samples
+        self.gw_n_picks = gw_n_picks
+        self.gw_extrema_smoothing = gw_extrema_smoothing
         self.SNR_signal_window = SNR_signal_window
         self.SNR_noise_window = SNR_noise_window
         self.SNR_quality_thresholds = SNR_quality_thresholds
@@ -140,12 +140,12 @@ class PickerParameters():
     def __str__(self):
         str = "PickerParameters:\n"
         str += f"    gw_frequency_band = {self.gw_frequency_band}\n"
-        str += f"    gw_sliding_length = {self.gw_sliding_length}\n"
+        str += f"    gw_window_length = {self.gw_window_length}\n"
         str += f"    gw_distri_secs = {self.gw_distri_secs}\n"
         str += f"    gw_offsets = {self.gw_offsets}\n"
         str += f"    gw_end_cutoff = {self.gw_end_cutoff}\n"
-        str += f"    gw_n_extrema = {self.gw_n_extrema}\n"
-        str += f"    gw_extrema_samples = {self.gw_extrema_samples}\n"
+        str += f"    gw_n_picks = {self.gw_n_picks}\n"
+        str += f"    gw_extrema_smoothing = {self.gw_extrema_smoothing}\n"
         str += f"    SNR_signal_window = {self.SNR_signal_window}\n"
         str += f"    SNR_quality_thresholds = "
         str += f"{self.SNR_quality_thresholds}\n"
@@ -189,7 +189,7 @@ class PickerParameters():
                                          [k_parms['freqs']],
                 kurt_window_lengths=kurtosis['window_lengths']
                                             [k_parms['wind']],
-                kurt_smoothing_sequence=kurtosis['smoothing_sequences']
+                kurt_extrema_smoothings=kurtosis['extrema_smoothings']
                                                 [k_parms['smooth']],
                 energy_window=values['nrg_win'],
                 response_file=fnames[values['resp']],
@@ -210,11 +210,12 @@ class PickerParameters():
             cmr.band_order = cp.get('band_order', cmr.band_order)
         # Fill in rest
         gw = params['global_window']
+        gwk = gw['kurtosis']
         SNR = params['SNR']
         assoc = params['association']
         val = cls(
-            gw_frequency_band=gw['frequency_band'],
-            gw_sliding_length=gw['sliding_length'],
+            gw_frequency_band=gwk['frequency_band'],
+            gw_window_length=gwk['window_length'],
             gw_offsets=gw['offsets'],
             gw_distri_secs=gw['distri_secs'],
             SNR_signal_window=SNR['signal_window_length'],
@@ -241,10 +242,10 @@ class PickerParameters():
             val.SNR_threshold_parameter = float(SNR['threshold_parameter'])
         if 'end_cutoff' in gw:
             val.gw_end_cutoff = float(gw['end_cutoff'])
-        if 'n_extrema' in gw:
-            val.gw_n_extrema = int(gw['n_extrema'])
-        if 'extrema_samples' in gw:
-            val.gw_extrema_samples = float(gw['extrema_samples'])
+        if 'n_picks' in gw:
+            val.gw_n_picks = int(gw['n_picks'])
+        if 'extrema_smoothing' in gwk:
+            val.gw_extrema_smoothing = float(gwk['extrema_smoothing'])
         return val
 
 
