@@ -44,27 +44,26 @@ class ChannelMap():
                        None: print normally
         """
         if format == 'table_header':
-            s = '{:^8s}|{:^8s}|{:^8s}|{:^8s}|'.format('Z', 'N', 'E', 'H')
-            s += '{:^10s}|{:^10s}|'.format('P_write', 'S_write')
-            s += '{:^10s}|{:^10s}|\n'.format('P_phase', 'S_phase')
-            s += '{:-<8s}+{:-<8s}+{:-<8s}+{:-<8s}+{:-<8s}+'.format(
-                '', '', '', '', '')
-            s += '{:-<10s}+{:-<10s}+{:-<10s}+{:-<10s}|'.format(
-                '', '', '', '')
+            s = '{:^6s}|{:^6s}|{:^6s}|{:^6s}|{:^9s}|{:^9s}|{:^8s}|{:^8s}|'.\
+                format('Z', 'N', 'E', 'H', 'P_write', 'S_write',
+                       'P_phase', 'S_phase')
+            # s += '{:-<6s}+{:-<6s}+{:-<6s}+{:-<6s}+'.format(
+            #     '', '', '', '')
+            # s += '{:-<9s}+{:-<9s}+{:-<8s}+{:-<8s}|'.format(
+            #     '', '', '', '')
 
             return s
         elif format == 'table_row':
-            s = '{:^8s}|'.format(self.Z.split('.')[-1])
-            s += '{:^8s}|'.format(self.N.split('.')[-1])
-            s += '{:^8s}|'.format(self.E.split('.')[-1])
-            H = self.H
-            if H is not None:
-                H = H.split('.')[-1]
-            s += '{:^8s}|'.format(str(H))
-            s += '{:^10s}|'.format(self._write_cmp_str(self._P_write_cmp))
-            s += '{:^10s}|'.format(self._write_cmp_str(self._S_write_cmp))
-            s += '{:^10s}|'.format(self.P_write_phase)
-            s += '{:^10s}|'.format(self.S_write_phase)
+            if self.H is not None:
+                H = self.H.split('.')[-1]
+            else:
+                H = 'None'
+            s = '{:^6s}|{:^6s}|{:^6s}|{:^6s}|{:^9s}|{:^9s}|{:^8s}|{:^8s}|'.\
+                format(self.Z.split('.')[-1], self.N.split('.')[-1],
+                       self.E.split('.')[-1], H,
+                       self._write_cmp_str(self._P_write_cmp),
+                       self._write_cmp_str(self._S_write_cmp),
+                       self.P_write_phase, self.S_write_phase)
             return s
         else:
             s = f'            Z: {self.Z}\n'

@@ -25,8 +25,10 @@ class PickerStationParameters():
         self.station = station
         self.station_params = station_params
         self.channel_map = channel_map
-        self.datP = self._get_traces(stream, self.station_params.P_comp)
-        self.datS = self._get_traces(stream, self.station_params.P_comp)
+        self.datP = self._get_traces(stream, station_params.P_comp)
+        self.datS = self._get_traces(stream, station_params.S_comp)
+        # print(self.datP)
+        # print(self.datS)
         self.dat_noH = self._get_noH_traces(stream)
         self.data_limits = self._find_limits()
         self.t_begin = self._find_first_time()
@@ -39,8 +41,12 @@ class PickerStationParameters():
         :param comp_list: list of components to include in this stream
         """
         out_stream = Stream()
+        # make sure 'Z' is at end of comp_list (for polarity analysis)
+        if 'Z' in comp_list and len(comp_list) > 1:
+            comp_list = comp_list.replace('Z', '') + 'Z'
         for comp in comp_list:
-            st = stream.select(station=self.station, component=comp)
+            st = stream.select(id=getattr(self.channel_map, comp))
+            # st = stream.select(station=self.station, component=comp)
             if not len(st) == 1:
                 txt = f'station={self.station}, comp={comp}'
                 if len(st) == 0:

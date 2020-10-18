@@ -6,9 +6,9 @@ class StationParameters():
     """
     Station Parameters
     """
-    def __init__(self, P_comp, S_comp, f_energy, kurt_frequencies,
+    def __init__(self, P_comp, S_comp, f_energy, kurt_frequency_bands,
                  kurt_window_lengths, kurt_extrema_smoothings,
-                 energy_window, response_file,
+                 energy_window, resp_file,
                  use_polarity=False, lag=999, n_follow=2):
         """
         param P_Comp: String of components used to search for P arrival
@@ -23,7 +23,7 @@ class StationParameters():
         :param energy_window: only look at data from t-winlen to t, where t
             is the time of the peak waveform energy.  If == 0, don't use
             energy criteria.
-        :param response: response file name
+        :param resp_file: response file name
         :param lag: unused
         :param use_polarity: Use polarity analysis to identify phases?
         :param n_follow: number of extrema to follow (1 or 2).  Generally use
@@ -32,11 +32,15 @@ class StationParameters():
         self.P_comp = P_comp
         self.S_comp = S_comp
         self.f_energy = f_energy
-        self.kurt_frequencies = kurt_frequencies
+        self.kurt_frequency_bands = kurt_frequency_bands
         self.kurt_window_lengths = kurt_window_lengths
         self.kurt_extrema_smoothings = kurt_extrema_smoothings
         self.energy_window = energy_window
-        self.response_file = response_file
+        self.resp_file = resp_file
         self.use_polarity = use_polarity
         self.lag = lag
         self.n_follow = n_follow
+
+    @classmethod
+    def from_dict(cls, thedict):
+        return cls(**thedict)

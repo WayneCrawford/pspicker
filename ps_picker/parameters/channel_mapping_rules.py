@@ -51,3 +51,7 @@ class ChannelMappingRules:
         str += f"    P_write_phase = {self.P_write_phase}\n"
         str += f"    S_write_phase = {self.S_write_phase}\n"
         return str
+
+    @classmethod
+    def from_dict(cls, thedict):
+        return(cls(**thedict))

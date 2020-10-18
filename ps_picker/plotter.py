@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from obspy.core.stream import Stream
+
+from .logger import log
 
 
 class Plotter():
@@ -34,12 +37,12 @@ class Global_Window():
         else:
             self.fig, self.ax = plt.subplots(num="PSPicker: Overview")
 
-    def plot_trace(self, trace, i_station, extrema_t):
+    def plot_trace(self, trace, i_station, candidates):
         """
         Plot one trace
         :param trace: trace to plot
         :param i_station: y-index of the trace (used to separate traces)
-        :param extrema_t: offset time of all extrema for this trace
+        :param candidates: candidate picks
         """
         # Pick_Function.m: ~160?
         if not self.plot:
@@ -50,7 +53,7 @@ class Global_Window():
                      (0.5 * norm_trace.data) + i_station,
                      fmt='-',
                      label=trace.stats.station)
-        ax.vlines([t.matplotlib_date for t in extrema_t],
+        ax.vlines([x.time.matplotlib_date for x in candidates],
                   i_station + 0.45, i_station - 0.45, color='k')
         plt.draw()
         plt.show(block=False)
@@ -68,10 +71,14 @@ class Global_Window():
         # Pick_Function.m:231
         ax = self.ax
         N = len(stations)
+        # print(f'plot_timebounds: {rect_start_time}, {rect_end_time},
+        #       {len(stations)}')
         width = rect_end_time - rect_start_time
         patch = Rectangle((rect_start_time.matplotlib_date, -0.5),
                           width=width/86400, height=N + 1, color='lightblue',
                           alpha=0.1, edgecolor=None)
+        ax.axvline(rect_start_time.matplotlib_date)
+        ax.axvline(rect_end_time.matplotlib_date)
         ax.add_patch(patch)
         ax.set_title('Phase 1: Calculate global window')
         ax.set_xlabel(rect_start_time.strftime('%Y-%m-%d'))
@@ -88,6 +95,8 @@ class Picks_Window():
     Picks window Plotter
 
     Shows picks in the selected pick window, for all stations
+    zorders: 0: windows: 1: trace, 2: candidates, 3: initial p-s candidates,
+             4: cluster candidates, 5: final picks
     """
     def __init__(self, plot=True):
         self.plot = plot
@@ -96,6 +105,7 @@ class Picks_Window():
             self.ax = None
         else:
             self.fig, self.ax = plt.subplots(num="PSPicker: all picks")
+        self.stations = []  # ordered list of stations
 
     def setup(self, starttime, endtime, stations):
         """
@@ -106,6 +116,7 @@ class Picks_Window():
         if not self.plot:
             return
         # Pick_Function.m:250
+        self.stations = sorted(stations)
         N = len(stations)
         # fig.clf()
         self.ax.set_title('Phase 3: Select final picks based on clustering')
@@ -118,84 +129,96 @@ class Picks_Window():
         plt.show(block=False)
         plt.pause(0.001)
 
-    def Ptraces_onsets(self, traces, onset_P, onset_S, i_station):
+    def traces_candidates(self, traces, c_P, c_S, candidates, station):
         """
-        Plot P trace(s) for one station
+        Plot P trace(s) and candidates for one station
 
         :param traces: Stream of traces to plot
-        :param onset_P: P onset time or None
-        :param onset_S: S onset time or None
-        :param i_station: sequence number of the station
+        :param c_P: P PickCandidate or None
+        :param c_S: S PickCandidate  or None
+        :param candidates: list of PickCandidates
+        :param station: station name
         """
         if not self.plot:
             return
         ax = self.ax
+        i_sta = self.stations.index(station)
         # Pick_Function.m:601
         for tr in traces:
             norm_trace = tr.copy().normalize()
             ax.plot_date(norm_trace.times(type="matplotlib"),
-                          norm_trace.data + i_station, 'k', zorder=5.)
-        if onset_P is not None:
-            ax.vlines(onset_P.matplotlib_date, i_station-0.5, i_station+0.5,
-                      color='b', lw=5, alpha=0.3, zorder=1.)
-        if onset_S is not None:
-            ax.vlines(onset_S.matplotlib_date, i_station-0.5, i_station+0.5,
-                      color='r', lw=5, alpha=0.3, zorder=1.)
+                         norm_trace.data + i_sta,
+                         color='gray', ls='-', marker=None, zorder=1)
+        for cand in candidates:
+            ax.vlines(cand.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
+                      color='gray', lw=5, alpha=0.3, zorder=2.9)
+            
+        if c_P is not None:
+            ax.vlines(c_P.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
+                      color='b', lw=5, alpha=0.3, zorder=3)
+        if c_S is not None:
+            ax.vlines(c_S.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
+                      color='r', lw=5, alpha=0.3, zorder=3)
         plt.draw()
         plt.show(block=False)
         plt.pause(0.001)
 
-    def picks(self, picks, stations, t_begin, P_clust_s, S_clust_s):
+    def picks(self, picks, t_begin, p_clust, s_clust, o_clust):
         """
         Plot initial and final P and S picks for all stations
 
-        :picks: all picks
-        :stations: ordered list of stations.  The y position depends on the
-                   position of the pick's station in this list
+        :picks: all P and S PickCandidates
         :param t_begin: begin time for all plots
-        :param P_clust_s: width of P cluster window in seconds
-        :param S_clust_s: width of S cluster window in seconds
+        :param p_clust: p-cluster times {station: time}
+        :param s_clust: s-cluster times {station: time}
+        :param o_clust: origin-cluster times {station: time}
         """
         if not self.plot:
             return
         # Pick_Function.m:811
-        p_picks = [p for p in picks if p.phase_hint[0] == 'P']
-        s_picks = [p for p in picks if p.phase_hint[0] == 'S']
-        self._picks(p_picks, 'b', '#a0a0ff', P_clust_s, stations)
-        self._picks(s_picks, 'r', '#ffa0a0', S_clust_s, stations)
+        p_picks = [p for p in picks if p.phase_guess == 'P']
+        s_picks = [p for p in picks if p.phase_guess == 'S']
+        self._picks(p_picks, 'b')
+        self._picks(s_picks, 'r')
+        self._add_cluster_rectangle(p_clust, 'b', '#a0a0ff')
+        self._add_cluster_rectangle(s_clust, 'r', '#ffa0a0')
+        self._add_cluster_rectangle(o_clust, 'g', '#a0ffa0')
         self.ax.set_xlabel(t_begin.strftime('%Y-%m-%d'))
         plt.draw()
         plt.show(block=False)
         plt.pause(0.001)
 
-    def _picks(self, picks, color, face_color, width, stations):
+    def _picks(self, picks, color):
         """
         Plot picks for one station as solid lines
-        
+
         :parm picks: list of Picks
         :param color: color for picks
-        :param face_color: face color for pick window
-        :parm width: width of pick window in seconds
-        :param stations: ordered list of stations
         """
-        ax = self.ax
-        if len(picks) > 0:
-            window_start = picks[0].time
-            for pick in picks:
-                if pick.time < window_start:
-                    window_start = pick.time
-                j = stations.index(pick.waveform_id.station_code)
-                # ax.vlines(pick.time.matplotlib_date,
-                ax.vlines(pick.time.datetime, j - 0.5, j + 0.5, colors=color,
-                          zorder=10.)
-            p = Rectangle((window_start.matplotlib_date, -0.5),
-                           width=width / 86400, height=len(stations),
-                           fc=face_color, ec=color, alpha=0.5, zorder=0.)
-            ax.add_patch(p)
-            # ax.add_collection(PatchCollection([p]))
+        if len(picks) == 0:
+            return
+        for pick in picks:
+            j = self.stations.index(pick.station)
+            self.ax.vlines(pick.time.datetime, j - 0.5, j + 0.5, colors=color,
+                           zorder=5)
         plt.draw()
         plt.show(block=False)
         plt.pause(0.001)
+
+    def _add_cluster_rectangle(self, cluster, color, face_color):
+        if len(cluster) == 0:
+            return
+        for sta, t in cluster.items():
+            self.ax.plot(t.matplotlib_date, self.stations.index(sta),
+                         color=color, marker='x', ls=None, zorder=4)
+        t = [x.matplotlib_date for x in cluster.values()]
+        log(cluster, 'debug')
+        log(min(t), 'debug')
+        log(max(t), 'debug')
+        p = Rectangle((min(t), -0.5), width=max(t) - min(t),
+                      height=len(self.stations), fc=face_color, ec=color,
+                      alpha=0.5, zorder=0)
+        self.ax.add_patch(p)
 
 
 class Station_Window():
@@ -208,6 +231,7 @@ class Station_Window():
         2) Data
         3) Kurtosis
         4) Energy and signal-to-noise level
+        5) Polarity
     """
     def __init__(self, plot=True):
         """
@@ -215,136 +239,201 @@ class Station_Window():
         """
         self.plot = plot
         self.fig = None
-        self.axs = None
+        self.ax_picks = None
+        self.ax_data = None
+        self.ax_kurt = None
+        self.ax_snr = None
+        self.ax_pol = None
 
     def setup(self, trace, iter):
         """
         Plot pick phases on Figure 3+
 
         :param trace: trace to plot
-        :param iter: station iteration number
+        :param iter: station number (ignored)
         """
         if not self.plot:
             return
         # Pick_Function.m:334
-        # fig, axs = plt.subplots(4, 1, num=2+iter)
-        self.fig, self.axs = plt.subplots(4, 1, sharex=True,
-                                          num=trace.stats.station)
-        # fig.clf()
-        self.axs[0].plot(trace.times(type="matplotlib"), trace.data, 'k')
-        self.axs[0].set_title('Phase 2: Pick phases (station {})'
-                              .format(trace.stats.station))
-        plt.draw()
-        plt.show(block=False)
-        plt.pause(0.001)
+        name = trace.stats.station
+        self.fig, axs = plt.subplots(5, 1, sharex=True, num=name)
+        self.fig.subplots_adjust(hspace=0)
+        self.ax_picks = axs[0]
+        self.ax_cand = axs[1]
+        self.ax_kurt = axs[2]
+        self.ax_snr = axs[3]
+        self.ax_pol = axs[4]
 
-    def data(self, starttime, endtime, snr_threshold, trace, snr, energy,
-                all_mean_M, kurto_grad):
+        # fig.clf()
+        self.ax_picks.set_title('Phase 2: Pick phases (station {})'
+                                .format(trace.stats.station))
+
+    def plot_data(self, starttime, endtime, snr_quality_thresholds,
+                  trace, energy, kurto_mean, kurto_grad, dip_rect,
+                  dip_thresh_P, dip_thresh_S):
         """
-        Plot the data, snr, energy, kurtosis, etc
-        
+        Plot the waveforms, energy, kurtosis, etc
+
         :param starttime: starttime for all plots
         :param endtime: endtime for all plots
-        :param snr_threshold: minimum acceptable SNR
+        :param snr_quality_thresholds: list of SNR quality thresholds
         :param trace: data trace to plot
-        :param snr: signal-to-noise level trace
-        :param energy: energy trace
-        :param all_mean_M: mean cumulative Kurtosis
-        :kurto_grad: cumulative kurtosis gradients, for different smoothings
+        :param energy: WaveformEnergy object
+        :param kurto_mean: mean Kurtosis
+        :kurto_grad: list of cumulative kurtosis gradient Traces, for
+                     different smoothings
+        :dip_rect: dip-rectilinearity trace or None
+        :dip_thresh_P: P-wave dip-rect threshold
+        :dip_thresh_S: S-wave dip-rect threshold
         """
         if not self.plot:
             return
         # Pick_Function.m:443
-        axs = self.axs
-        fig = self.fig
-        imin, imax = np.nonzero(np.isfinite(all_mean_M))[0][[0, -1]]
-        tmin, tmax = all_mean_M.times(type="utcdatetime")[[imin, imax]]
-        dmin, dmax = np.nanmin(trace.data), np.nanmax(trace.data)
-        # Pick windows
-        patch = Rectangle((tmin.matplotlib_date, dmin),
-                          width=(tmax - tmin)/86400, height=dmax - dmin,
-                          color=[.9, .9, .9], edgecolor=None)
-        axs[0].add_patch(patch)
-        axs[0].set_xlim(starttime.datetime, endtime.datetime)
-        axs[0].set_ylim(dmin, dmax)
-        axs[0].set_ylabel('Picks')
+        # imin, imax = np.nonzero(np.isfinite(all_mean_M))[0][[0, -1]]
+        # tmin, tmax = all_mean_M.times(type="utcdatetime")[[imin, imax]]
+        tmin, tmax = kurto_mean.stats.starttime, kurto_mean.stats.endtime
+        self.kmin, self.kmax = np.min(kurto_mean.data), np.max(kurto_mean.data)
+        kurto_grad_stream = Stream(kurto_grad).slice(tmin, tmax)
 
-        # Data subplot
-        tr = trace.slice(tmin, tmax)
-        axs[1].plot_date(tr.times(type='matplotlib'), tr.data, 'k')
-        axs[1].set_xticklabels([])
-        axs[1].set_ylabel('Data')
+        # Plot the subplots
+        self.ax_picks.set_xlim(starttime.datetime, endtime.datetime)
+        self.fig.tight_layout()   # (to avoid clipping right labels)
+        self._plot_picks(self.ax_picks, trace.slice(tmin, tmax))
+        self._plot_cand(self.ax_cand, trace.slice(tmin, tmax))
+        self._plot_kurt(self.ax_kurt, kurto_mean, kurto_grad_stream)
+        self._plot_snr(self.ax_snr, energy.slice(tmin, tmax),
+                       snr_quality_thresholds)
+        self._plot_pol(self.ax_pol, dip_rect, dip_thresh_P, dip_thresh_S)
 
-        # Kurtosis
-        axs[2].plot(all_mean_M.times(type='matplotlib'), all_mean_M.data, 'b')
-        axs[2].set_ylabel('Kurtosis', color='b')
-        axs[2].tick_params(axis='y', labelcolor='b')
-        axs[2].set_xticklabels([])
-        ax2b = axs[2].twinx()  # Create a twin axis with a different y-scale
-        ax2b.plot(kurto_grad[0].times(type='matplotlib'),
-                  kurto_grad[0].data, 'r--')
-        ax2b.plot(kurto_grad[-1].times(type='matplotlib'),
-                  kurto_grad[-1].data, 'r')
-        ax2b.set_ylabel('Extrema', color='r')
-        ax2b.tick_params(axis='y', labelcolor='r')
-        fig.tight_layout()   # (to avoid clipping right label)
-        self.kmin, self.kmax = np.min(all_mean_M.data), np.max(all_mean_M.data)
+        self.fig.tight_layout()   # (to avoid clipping right labels)
+        self.fig.subplots_adjust(hspace=0.1)
 
-        # Energy and SNR
-        nrgplot = energy.slice(tmin, tmax)
-        nrgplot.data = 20 * np.log10(nrgplot.data)
-        snrplot = snr.slice(tmin, tmax)
-        ax3b = axs[3].twinx()  # Create a twin axis with a different y-scale
-        axs[3].plot_date(nrgplot.times(type='matplotlib'), nrgplot.data, 'r',
-                       zorder=0., alpha=0.5)
-        axs[3].set_ylabel('Energy (dB)', color='r')
-        axs[3].tick_params(axis='y', labelcolor='r')
-        ax3b.plot_date(snrplot.times(type='matplotlib'), snrplot.data, 'b',
-                         zorder=1.)
-        ax3b.axhline(snr_threshold, color='b', ls='--', zorder=0.5)
-        ax3b.set_ylabel('SNR', color='b')
-        ax3b.tick_params(axis='y', labelcolor='b')
-        ax3b.set_xlabel('Time')
         plt.draw()
         plt.show(block=False)
+        plt.pause(0.001)
 
-    def extrema(self, extrema_t, data_limits):
+    @staticmethod
+    def _plot_picks(ax, trace):
+        dmin, dmax = np.nanmin(trace.data), np.nanmax(trace.data)
+        # patch = Rectangle((tmin.matplotlib_date, dmin),
+        #                   width=(tmax - tmin)/86400, height=dmax - dmin,
+        #                   color=[.9, .9, .9], edgecolor=None)
+        ax.plot(trace.times(type="matplotlib"), trace.data, 'k')
+        # ax.add_patch(patch)
+        ax.set_ylim(dmin, dmax)
+        ax.set_ylabel('Picks')
+
+    @staticmethod
+    def _plot_cand(ax, trace):
+        pass
+
+    @staticmethod
+    def _plot_kurt(ax, kurto_mean, kurto_grad):
+        ax.plot(kurto_mean.times(type='matplotlib'), kurto_mean.data, 'b')
+        ax.set_ylabel('Kurtosis', color='b')
+        ax.tick_params(axis='y', labelcolor='b')
+        # ax.set_xticklabels([])
+        axb = ax.twinx()  # Create a twin axis with a different y-scale
+        axb.plot(kurto_grad[0].times(type='matplotlib'),
+                 kurto_grad[0].data, 'r--')
+        axb.plot(kurto_grad[-1].times(type='matplotlib'),
+                 kurto_grad[-1].data, 'r')
+        axb.set_ylabel('Extrema', color='r')
+        axb.tick_params(axis='y', labelcolor='r')
+
+    @staticmethod
+    def _plot_snr(ax, energy, snr_quality_thresholds):
+        nrgdB = energy.nrg.copy()
+        nrgdB.data = 20 * np.log10(nrgdB.data)
+        ax.plot_date(energy.nrg.times(type='matplotlib'), energy.nrg.data,
+                     'r', zorder=0., alpha=0.5)
+        ax.set_ylabel('Energy', color='r')
+        ax.tick_params(axis='y', labelcolor='r')
+        axb = ax.twinx()  # Create a twin axis with a different y-scale
+        axb.plot_date(energy.snr.times(type='matplotlib'), energy.snr.data,
+                      'b', zorder=1.)
+        if energy.snr_threshold is not None:
+            axb.axhline(energy.snr_threshold, color='b', ls='--', zorder=0.5)
+        for thresh in snr_quality_thresholds:
+            axb.axhline(thresh, color='b', ls='--', lw=0.1, zorder=0.5)
+        axb.set_ylabel('SNR', color='b')
+        axb.tick_params(axis='y', labelcolor='b')
+
+    @staticmethod
+    def _plot_pol(ax, trace, dip_thresh_P, dip_thresh_S):
         """
-        Add extrema to figure 3+ axis[2]
+        :param dip_thresh_P: minimum P-wave dip-rect
+        :param dip_thresh_S: maximum S-wave dip-rect
+        """
+        if trace is not None:
+            tr = trace.copy()
+            tr.data[tr.data == 0] = np.nan
+            ax.plot_date(tr.times(type='matplotlib'), tr.data, 'k')
+            ax.axhline(0, color='k', ls='-', lw=0.1, zorder=0.5)
+            ax.axhline(dip_thresh_P, color='b', ls='--', zorder=0.5)
+            ax.axhline(dip_thresh_S, color='r', ls='--', zorder=0.5)
+            ax.set_ylim(-1, 1)
+        else:
+            ax.text(0.5, 0.5, 'Polarity not calculated',
+                    ha='center', va='center', transform=ax.transAxes)
+        ax.set_ylabel('Dip-Rect')
 
-        :param extrema: extrema times
-        :param data_limits: minimum and maximum data values
+    def candidates(self, candidates, DR_thresh_P, DR_thresh_S):
+        """
+        Add pick candidates to all axes
+
+        :param candidates: list of PickCandidate
         """
         if not self.plot:
             return
-        # Pick_Function.m:502
-        dmin, dmax = data_limits[0], data_limits[1]
-        for t in extrema_t:
-            ax = self.axs[0]    # plt.subplot(4, 1, 1)
-            ax.vlines(t.matplotlib_date, dmin, dmax, color=[0.8, 0.8, 0.8])
-            ax = self.axs[1]   # plt.subplot(4, 1, 2)
-            ax.vlines(t.matplotlib_date, dmin, dmax, color=[0.8, 0.8, 0.8])
+        # Extrema picks are grey
+        color = [0.8, 0.8, 0.8]
+        # Plot candidate times across  all axes
+        for c in candidates:
+            self.ax_picks.axvline(c.time.matplotlib_date, color=color)
+            self.ax_kurt.axvline(c.time.matplotlib_date, color=color)
+            self.ax_snr.axvline(c.time.matplotlib_date, color=color)
+            self.ax_pol.axvline(c.time.matplotlib_date, color=color)
+
+        # Detail candidates on dedicated axis
+        ax = self.ax_cand
+        axb = ax.twinx()  # Create a twin axis with a different y-scale
+        ax.stem([x.time.matplotlib_date for x in candidates],
+                [x.picker_value for x in candidates], markerfmt='ro',
+                linefmt='r-', basefmt='r:', use_line_collection=True)
+        ax.set_ylabel('picker_value', color='r')
+        ax.tick_params(axis='y', labelcolor='r')
+        print('Doh!')
+        for x in candidates:
+            print(x)
+        axb.stem([x.time.matplotlib_date for x in candidates],
+                 [x.DR for x in candidates], markerfmt='bx',
+                 linefmt='b-', basefmt='b:', use_line_collection=True)
+        axb.axhline(DR_thresh_P, color='b', ls='--')
+        axb.axhline(DR_thresh_S, color='b', ls='--')
+        axb.set_ylabel('dip-rect', color='b')
+        axb.tick_params(axis='y', labelcolor='b')
+        axb.set_ylim(-1, 1)
 
     def onsets(self, onset_P, onset_S, data_limits):
         """
         Plot onsets for one station, on pick and station windows
 
-        :param onset_P: P onset time or None
-        :param onset_S: S onset time or None
+        :param onset_P: P PickCandidate or None
+        :param onset_S: S PickCandidate or None
         :param data_limits: minimum and maximum data values
         """
         if not self.plot:
             return
-        axs = self.axs
         # Pick_Function.m:576
         # Station Window: add picks to subplots 1, 2 and 3
         if onset_P is not None:
-            t = onset_P.matplotlib_date
-            axs[0].vlines(t, data_limits[0], data_limits[1], 'b')
-            axs[1].vlines(t, data_limits[0], data_limits[1], 'b')
-            axs[2].vlines(t, self.kmin, self.kmax, 'b')
+            t = onset_P.time.matplotlib_date
+            self.ax_picks.vlines(t, data_limits[0], data_limits[1], 'b')
+            self.ax_kurt.vlines(t, self.kmin, self.kmax, 'b')
+            # self.ax_extrem.vlines(t, data_limits[0], data_limits[1], 'b')
         if onset_S is not None:
-            t = onset_S.matplotlib_date
-            axs[0].plot(t, data_limits[0], data_limits[1], 'r')
-            axs[1].plot(t, data_limits[0], data_limits[1], 'r')
-            axs[2].plot(t, self.kmin, self.kmax, 'r')
+            t = onset_S.time.matplotlib_date
+            self.ax_picks.plot(t, data_limits[0], data_limits[1], 'r')
+            # self.ax_extrem.plot(t, data_limits[0], data_limits[1], 'r')
+            self.ax_kurt.plot(t, self.kmin, self.kmax, 'r')
