@@ -294,13 +294,14 @@ class Associator():
                     if offset < min_offset:
                         new_p = p_maybe
                         new_s = s_maybe
+                        new_otime = otime
                         min_offset = offset
                 if new_p is not None:
                     new_p.phase_guess = 'P'
                     new_s.phase_guess = 'S'
                     new_picks.append(new_p)
                     new_picks.append(new_s)
-                    self.o_cluster[station] = otime
+                    self.o_cluster[station] = new_otime
                     continue
             # Otherwise, keep a solitary P or S pick
             # (if I used station positions, I could compare times here)

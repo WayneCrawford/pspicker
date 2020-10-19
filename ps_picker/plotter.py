@@ -95,7 +95,8 @@ class Picks_Window():
     Picks window Plotter
 
     Shows picks in the selected pick window, for all stations
-    zorders: 0: windows: 1: trace, 2: candidates, 3: initial p-s candidates,
+    zorders: 0: windows: 1: trace, 2: candidates (wide, alpha=0.5),
+             3: initial p-s candidates, (wide, alpha=0.5)
              4: cluster candidates, 5: final picks
     """
     def __init__(self, plot=True):
@@ -148,17 +149,17 @@ class Picks_Window():
             norm_trace = tr.copy().normalize()
             ax.plot_date(norm_trace.times(type="matplotlib"),
                          norm_trace.data + i_sta,
-                         color='gray', ls='-', marker=None, zorder=1)
+                         color='gray', ls='-', marker=None, zorder=3.5)
         for cand in candidates:
             ax.vlines(cand.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
-                      color='gray', lw=5, alpha=0.3, zorder=2.9)
+                      color='gray', lw=5, alpha=0.5, zorder=2)
             
         if c_P is not None:
             ax.vlines(c_P.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
-                      color='b', lw=5, alpha=0.3, zorder=3)
+                      color='b', lw=5, alpha=0.5, zorder=3)
         if c_S is not None:
             ax.vlines(c_S.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
-                      color='r', lw=5, alpha=0.3, zorder=3)
+                      color='r', lw=5, alpha=0.5, zorder=3)
         plt.draw()
         plt.show(block=False)
         plt.pause(0.001)
@@ -245,12 +246,11 @@ class Station_Window():
         self.ax_snr = None
         self.ax_pol = None
 
-    def setup(self, trace, iter):
+    def setup(self, trace):
         """
         Plot pick phases on Figure 3+
 
         :param trace: trace to plot
-        :param iter: station number (ignored)
         """
         if not self.plot:
             return

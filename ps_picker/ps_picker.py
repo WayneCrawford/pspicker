@@ -110,22 +110,8 @@ class PSPicker():
                         warnings.warn('Pick_Function failed for {s_file}')
                         self._write_debug_file(debug_fname, err, s_file)
 
-    def _write_debug_file(self, debug_fname, err, s_file):
-        """
-        Write debugging information after a failed run_one
-
-        :param debug_fname: debug file name
-        :param err: returned Exception error
-        :param s_file: name of the s_file corresponding to this event
-        """
-        with open(debug_fname, 'a') as fid:
-            fid.write('-'*60 + '\n')
-            fid.write(f'{err}\n')
-            fid.write('To reproduce the error, type:\n')
-            fid.write(f'    picker.run_one("{s_file}"\n\n')
-
     def run_one(self, rea_name, plot_global=True, plot_stations=False,
-                verbose=None, debug=False):
+                assoc=None, verbose=None, debug=False):
         """
         Picks P and S arrivals on one waveform, using the Kurtosis
 
@@ -133,6 +119,8 @@ class PSPicker():
         :param rea_name: database file to read (full path)
         :param plot_global: show global and overall pick plots
         :param plot_stations: show individual station plots
+        :param assoc: Associator object (useful for multiple runs with same
+            Associator)
         """
         # Run basic Kurtosis and assoc to find most likely window for picks
         self.debug = debug
@@ -141,40 +129,30 @@ class PSPicker():
         plotter = Plotter(plot_global, plot_stations)
 
         # Read in data and select global pick window
-        stream, full_wavefile = self._read_waveforms(rea_name)
-        channel_maps, ft, lt = self._choose_global_window(stream, plotter)
-        self.run = PickerRunParameters(rea_name=rea_name,
-                                       wavefile=full_wavefile,
-                                       stream=stream,
-                                       channel_maps=channel_maps,
-                                       first_time=ft,
-                                       last_time=lt)
+        st, fwf = self._read_waveforms(rea_name)
+        cmaps, ft, lt = self._choose_global_window(st, plotter)
+        self.run = PickerRunParameters(rea_name=rea_name, wavefile=fwf,
+                                       stream=st, channel_maps=cmaps,
+                                       first_time=ft, last_time=lt)
         plotter.gw.plot_timebounds(ft, lt, self.run.stations)
         plotter.pw.setup(ft, lt, self.run.stations)
 
         # Pick on individual traces
         candidates, picks = [], []
-        i_sta = 0
-        # for sta, chan_map in sorted(self.run.channel_maps.items(),
-        #                             key=lambda x: x[0]):
         for sta, chan_map in self.run.channel_maps.items():
             # Reject stations not listed in parameter file
             if sta not in self.param.stations:
-                if self.verbose:
-                    log(f'{sta}: not in station_parameters list, ignoring'
-                        'verbose')
-                i_sta += 1
-                continue
-            p, c = self._pick_one_station(sta, i_sta, chan_map, plotter)
-            # log(p, 'debug')
-            # log(c, 'debug')
+              if self.verbose:
+                log(f'{sta} not in self.param.stations, ignored', 'verbose')
+              continue
+            p, c = self._pick_one_station(sta, chan_map, plotter)
             picks.extend(p)
             candidates.extend(c)
-            i_sta += 1
 
         if self.verbose:
             log(f'{len(picks):d} picks before association',  level='verbose')
-        assoc = Associator(self.param.assoc)
+        if assoc is None:
+            assoc = Associator(self.param.assoc)
         # picks = assoc.remove_nonclustered(picks)
         picks = assoc.find_same_origin_time(picks, candidates)
         if self.verbose:
@@ -185,15 +163,13 @@ class PSPicker():
                                  self.param.SNR.quality_thresholds)
                        for x in picks]
         amplitudes = self._calc_amplitudes(obspy_picks)
-
         self._save_event(obspy_picks, amplitudes)
 
-    def _pick_one_station(self, station_name, i_station, chan_map, plotter):
+    def _pick_one_station(self, station_name, chan_map, plotter):
         """
         Calculate picks and candidates for one station
 
         :param station_name: station name
-        :param i_station: station index number (0 to N-1)
         :param chan_map: ChannelMap object for the station
         :param plotter: Plotter object
         """
@@ -203,7 +179,7 @@ class PSPicker():
                                             station_params=station_params,
                                             channel_map=chan_map,
                                             stream=self.run.stream)
-        plotter.sw.setup(self.loop.datP[0], i_station)
+        plotter.sw.setup(self.loop.datP[0])
         c_P, c_S, candidates = None, None, []
 
         # SNR analysis
@@ -282,7 +258,7 @@ class PSPicker():
         if self.verbose:
             log(self._channel_maps_str(chan_maps), level='verbose')
         distri, chan_maps = self._gw_get_distri(stream, chan_maps, plotter)
-        ft, lt, distri = self._gw_set_window(stream, distri, t_begin, t_end)
+        ft, lt, distri = self._gw_set_window(t_begin, t_end, distri)
         if self.verbose:
             log(f'Global window bounds: {ft} to {lt}', level='verbose')
         return chan_maps, ft, lt
@@ -329,10 +305,8 @@ class PSPicker():
             candidates = k.pick_trace(trace, p.gw.n_picks,
                                       extrem_smooths=[p.gw.
                                                       kurt_extrema_smoothing])
-            # log(station, level='debug')
             for x in candidates:
                 x.station = station
-                # log(x, level='debug')
             overall_distri.extend([x.time for x in candidates])
             plotter.gw.plot_trace(trace, i_station, candidates)
             i_station += 1
@@ -342,14 +316,13 @@ class PSPicker():
                         if s not in rm_stations}
         return overall_distri, channel_maps
 
-    def _gw_set_window(self, stream, overall_distri, t_begin, t_end):
+    def _gw_set_window(self, t_begin, t_end, overall_distri):
         """
         Define size of new analysis window
 
-        :param stream: stream containing all data traces
-        :param overall_distri: array of extrema on all stations (UTCDateTimes)
         :param t_begin: reference starttime for all traces
         :param t_end: end of all traces
+        :param overall_distri: array of extrema on all stations (UTCDateTimes)
         :returns: first_time, last_time, overall_distri
         """
         # Pick_Function.m:204
@@ -357,18 +330,16 @@ class PSPicker():
         max_time = t_begin + self.param.gw.end_cutoff * (t_end - t_begin)
         # Cut down picks to those within global bounds
         overall_distri = [t for t in overall_distri if t <= max_time]
-        min_global = UTCDateTime(center_distri([t.timestamp
-                                                for t in overall_distri],
-                                 self.param.gw.distri_secs))
+        min_global = UTCDateTime(center_distri(
+            [t.timestamp for t in overall_distri], self.param.gw.distri_secs))
 
-        first_time = min_global + self.param.gw.offsets[0]
-        last_time = min_global + self.param.gw.offsets[1]
-        if first_time < t_begin:
-            first_time = t_begin
-        if last_time >= t_end:
-            last_time = t_end
-
-        return (first_time, last_time, overall_distri)
+        first_time = max(min_global + self.param.gw.offsets[0], t_begin)
+        last_time = min(min_global + self.param.gw.offsets[1], t_end)
+        # if first_time < t_begin:
+        #     first_time = t_begin
+        # if last_time >= t_end:
+        #     last_time = t_end
+        return first_time, last_time, overall_distri
 
     def _run_Kurtosis(self, energy, plotter, debug=False):
         """
@@ -450,8 +421,7 @@ class PSPicker():
         """
         if len(candidates) == 0:
             return None, None, None, candidates
-        pol = Polarity(datS_filtered,
-                       params=self.param.polarity,
+        pol = Polarity(datS_filtered, params=self.param.polarity,
                        zcomponents=self.param.channel_mapping_rules.compZ,
                        ncomponents=self.param.channel_mapping_rules.compN,
                        ecomponents=self.param.channel_mapping_rules.compE,
@@ -494,8 +464,8 @@ class PSPicker():
         returns offsets depending on number of extrema to follow
 
         :param candidates: list of PickCandidate
-        :returns i_onset_P, i_onset_S
-        :rtype: int, int
+        :returns candidate_P, candidate_S
+        :rtype: PickCandidate, PickCandidate
         """
         # Pick_Function.m:507
         # eliminate extrema whose snr is less than SNR.thresh
@@ -531,8 +501,6 @@ class PSPicker():
         return picks
 
     def _calc_amplitudes(self, picks):
-        if len(picks) == 0:
-            return []
         amplitudes = []
         stations = list(set([p.waveform_id.station_code for p in picks]))
         for station in stations:
@@ -624,6 +592,20 @@ class PSPicker():
                   evtype='L',
                   wavefiles=[self.run.wavefile],
                   high_accuracy=True)
+
+    def _write_debug_file(self, debug_fname, err, s_file):
+        """
+        Write debugging information after a failed run_one
+
+        :param debug_fname: debug file name
+        :param err: returned Exception error
+        :param s_file: name of the s_file corresponding to this event
+        """
+        with open(debug_fname, 'a') as fid:
+            fid.write('-'*60 + '\n')
+            fid.write(f'{err}\n')
+            fid.write('To reproduce the error, type:\n')
+            fid.write(f'    picker.run_one("{s_file}"\n\n')
 
 
 def center_distri(v, win_size, n_steps=1000):

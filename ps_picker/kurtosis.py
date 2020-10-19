@@ -10,6 +10,7 @@ from obspy.core.trace import Trace
 
 from .trace_utils import smooth_filter
 from .pick_candidate import PickCandidate
+from .logger import log
 
 
 class Kurtosis_pick():
@@ -42,11 +43,15 @@ class Kurtosis():
     5) identify where the slope of the resulting function changes from positive
        to negative
     """
-    def __init__(self, freq_bands, wind_lengths, n_smooth):
+    def __init__(self, freq_bands, wind_lengths, n_smooth, extrem_smooths=None,
+                 plot=False):
         """
         :param FBs: list of [min, max] frequency bands
         :param window_lengths: list of window lengths (seconds)
         :param n_smooth: smoothings to apply in calculating Kurtosis (samples)
+        :param extrem_smooth: smoothing sequence to use when calculating times
+            of extrema
+        :param plot: make a plot of Kurtosis parameters
         """
         assert isinstance(freq_bands, list), "freq_bands is not a list"
         assert isinstance(wind_lengths, list), "wind_lengths is not a list"
@@ -55,6 +60,7 @@ class Kurtosis():
         self.freq_bands = freq_bands
         self.wind_lengths = wind_lengths
         self.n_smooth = n_smooth
+        self.plot = plot
         self.extrem_smooths = None  # smoothings for extrema following
 
         # Mean trace over freq_bands, wind_lengths & smoothing
@@ -140,42 +146,53 @@ class Kurtosis():
             B.append(f)
 
         # 2-level lists: : 1st dim: window_lengths, 2nd dim: freq bands
-        K = []  # all kurtosises:
-        C = []  # all cumulative, detrended kurtosises
+        K, C = [], []  # all kurtoses and all cumulative, detrended kurtoses
         for win_len in self.wind_lengths:
-            if win_len > data_length:
-                warnings.warn(
-                    'Kurtosis window longer than data window '
-                    '({:2g}s > {:4g}s), skipping!'.format(win_len,
-                                                          data_length / sr))
-            else:
-                win_samps = int(np.floor(win_len * sr)) + 1
-                if win_samps > len(trace.data):
-                    win_samps = len(trace.data)
-                kurtos = []
-                for t in B:
-                    k = _fast_kurtosis(t, win_samps)
-                    if debug:
-                        print('plotting trace, kurtosis for win_samps='
-                              f'{win_samps}, f = {self.freq_bands[0]}')
-                        k.stats.channel = 'KUR'
-                        Stream([k, t]).plot(equal_scale=False)
-                    kurtos.append(k)
-                f_kurto_cums = smooth_filter(kurtos, self.n_smooth)
-                kurto_cums, _ = _f_cumul(f_kurto_cums)
-                lines = _f_segment(kurto_cums)
-                corr_kurto_cums = kurto_cums.copy()
-                if debug:
-                    print(f'trace2FWkurto: plotting kurt_cums & fit lines')
-                for c, l in zip(corr_kurto_cums, lines):
-                    if debug:
-                        l.stats.channel = 'LIN'
-                        Stream([c, l]).plot()
-                    c.data -= l.data
-                C.append(corr_kurto_cums)
-                K.append(kurtos)
+            corr_cums, kurtos = self.calc_cum_kurtoses(B, win_len)
+            C.append(corr_cums)
+            K.append(kurtos)
         self.mean_kurtosis = _mean_trace(K)
         self.mean_cumulative_kurtosis = _mean_trace(C)
+
+    def calc_cum_kurtoses(self, B, win_len):
+        """
+        Calculate kurtoses and cumulative kurtoses for given window length
+        
+        :param B: list of data, filtered in different bands
+        :win_len: window length in seconds
+        """
+        corr_cums, kurtos = [], []
+        sr = B[0].stats.sampling_rate
+        data_length = B[0].stats.endtime - B[0].stats.starttime
+        if win_len > data_length:
+            warnings.warn('Kurtosis window > data window ('
+                          f'{win_len:.3g}s > {data_length:.3g}s), skipping!')
+            return [], []
+        else:
+            win_samps = int(np.floor(win_len * sr)) + 1
+            win_samps = min(win_samps, len(B[0].data))
+            for tr, fb in zip(B, self.freq_bands):
+                k = _fast_kurtosis(tr, win_samps)
+                filt = smooth_filter(k, self.n_smooth)
+                corr_cum, _ = _f_cumul(filt)
+                corr_cum.detrend('simple')
+                # corr_cum = kurto_cum.copy()
+                # line = _f_segment(corr_cum)
+                # corr_cum.data -= line.data
+                if self.plot:
+                    self._plot_kurtosis(win_len, fb, tr, k, corr_cum)
+                kurtos.append(k)
+                corr_cums.append(corr_cum)
+        return corr_cums, kurtos
+
+    @staticmethod
+    def _plot_kurtosis(wl, fb, trace, kurtosis, corr_cum):
+        print(f'Plot kurtosis for win_len={wl}, f_band={fb}', 'debug')
+        cor = corr_cum.copy()
+        cor.stats.channel = 'COR'
+        kurtosis.stats.channel = 'KUR'
+        Stream([trace, kurtosis, cor]).plot(
+            size=(600, 600), equal_scale=False)
 
     def follow_extrem(self, type_='mini', n_follow=2,
                       normalize=False, sense=None, debug=False):
@@ -311,6 +328,7 @@ def _fast_kurtosis(trace, win_samps):
     """
     assert isinstance(trace, Trace), "trace is not an obspy Trace"
     win_samps = int(round(win_samps))
+    log(win_samps, 'debug')
     # fast_kurtosis.m:11
     if win_samps == 1:
         win_samps = 2
@@ -328,7 +346,7 @@ def _fast_kurtosis(trace, win_samps):
     out = trace.copy()
     out.data = np.divide(m_4, (m_2 ** 2))
     # Protect against edge effect
-    out.data[:win_samps] = 0
+    out.data[:win_samps] = out.data[win_samps]
 
     # Set any kurtosis value to nan for any indices within win_samples of
     # an NaN in the original data.
@@ -350,8 +368,8 @@ def _f_cumul(f):
          ___/
         /
     ___/
-    :param f: stream or list of traces containing the data
-    :returns: list of cumulative output traces, first value = 0
+    :param f: trace, stream or list of traces containing the data
+    :returns: trace or list of cumulative output traces, first value = 0
               list of cumulative output traces
     """
     # f_cumul.m:14
@@ -389,8 +407,8 @@ def _f_segment(f):
 
     Goes from first non-nan value to last non-nan value
     Input and output have the same size.
-    :param f: stream or list of data traces
-    :returns: list of line segment traces
+    :param f: trace, stream or list of data traces
+    :returns: line segment trace or list of traces
     """
     bare_trace = False
     if isinstance(f, Trace):
