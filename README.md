@@ -122,7 +122,6 @@ stations:  # List of stations with their station_parameters and responsefiles
 
 ## To Do
 
-    - Get rid of the false global window pick at the same time on each trace
     - Add event location-based acceptance of solitary P- and S- candidates
     - In P-, S- and P-S clustering stage, allow unused candidates to be
       substituted for rejected picks
