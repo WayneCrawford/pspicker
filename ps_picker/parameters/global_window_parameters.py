@@ -12,7 +12,7 @@ class GlobalWindowParameters():
                  kurt_window_length,
                  offsets,
                  distri_secs,
-                 n_picks=5,
+                 n_extrema=5,
                  kurt_extrema_smoothing=40,
                  end_cutoff=0.9):
         """
@@ -24,8 +24,8 @@ class GlobalWindowParameters():
             Kurtosis during global rewindowing
         :param distri_secs: Length in seconds of sliding window to use
             to find the densest pick time over all stations
-        :param n_picks: Number of "picks" to calculate for each trace
-            when looking at overall pick distribution
+        :param n_extrema: Number of "extrema" to use in evaluating the overall
+            pick distribution
         :param kurt_extrema_smoothing: Number of samples to use in smoothing
             window when calculating extrema
         :param offsets: Offsets in seconds from densest pick
@@ -41,7 +41,7 @@ class GlobalWindowParameters():
         self.offsets = offsets
         self.end_cutoff = end_cutoff
         self.distri_secs = distri_secs
-        self.n_picks = n_picks
+        self.n_extrema = n_extrema
         self.kurt_extrema_smoothing = kurt_extrema_smoothing
 
     def __str__(self):
@@ -51,7 +51,7 @@ class GlobalWindowParameters():
         str += f"    distri_secs = {self.distri_secs}\n"
         str += f"    offsets = {self.offsets}\n"
         str += f"    end_cutoff = {self.end_cutoff}\n"
-        str += f"    n_picks = {self.n_picks}\n"
+        str += f"    n_extrema = {self.n_extrema}\n"
         str += f"    kurt_extrema_smoothing = {self.kurt_extrema_smoothing}\n"
         return str
 

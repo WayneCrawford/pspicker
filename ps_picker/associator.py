@@ -28,7 +28,7 @@ class Associator():
     default_p_delays = [0, 19.17, 76.27, 144.90, 370.27, 781.35]
 
     def __init__(self, params, vel_model=None, target_depth=10.,
-                 max_offset=1., cluster_window_otime=1):
+                 max_offset=1., cluster_window_otime=1, debug=False):
         """
         :param params: AssociatorParameters object
         :param cluster_window_otime: acceptable variation in origin times
@@ -73,6 +73,7 @@ class Associator():
             except Exception:
                 log("Couldn't generate ps delays using '" + vel_model
                     + "', using default", "warning")
+        self.debug = debug
 
     def remove_nonclustered(self, picks):
         """
@@ -119,11 +120,12 @@ class Associator():
             log('less than 3 P-S origin times agree, cannot associate')
             return picks
         good_ots = [ots[i] for i in indices]
-        log(f'good_ots = {good_ots}', 'debug')
+        if self.debug:
+            log(f'good_ots = {good_ots}', 'debug')
         ot = UTCDateTime(np.mean([x.timestamp for x in good_ots]))
         new_picks = self._find_otime_matching(ot, picks, candidates)
-        for x in new_picks:
-            log(x, 'debug')
+        # for x in new_picks:
+        #     log(x, 'debug')
         return new_picks
 
     def _remove_unclustered(self, picks):
@@ -398,7 +400,7 @@ def cluster_clean_picks(window_sec=None, picks=None):
 
 
 def _pick_stations(picks):
-    log(picks)
+    # log(picks, 'debug')
     return list(set([x.station for x in picks]))
 
 

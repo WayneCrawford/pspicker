@@ -96,15 +96,15 @@ class Kurtosis():
         :param extrem_smooths: smoothing to apply when following extrema
         :param extrem_normalize: normalize the cumulative Kurtosis gradient
         :param extrem_which:
-            'first': select first 'n_follow' extrema > 0.1, order right to left
-            'max': select the 'n_follow' biggest extrema, order biggest
+            'first': select first 'n_extrema' extrema > 0.1, order right to left
+            'max': select the 'n_extrema' biggest extrema, order biggest
                        to smallest
         :returns:  list of PickCandidates
         """
         self.extrem_smooths = extrem_smooths
         self.calc_kurtocum(trace, starttime, endtime)
         candidates = self.follow_extrem(type_=extrem_type,
-                                        n_follow=n_candidates,
+                                        n_extrema=n_candidates,
                                         normalize=extrem_normalize,
                                         sense=extrem_which)
         return candidates
@@ -194,7 +194,7 @@ class Kurtosis():
         Stream([trace, kurtosis, cor]).plot(
             size=(600, 600), equal_scale=False)
 
-    def follow_extrem(self, type_='mini', n_follow=2,
+    def follow_extrem(self, type_='mini', n_extrema=2,
                       normalize=False, sense=None, debug=False):
         """
         Return extrema of the cumulative kurtosis
@@ -208,10 +208,10 @@ class Kurtosis():
 
         Uses self.mean_cumulative kurtosis
         :param type: 'mini' or 'maxi':  follow minima or maxima
-        :param n_follow: number of extrema to follow
+        :param n_extrema: number of extrema to follow
         :param normalize: normalize the gradient?
         :param sense:
-            'first': select first 'n_follow' extrema > 0.1, ordered right
+            'first': select first 'n_extrema' extrema > 0.1, ordered right
                      to left
             'max': select from biggest to smallest
         :returns:  list of PickCandidates
@@ -228,7 +228,7 @@ class Kurtosis():
                          type_, normalize)
 
         selected_extrema = _select_extrema(all_extrema[0],
-                                           n_follow, sense)
+                                           n_extrema, sense)
 
         # Sharpen the indices/values using the smaller smoothing values
         sharp_extrema = []
@@ -328,7 +328,7 @@ def _fast_kurtosis(trace, win_samps):
     """
     assert isinstance(trace, Trace), "trace is not an obspy Trace"
     win_samps = int(round(win_samps))
-    log(win_samps, 'debug')
+    # log(win_samps, 'debug')
     # fast_kurtosis.m:11
     if win_samps == 1:
         win_samps = 2

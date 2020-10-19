@@ -157,8 +157,8 @@ class PSPicker():
         picks = assoc.find_same_origin_time(picks, candidates)
         if self.verbose:
             log(f'{len(picks):d} picks after association', level='verbose')
-        plotter.pw.picks(picks, self.loop.t_begin,
-                         assoc.p_cluster, assoc.s_cluster, assoc.o_cluster)
+        plotter.pw.plot_picks(picks, self.loop.t_begin, assoc.p_cluster,
+                              assoc.s_cluster, assoc.o_cluster)
         obspy_picks = [x.to_pick(self.run.channel_maps,
                                  self.param.SNR.quality_thresholds)
                        for x in picks]
@@ -184,8 +184,9 @@ class PSPicker():
 
         # SNR analysis
         datS_filt = self.loop.datS.copy().filter(
-            'bandpass', corners=3, freqmin=station_params.f_energy[0],
-            freqmax=station_params.f_energy[1])
+            'bandpass', corners=3,
+            freqmin=station_params.energy_frequency_band[0],
+            freqmax=station_params.energy_frequency_band[1])
         energy = EnergySNR(datS_filt, self.param.SNR, plot=self.debug)
         if energy.slice(self.run.first_time,
                         self.run.last_time).is_trustworthy():
@@ -216,8 +217,8 @@ class PSPicker():
         elif self.verbose:
             log(f"{station_name}: snr untrustworthy, not picking", 'verbose')
 
-        plotter.pw.traces_candidates(self.loop.datP, c_P, c_S, candidates,
-                                     station_name)
+        plotter.pw.plot_traces_candidates(self.loop.datP, c_P, c_S,
+                                          candidates, station_name)
         plotter.sw.onsets(c_P, c_S, self.loop.data_limits)
 
         new_picks = self._make_picks(c_P, c_S)
@@ -302,7 +303,7 @@ class PSPicker():
                 continue
             k = Kurtosis([p.gw.kurt_frequency_band], [p.gw.kurt_window_length],
                          n_smooth)
-            candidates = k.pick_trace(trace, p.gw.n_picks,
+            candidates = k.pick_trace(trace, p.gw.n_extrema,
                                       extrem_smooths=[p.gw.
                                                       kurt_extrema_smoothing])
             for x in candidates:
@@ -360,7 +361,7 @@ class PSPicker():
                      self.loop.station_params.kurt_window_lengths,
                      1)
         candidates = k.pick_trace(self.loop.datP[0],
-                                  self.loop.station_params.n_follow,
+                                  self.loop.station_params.n_extrema,
                                   first_time, last_time,
                                   extrem_smooths=self.loop.station_params.
                                   kurt_extrema_smoothings)
@@ -456,7 +457,8 @@ class PSPicker():
                 if cFirst.DR > cSecond.DR:
                     c_P = cFirst
                     c_S = cSecond
-        log(f'polarity-verified c_P={c_P}, c_S={c_S}', 'debug')
+        if self.debug:
+            log(f'polarity-verified c_P={c_P}, c_S={c_S}', 'debug')
         return c_P, c_S, DR, candidates
 
     def _calc_follows(self, candidates):
@@ -469,11 +471,11 @@ class PSPicker():
         """
         # Pick_Function.m:507
         # eliminate extrema whose snr is less than SNR.thresh
-        n_follow = self.loop.station_params.n_follow
-        # assert n_follow in (1, 2), 'n_follow is not 1 or 2'
+        n_extrema = self.loop.station_params.n_extrema
+        # assert n_extrema in (1, 2), 'n_extrema is not 1 or 2'
         if len(candidates) == 0:
             return None, None
-        if n_follow == 1:
+        if n_extrema == 1:
             return candidates[0], None
         else:
             # log(extrema, level='debug')

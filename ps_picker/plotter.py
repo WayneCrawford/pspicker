@@ -95,8 +95,8 @@ class Picks_Window():
     Picks window Plotter
 
     Shows picks in the selected pick window, for all stations
-    zorders: 0: windows: 1: trace, 2: candidates (wide, alpha=0.5),
-             3: initial p-s candidates, (wide, alpha=0.5)
+    zorders: 0: windows: 1: candidates (wide, alpha=0.5),
+             2: initial p-s candidates, (wide, alpha=0.5), 3: trace, 
              4: cluster candidates, 5: final picks
     """
     def __init__(self, plot=True):
@@ -130,7 +130,7 @@ class Picks_Window():
         plt.show(block=False)
         plt.pause(0.001)
 
-    def traces_candidates(self, traces, c_P, c_S, candidates, station):
+    def plot_traces_candidates(self, traces, c_P, c_S, candidates, station):
         """
         Plot P trace(s) and candidates for one station
 
@@ -149,22 +149,22 @@ class Picks_Window():
             norm_trace = tr.copy().normalize()
             ax.plot_date(norm_trace.times(type="matplotlib"),
                          norm_trace.data + i_sta,
-                         color='gray', ls='-', marker=None, zorder=3.5)
+                         color='gray', ls='-', marker=None, zorder=3)
         for cand in candidates:
             ax.vlines(cand.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
-                      color='gray', lw=5, alpha=0.5, zorder=2)
+                      color='gray', lw=5, alpha=0.5, zorder=1)
             
         if c_P is not None:
             ax.vlines(c_P.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
-                      color='b', lw=5, alpha=0.5, zorder=3)
+                      color='b', lw=5, alpha=0.5, zorder=2)
         if c_S is not None:
             ax.vlines(c_S.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
-                      color='r', lw=5, alpha=0.5, zorder=3)
+                      color='r', lw=5, alpha=0.5, zorder=2)
         plt.draw()
         plt.show(block=False)
         plt.pause(0.001)
 
-    def picks(self, picks, t_begin, p_clust, s_clust, o_clust):
+    def plot_picks(self, picks, t_begin, p_clust, s_clust, o_clust):
         """
         Plot initial and final P and S picks for all stations
 
@@ -179,8 +179,8 @@ class Picks_Window():
         # Pick_Function.m:811
         p_picks = [p for p in picks if p.phase_guess == 'P']
         s_picks = [p for p in picks if p.phase_guess == 'S']
-        self._picks(p_picks, 'b')
-        self._picks(s_picks, 'r')
+        self._add_picks(p_picks, 'b')
+        self._add_picks(s_picks, 'r')
         self._add_cluster_rectangle(p_clust, 'b', '#a0a0ff')
         self._add_cluster_rectangle(s_clust, 'r', '#ffa0a0')
         self._add_cluster_rectangle(o_clust, 'g', '#a0ffa0')
@@ -189,7 +189,7 @@ class Picks_Window():
         plt.show(block=False)
         plt.pause(0.001)
 
-    def _picks(self, picks, color):
+    def _add_picks(self, picks, color):
         """
         Plot picks for one station as solid lines
 
@@ -213,9 +213,9 @@ class Picks_Window():
             self.ax.plot(t.matplotlib_date, self.stations.index(sta),
                          color=color, marker='x', ls=None, zorder=4)
         t = [x.matplotlib_date for x in cluster.values()]
-        log(cluster, 'debug')
-        log(min(t), 'debug')
-        log(max(t), 'debug')
+        # log(cluster, 'debug')
+        # log(min(t), 'debug')
+        # log(max(t), 'debug')
         p = Rectangle((min(t), -0.5), width=max(t) - min(t),
                       height=len(self.stations), fc=face_color, ec=color,
                       alpha=0.5, zorder=0)

@@ -63,7 +63,7 @@ global_window: # Parameters affecting the initial selection of a global pick win
     distri_secs:        # size of window in seconds in which to look for the maximum # of picks
     offsets:            # final window offset in seconds [left, right] from peak distribution
     end_cutoff: 0.9     # don't look for extrema beyond this fraction of the overall time
-    n_picks: 5          # number of picks to use for each trace
+    n_extrema: 5        # number of kurtosis extrema to pick for each trace
 SNR: # Parameters affecting the signal-to-noise level calculation and use
     noise_window:              # seconds to use for noise window
     signal_window:             # seconds to use for signal_window
@@ -107,7 +107,7 @@ station_parameters:  # List of objects with key = station_type
         use_polarity:    # Use polarities (dip_rect thresholds) to assign P and S picks
         nrg_win:  # only look at data from t-nrg_win to t when evaluating energy, where t is the time of the peak waveform energy.
                   # If == 0, don't use energy criteria.
-        n_follow: # number of extrema to follow (1 or 2).  Generally use 2 (S and P) unless data are problematic
+        n_extrema: 5 # number of extrema to follow
     - station2_name
       ...
     - station3_name
