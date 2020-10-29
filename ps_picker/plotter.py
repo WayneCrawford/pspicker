@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from obspy.core.stream import Stream
 
-from .logger import log
+# from .logger import log
 
 
 class Plotter():
@@ -96,7 +96,7 @@ class Picks_Window():
 
     Shows picks in the selected pick window, for all stations
     zorders: 0: windows: 1: candidates (wide, alpha=0.5),
-             2: initial p-s candidates, (wide, alpha=0.5), 3: trace, 
+             2: initial p-s candidates, (wide, alpha=0.5), 3: trace,
              4: cluster candidates, 5: final picks
     """
     def __init__(self, plot=True):
@@ -153,7 +153,6 @@ class Picks_Window():
         for cand in candidates:
             ax.vlines(cand.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
                       color='gray', lw=5, alpha=0.5, zorder=1)
-            
         if c_P is not None:
             ax.vlines(c_P.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
                       color='b', lw=5, alpha=0.5, zorder=2)

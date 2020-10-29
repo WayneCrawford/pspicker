@@ -128,6 +128,100 @@ class Associator():
         #     log(x, 'debug')
         return new_picks
 
+    def _find_otime_matching(self, ot, picks, candidates):
+        """
+        Return picks or candidates whose P-S delay matches the origin time
+
+        :param ot: desired origin time
+        :param picks: list of preferred PickCandidates
+        :param candidates: list of all PickCandidates
+        :returns: new list of preferred PickCandidates
+        """
+        otime_margin = self.cluster_window_otime / 2.
+        stations_c = _pick_stations(candidates)
+        # Error check
+        for sta in _pick_stations(picks):
+            if sta not in stations_c:
+                raise ValueError(f"picked station {sta} not in candidates")
+
+        new_picks = []
+        self.o_cluster = {}
+        for station in stations_c:
+            sta_candidates = [x for x in candidates if x.station == station]
+            p_existing, s_existing = self._get_existing(picks, station)
+
+            # If we have a P and an S candidate that match ot, keep them
+            if s_existing is not None and p_existing is not None:
+                otime = self._ps_to_otime(p_existing.time, s_existing.time)
+                if np.abs(otime - ot) < otime_margin:
+                    new_picks.extend([p_existing, s_existing])
+                    self.o_cluster[station] = otime
+                    continue
+            # Otherwise, if a P cand matches ot with another cand, keep them
+            if p_existing is not None:
+                otimes = [self._ps_to_otime(p_existing.time, x.time)
+                          for x in sta_candidates]
+                offsets = [np.abs(x - ot) for x in otimes]
+                if np.min(offsets) < otime_margin:
+                    s_candidate = sta_candidates[np.argmin(offsets)]
+                    s_candidate.phase_guess = 'S'
+                    new_picks.extend([p_existing, s_candidate])
+                    self.o_cluster[station] = otimes[np.argmin(offsets)]
+                    continue
+            # Otherwise, an S cand that matches with another cand, keep them
+            if s_existing is not None:
+                otimes = [self._ps_to_otime(x.time, s_existing.time)
+                          for x in sta_candidates]
+                offsets = [np.abs(x - ot) for x in otimes]
+                if np.min(offsets) < otime_margin:
+                    p_candidate = sta_candidates[np.argmin(offsets)]
+                    p_candidate.phase_guess = 'P'
+                    new_picks.append([p_candidate, s_existing])
+                    self.o_cluster[station] = otimes[np.argmin(offsets)]
+                    continue
+            # Otherwise, if any combination of cands matches ot, keep them
+            if sta_candidates is not None:
+                sort_cands = sorted(sta_candidates, key=lambda x: x.time)
+                min_offset = otime_margin
+                new_p, new_s = None, None
+                for p_maybe, s_maybe in itertools.combinations(sort_cands, 2):
+                    otime = self._ps_to_otime(p_maybe.time, s_maybe.time)
+                    offset = np.abs(otime - ot)
+                    if offset < min_offset:
+                        new_p = p_maybe
+                        new_s = s_maybe
+                        new_otime = otime
+                        min_offset = offset
+                if new_p is not None:
+                    new_p.phase_guess = 'P'
+                    new_s.phase_guess = 'S'
+                    new_picks.extend([new_p, new_s])
+                    self.o_cluster[station] = new_otime
+                    continue
+            # Otherwise, keep a solitary P or S pick
+            # (if I used station positions, I could compare times here)
+            if p_existing is not None and s_existing is None:
+                new_picks.append(p_existing)
+            elif p_existing is None and s_existing is not None:
+                new_picks.append(s_existing)
+        return new_picks
+
+    @staticmethod
+    def _get_existing(picks, station):
+        p_existing = [x for x in picks if x.station == station
+                      and x.phase_guess == 'P']
+        s_existing = [x for x in picks if x.station == station
+                      and x.phase_guess == 'S']
+        if len(p_existing) > 0:
+            p_existing = p_existing[0]
+        else:
+            p_existing = None
+        if len(s_existing) > 0:
+            s_existing = s_existing[0]
+        else:
+            s_existing = None
+        return p_existing, s_existing
+
     def _remove_unclustered(self, picks):
         """
         Remove picks and reassign phases based on clustering
@@ -214,104 +308,6 @@ class Associator():
                 log('Could not calculate delays for dist={:.2g} degrees'
                     .format(distance), 'warning')
         return ps_delays, p_delays
-
-    def _find_otime_matching(self, ot, picks, candidates):
-        """
-        Return picks or candidates whose P-S delay matches the origin time
-
-        :param ot: desired origin time
-        :param picks: list of preferred PickCandidates
-        :param candidates: list of all PickCandidates
-        :returns: new list of preferred PickCandidates
-        """
-        # Make sure there aren't picked stations that aren't in candidates
-        stations_p = _pick_stations(picks)
-        stations_c = _pick_stations(candidates)
-        for sta in stations_p:
-            if sta not in stations_c:
-                raise ValueError(f"picked station {sta} not in candidates")
-
-        new_picks = []
-        self.o_cluster = {}
-        for station in stations_c:
-            sta_candidates = [x for x in candidates if x.station == station]
-            p_existing = [x for x in picks if x.station == station
-                          and x.phase_guess == 'P']
-            s_existing = [x for x in picks if x.station == station
-                          and x.phase_guess == 'S']
-            # If we have a P and an S candidate and they match ot, keep them
-            if len(p_existing) > 0:
-                p_existing = p_existing[0]
-            else:
-                p_existing = None
-            if len(s_existing) > 0:
-                s_existing = s_existing[0]
-            else:
-                s_existing = None
-
-            if s_existing is not None and p_existing is not None:
-                otime = self._ps_to_otime(p_existing.time, s_existing.time)
-                if np.abs(otime - ot) < self.cluster_window_otime:
-                    new_picks.append(p_existing)
-                    new_picks.append(s_existing)
-                    self.o_cluster[station] = otime
-                    continue
-            # Otherwise, if we have a P candidate that matches ot with another
-            # candidate, keep them
-            if p_existing is not None:
-                otimes = [self._ps_to_otime(p_existing.time, x.time)
-                          for x in sta_candidates]
-                offsets = [np.abs(x - ot) for x in otimes]
-                if np.min(offsets) < self.cluster_window_otime:
-                    i_good = np.argmin(offsets)
-                    new_picks.append(p_existing)
-                    s_candidate = sta_candidates[i_good]
-                    s_candidate.phase_guess = 'S'
-                    new_picks.append(s_candidate)
-                    self.o_cluster[station] = otimes[i_good]
-                    continue
-            # Otherwise, if we have an S candidate that matches ot with another
-            # candidate, keep them
-            if s_existing is not None:
-                otimes = [self._ps_to_otime(x.time, s_existing.time)
-                          for x in sta_candidates]
-                offsets = [np.abs(x - ot) for x in otimes]
-                if np.min(offsets) < self.cluster_window_otime:
-                    i_good = np.argmin(offsets)
-                    new_picks.append(s_existing)
-                    p_candidate = sta_candidates[i_good]
-                    p_candidate.phase_guess = 'P'
-                    new_picks.append(p_candidate)
-                    self.o_cluster[station] = otimes[i_good]
-                    continue
-            # Otherwise, if we have any combination of candidates that matches
-            # ot, keep them
-            if sta_candidates is not None:
-                sort_cands = sorted(sta_candidates, key=lambda x: x.time)
-                min_offset = self.cluster_window_otime
-                new_p, new_s = None, None
-                for p_maybe, s_maybe in itertools.combinations(sort_cands, 2):
-                    otime = self._ps_to_otime(p_maybe.time, s_maybe.time)
-                    offset = np.abs(otime - ot)
-                    if offset < min_offset:
-                        new_p = p_maybe
-                        new_s = s_maybe
-                        new_otime = otime
-                        min_offset = offset
-                if new_p is not None:
-                    new_p.phase_guess = 'P'
-                    new_s.phase_guess = 'S'
-                    new_picks.append(new_p)
-                    new_picks.append(new_s)
-                    self.o_cluster[station] = new_otime
-                    continue
-            # Otherwise, keep a solitary P or S pick
-            # (if I used station positions, I could compare times here)
-            if p_existing is not None and s_existing is None:
-                new_picks.append(p_existing)
-            elif p_existing is None and s_existing is not None:
-                new_picks.append(s_existing)
-        return new_picks
 
     def _ps_to_otime(self, p_time, s_time):
         """
@@ -402,31 +398,6 @@ def cluster_clean_picks(window_sec=None, picks=None):
 def _pick_stations(picks):
     # log(picks, 'debug')
     return list(set([x.station for x in picks]))
-
-
-# def cluster_clean_picks(window_sec=None, picks=None):
-#     """
-#     Return indices of picks that do not fit in the cluster
-#
-#     :param window_sec: cluster window length
-#     :param picks: input picks
-#     :returns: picks that fit the cluster criteria
-#     """
-#     if len(picks) > 1:
-#         cluster_data = fclusterdata(np.array([[p.time for p in picks]]).T,
-#                                     t=window_sec,
-#                                     criterion='distance')
-#         cluster_groups = dict()
-#         for cnum in cluster_data:
-#             cluster_groups[cnum] = cluster_groups.get(cnum, 0) + 1
-#         max_length = max(cluster_groups.values())
-#         max_keys = [k for k, v in cluster_groups.items() if v == max_length]
-#
-#         if len(max_keys) > 1:
-#             warnings.warn('{} clusters of max_length ({:d}), returning first'
-#                           .format(len(max_keys), max_length))
-#         picks = [p for p, i in zip(picks, cluster_data) if i == max_keys[0]]
-#     return picks
 
 
 if __name__ == "__main__":

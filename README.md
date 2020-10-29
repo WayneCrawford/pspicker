@@ -122,6 +122,32 @@ stations:  # List of stations with their station_parameters and responsefiles
 
 ## To Do
 
+    - Make associator switch to cluster-based if origin-time based doesn't work
+        - and make sure origin-time based parameters are in paramter file
+    - Fix magnitude calculations
+        - Allow SAC PZ files for response files
+    - Figure out why S-picks aren't being saved
+    - Put pick uncertainties into Nordic files
+        - short-term solution: by creating an associated arrival and setting
+          its time_weight to the appropriate number
+        - long-term solution: integrating my recommended time-weight procedure
+          into obspy nordic:
+            - add a parameter uncertainty-mapping to write_select. This could
+              be a list of the maximum time_errors for a given nordic_weight,
+              for example [0.1, 0.2, 0.4, 0.8] would give a weight of "0" for
+              uncertainties less than 0.1s, "1" for 0.1-0.2s, "2" for 0.2-0.4,
+              "3" for 0.4-0.8 and "4" for the rest. No weight is given for
+              a pick without a time_error
+            - if this parameter is not set, then the pick weight will be based
+              on the Arrival.time_weight according to the following formula:
+                ```
+                if all(time_weight <= 1): 
+                    nordic_weight = round(4. * (1-time_weight))  # alternatively floor(4.9999. * (1-time_weight))
+                else:
+                    nordic_weight = round(4. * (max(time_weights) - 1)  # or the alternate form
+            - Should I also make nordic outputs include I lines (all in one
+              integrated variable including waveform filenames)?
+
     - Add event location-based acceptance of solitary P- and S- candidates
     - In P-, S- and P-S clustering stage, allow unused candidates to be
       substituted for rejected picks

@@ -14,8 +14,6 @@ from scipy import stats
 from obspy.core import UTCDateTime
 from obspy.core.event import Catalog as obspy_Catalog
 # from obspy.core.inventory.response import PolesZerosResponseStage
-from obspy.core.event.magnitude import Amplitude as obspy_Amplitude
-from obspy.core.event.origin import Pick as obspy_Pick
 from obspy.core.event.origin import Origin as obspy_Origin
 from obspy.core.event import Event as obspy_Event
 # from obspy.signal.invsim import simulate_seismometer
@@ -30,8 +28,9 @@ from .energy_snr import EnergySNR
 from .polarity import Polarity
 from .associator import Associator
 from .plotter import Plotter
-from .trace_utils import (pk2pk, select_traces, smooth_filter)
-from .utils import (get_response, picks_ps_times)
+from .local_amplitude import LocalAmplitude
+from .trace_utils import (select_traces, smooth_filter)
+from .utils import picks_ps_times
 from .logger import log
 
 
@@ -142,9 +141,10 @@ class PSPicker():
         for sta, chan_map in self.run.channel_maps.items():
             # Reject stations not listed in parameter file
             if sta not in self.param.stations:
-              if self.verbose:
-                log(f'{sta} not in self.param.stations, ignored', 'verbose')
-              continue
+                if self.verbose:
+                    log(f'{sta} not in self.param.stations, ignored',
+                        'verbose')
+                continue
             p, c = self._pick_one_station(sta, chan_map, plotter)
             picks.extend(p)
             candidates.extend(c)
@@ -201,14 +201,14 @@ class PSPicker():
             if station_params.use_polarity and (len(datS_filt) == 3):
                 c_P, c_S, DR, candidates = self._polarity_analysis(
                         c_P, c_S, candidates, datS_filt)
-            plotter.sw.plot_data(self.run.first_time,
-                                 self.run.last_time,
+            plotter.sw.plot_data(self.run.first_time, self.run.last_time,
                                  self.param.SNR.quality_thresholds,
                                  self.loop.datP[0],
                                  energy,
                                  kurt.mean_kurtosis,
                                  kurt.kurto_gradients,
-                                 DR, self.param.polarity.DR_threshold_P,
+                                 DR,
+                                 self.param.polarity.DR_threshold_P,
                                  self.param.polarity.DR_threshold_S)
             if len(candidates) > 0:
                 plotter.sw.candidates(candidates,
@@ -508,63 +508,15 @@ class PSPicker():
         for station in stations:
             sta_picks = [p for p in picks
                          if p.waveform_id.station_code == station]
-            amp = self._calc_amplitude(sta_picks)
+            la = LocalAmplitude(
+                self.loop.dat_noH, sta_picks,
+                self.param.station_parameters[station].resp_file,
+                self.param.response_file_type)
+            # log(la, 'debug')
+            amp = la.get_iaml(method='wood_calc')
             if amp is not None:
                 amplitudes.append(amp)
         return amplitudes
-
-    def _calc_amplitude(self, picks):
-        """
-        Calculate maximum Woods-Anderson amplitude
-
-        :param picks: list of obspy picks for this station
-        :returns: obspy.core.event.magnitude.Amplitude
-        """
-        if len(picks) == 0:
-            return None
-        assert isinstance(picks[0], obspy_Pick),\
-            f'picks[0] is a {type(picks[0])}, not an obspy Pick'
-        pick_P = [x for x in picks if x.phase_hint[0] == 'P']
-        pick_S = [x for x in picks if x.phase_hint[0] == 'S']
-
-        # Pick_Function.m:621
-        # Look for response file in local directory, then data/CAL directory
-        # Should take advantage of obspy to read all standard formats
-        filename = self.loop.station_params.resp_file
-        if not os.path.isfile(filename):
-            cal_dir = os.path.join(self.param.Main_path, 'CAL/')
-            filename = os.path.join(cal_dir, filename)
-        paz = get_response(filename, self.param.response_file_type)
-        paz_wa = _wood_anderson_paz()
-        # Set gain to 1 so that output will be m/s, not volts
-        # paz_wa.stage_gain = 1
-        # want output in m?  should I set wa gain and sensitivity to 1?
-        if self.loop.station_params.use_polarity:
-            wood = self.loop.dat_noH.copy()
-        else:
-            wood = self.loop.datP.copy()
-        for tr in wood:
-            tr.simulate(paz_remove=paz, paz_simulate=paz_wa, water_level=60.0)
-            # tr.data = simulate_seismometer(
-            #    tr.detrend().data, tr.stats.sampling_rate, paz, paz_wa)
-        if len(pick_S) > 0:
-            pick = pick_S[0]
-            Amp = pk2pk(wood, pick.time, before_pick=20, after_pick=10)
-        if len(pick_P) > 0:
-            pick = pick_P[0]
-            Amp = pk2pk(wood, pick.time, before_pick=5, after_pick=30)
-        else:
-            return None
-        amplitude = obspy_Amplitude(
-                generic_amplitude=Amp['amplitude'],
-                type='AML',
-                # category='other', # ["point", "mean", "duration",
-                #                      "period", "integral", "other"]
-                unit='m/s',  # obspy.core.event.header.AmplitudeUnit,
-                period=Amp['period'],
-                pick_id=pick.resource_id,
-                waveform_id=pick.waveform_id)
-        return amplitude
 
     def _save_event(self, picks, amplitudes):
         """
@@ -671,16 +623,6 @@ def _average_ps_o_time(picks, vp_over_vs):
     mean_timestamp = np.mean([o.timestamp for o, z in zip(o_times, zs)
                               if z < 3])
     return UTCDateTime(mean_timestamp)
-
-
-def _wood_anderson_paz():
-    """
-    Return paz dict for Wood-Anderson seismometer
-    """
-    return {'gain': 1.0,
-            'poles': [(-6.283-4.7124j), (-6.283+4.7124j)],
-            'sensitivity': 2080,
-            'zeros': [0 + 0j]}
 
 
 if __name__ == '__main__':

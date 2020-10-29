@@ -1,28 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Functions to test the lcheapo functions
+Functions to test ps_picker
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from future.builtins import *  # NOQA @UnusedWildImport
 
 import os
-import glob
+# import glob
 import unittest
 import inspect
+import difflib
 import pprint
-import xml.etree.ElementTree as ET
-from CompareXMLTree import XmlTree
-# from obsinfo.network.network import _make_stationXML_script
-from obsinfo.misc.info_files import (validate, _read_json_yaml_ref,
-                                     read_info_file)
+
+from obspy import read as obspy_read
+from obspy.core import UTCDateTime
+from obspy.core.event.origin import Pick
+from obspy.core.event.base import WaveformStreamID
+
 # from obsinfo.misc.info_files import _read_json_yaml
-from obsinfo.info_dict import InfoDict
-from obsinfo.instrumentation import (Instrumentation, InstrumentComponent,
-                                     Datalogger, Sensor,
-                                     ResponseStages, Stage, Filter)
-from obsinfo.network import (Network, Station)
+from ps_picker.local_amplitude import (LocalAmplitude, get_response)
+from ps_picker.paz import PAZ
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -35,9 +34,6 @@ class TestADDONSMethods(unittest.TestCase):
         self.path = os.path.dirname(os.path.abspath(inspect.getfile(
             inspect.currentframe())))
         self.testing_path = os.path.join(self.path, "data")
-        self.infofiles_path = os.path.join(os.path.split(self.path)[0],
-                                           '_examples',
-                                           'Information_Files')
 
     def assertTextFilesEqual(self, first, second, msg=None):
         with open(first) as f:
@@ -58,295 +54,80 @@ class TestADDONSMethods(unittest.TestCase):
 
             self.fail("Multi-line strings are unequal:\n" + message)
 
-    def test_readJSONREF_json(self):
+    def test_paz(self):
         """
-        Test JSONref using a JSON file.
+        Test calculating amplitudes
         """
-        fname_A = os.path.join(self.testing_path, "jsonref_A.json")
-        A = _read_json_yaml_ref(fname_A)
-        AB = _read_json_yaml_ref(os.path.join(self.testing_path,
-                                              "jsonref_AB.json"))
-        self.assertTrue(A == AB)
+        obj = PAZ(poles=[6.228 + 6.228j, 6.228 - 6.228j], zeros=[0, 0],
+                     input_units='m/s', output_units='counts',
+                     passband_gain=1500., ref_freq=1.)
+        obj_nm = PAZ(poles=[6.228 + 6.228j, 6.228 - 6.228j], zeros=[0, 0, 0],
+                     input_units='nm', output_units='counts',
+                     passband_gain=9.42e-6, ref_freq=1.)
+        self.assertNotEqual(obj, obj_nm)
+        self.assertAlmostEqual(obj.norm_factor, 2.205, places=3)
+        obj.input_units='nm'
+        self.assertAlmostEqual(obj.norm_factor, 0.3509, places=3)
+        self.assertEqual(obj, obj_nm)
 
-    def test_readJSONREF_yaml(self):
+    def test_norm_factor(self):
         """
-        Test JSONref using a YAML file.
+        Test calculating norm_factor and fixing norm_factor
         """
-        A = _read_json_yaml_ref(os.path.join(self.testing_path,
-                                             "jsonref_A.yaml"))
-        AB = _read_json_yaml_ref(os.path.join(self.testing_path,
-                                              "jsonref_AB.yaml"))
-        self.assertTrue(A == AB)
+        obja = PAZ(poles=[6.228 + 6.228j, 6.228 - 6.228j], zeros=[0, 0],
+                     input_units='m/s', output_units='counts',
+                     passband_gain=1500., ref_freq=1.)
+        objb = obja.copy()
+        objb.norm_factor = obja.norm_factor
+        self.assertAlmostEqual(obja.norm_factor, 2.205, places=3)
+        self.assertAlmostEqual(objb.norm_factor, 2.205, places=3)
+        obja.input_units = 'nm'
+        objb.input_units = 'nm'
+        self.assertAlmostEqual(obja.norm_factor, 0.3509, places=3)
+        self.assertAlmostEqual(objb.norm_factor, 2.205, places=3)
 
-    def test_validate_json(self):
+    def test_resp_file_read(self):
         """
-        Test validation on a YAML file.
+        Test reading response files
+        """
+        filea = os.path.join(self.testing_path, "SPOBS2_response.txt")
+        paza = get_response(filea, '')
+        fileb = os.path.join(self.testing_path, "SPOBS2_response.json")
+        pazb = get_response(fileb, 'JSON_PZ')
+        filec = os.path.join(self.testing_path, "SPOBS2_response.GSE")
+        pazc = get_response(filec, 'GSE')
+        filed = os.path.join(self.testing_path, "SPOBS2_response.SACPZ")
+        pazd = get_response(filed, 'SACPZ')
+        pazd.ref_freq = 10.
+        pazd.input_units = 'nm'
+        filee = os.path.join(self.testing_path, "1T.MOSE.STATION.xml")
+        paze = get_response(filee, 'STATIONXML', component='3')
+        paze.input_units = 'nm'
+        for paz in [pazb, pazc, pazd, paze]:
+            self.assertEqual(paza, paz)
 
-        The test file as an $ref to a file that doesn't exist, a field that
-        is not specified in the the schema, and lacks a field required in
-        the schema
+    def test_amplitude(self):
         """
-        test_file = os.path.join(self.testing_path, 'json_testschema.json')
-        test_schema = os.path.join(self.testing_path,
-                                   'json_testschema.schema.json')
-        # self.assertFalse(validate(test_file, schema_file=test_schema,
-        #                           quiet=True))
-        # Run the code
-        cmd = f'obsinfo-validate -s {test_schema} {test_file} > temp'
-        os.system(cmd)
-
-        # Compare text files
-        self.assertTextFilesEqual(
-            'temp',
-            os.path.join(self.testing_path, 'json_testschema.out.txt')
-            )
-        os.remove('temp')
-
-    def test_InfoDict_update(self):
+        Test calculating amplitudes
         """
-        Test InfoDict.update()
-        """
-        A = InfoDict(a=1, b=dict(c=2, d=3))
-        A.update(dict(b=dict(d=4, e=5)))
-        self.assertTrue(A == InfoDict(a=1, b=dict(c=2, d=4, e=5)))
-
-    def test_InfoDict_update_list(self):
-        """
-        Test InfoDict.update() for a list
-        """
-        A = InfoDict(a=1, b=[1, 2, 3, 4, 5])
-        A.update(dict(b=[None, None, 99]))
-        self.assertTrue(A == InfoDict(a=1, b=[1, 2, 99, 4, 5]))
-
-    def test_InfoDict_daschannels(self):
-        """
-        Test InfoDict.complete_das_channels()
-        """
-        A = InfoDict(base_channel=dict(a=1, b=dict(c=2, d=3)),
-                     das_channels={'1': dict(b=dict(c=5)), '2': dict(a=4)})
-        A = Instrumentation._complete_das_channels(A)
-        self.assertTrue(
-            A == InfoDict(
-                das_channels={'1': dict(a=1, b=dict(c=5, d=3)),
-                              '2': dict(a=4, b=dict(c=2, d=3))}))
-
-    def test_filter(self):
-        """
-        Test reading a filter file.
-        """
-        A = read_info_file(os.path.join(
-            self.infofiles_path,
-            "instrumentation",
-            "sensors",
-            "responses",
-            "PolesZeros",
-            "Sercel_L22D_C510-S2000_generic.filter.yaml"))
-        obj = Filter.from_info_dict(A['filter'])
-
-    def test_stage(self):
-        """
-        Test reading a stage file.
-        """
-        A = read_info_file(os.path.join(
-            self.infofiles_path,
-            "instrumentation",
-            "dataloggers",
-            "responses",
-            "TI_ADS1281_FIR1.stage.yaml"))
-        obj = Stage.from_info_dict(A['stage'])
-
-    def test_response(self):
-        """
-        Test reading and combining response_stages.
-        """
-        A = read_info_file(os.path.join(
-            self.infofiles_path,
-            "instrumentation",
-            "sensors",
-            "responses",
-            "Trillium_T240_SN400-singlesided_theoretical.stage.yaml"))
-        B = _read_json_yaml_ref(os.path.join(
-            self.infofiles_path,
-            "instrumentation",
-            "dataloggers",
-            "responses",
-            "TexasInstruments_ADS1281_100sps-linear_theoretical."
-            "response_stages.yaml"))
-        obj_A = ResponseStages([Stage.from_info_dict(A['stage'])])
-        obj_B = ResponseStages.from_info_dict(B['response_stages'])
-        obj = obj_A + obj_B
-
-    def test_datalogger(self):
-        """
-        Test reading datalogger instrument_compoents.
-        """
-        A = read_info_file(os.path.join(
-            self.infofiles_path,
-            "instrumentation",
-            "dataloggers",
-            "LC2000.datalogger.yaml"))
-        obj = InstrumentComponent.from_info_dict(A)
-        obj = InstrumentComponent.from_info_dict(A['datalogger'])
-        obj = Datalogger.from_info_dict(A['datalogger'])
-
-    def test_sensor(self):
-        """
-        Test reading sensor instrument_compoents.
-        """
-        A = read_info_file(os.path.join(
-            self.infofiles_path,
-            "instrumentation",
-            "sensors",
-            "NANOMETRICS_T240_.sensor.yaml"))
-        obj = InstrumentComponent.from_info_dict(A)
-        obj = InstrumentComponent.from_info_dict(A['sensor'])
-        obj = Sensor.from_info_dict(A['sensor'])
-
-    def test_channel(self):
-        """
-        Test reading a channel and converting to obspy.
-        """
-        A = read_info_file(os.path.join(
-            self.infofiles_path,
-            "campaign",
-            "TEST.station.yaml"))
-        sta_obj = Station.from_info_dict('MASTATION', A['station'])
-        obj = sta_obj.instrumentations[0].channels[0]
-
-    def test_instrumentation(self):
-        """
-        Test reading instrumentation.
-        """
-        A = read_info_file(os.path.join(
-            self.infofiles_path,
-            "instrumentation",
-            "SPOBS2.instrumentation.yaml"))
-        obj = Instrumentation.from_info_dict(A['instrumentation'])
-
-    def test_station(self):
-        """
-        Test reading a station and converting to obspy.
-        """
-        A = read_info_file(os.path.join(
-            self.infofiles_path,
-            "campaign",
-            "TEST.station.yaml"))
-        obj = Station.from_info_dict('MASTATION', A['station'])
-
-    def test_network(self):
-        """
-        Test reading a network.
-        """
-        A = read_info_file(os.path.join(
-            self.infofiles_path,
-            "campaign",
-            "SPOBS.INSU-IPGP.network.yaml"))
-        # print(A['station'])
-        obj = Network.from_info_dict(A['network'])
-
-    def test_makeSTATIONXML_SPOBS(self):
-        self._makeSTATIONXML("SPOBS.INSU-IPGP.network.yaml")
-
-    def test_makeSTATIONXML_BBOBS(self):
-        self._makeSTATIONXML("BBOBS.INSU-IPGP.network.yaml")
-
-    def _makeSTATIONXML(self, fname):
-        """
-        Test STATIONXML creation.
-        """
-        net_file = os.path.join(self.infofiles_path, "campaign", fname)
-        # _make_stationXML_script([net_file, "-d", "."])
-        A = read_info_file(net_file)
-        obj = Network.from_info_dict(A['network'])
-        obj.to_stationXML()
-
-        compare = XmlTree()
-        # excluded elements
-        excludes = ["Created", "Real", "Imaginary", "Numerator",
-                    "CreationDate", "Description", "Module"]
-        excludes_attributes = ["startDate", "endDate"]
-        excludes = [compare.add_ns(x) for x in excludes]
-
-        for stxml in glob.glob("*.xml"):
-            xml1 = ET.parse(stxml)
-            xml2 = ET.parse(os.path.join(self.testing_path,
-                                         'STATIONXML', stxml))
-            self.assertTrue(compare.xml_compare(
-                compare.getroot(xml1), compare.getroot(xml2),
-                excludes=excludes,
-                excludes_attributes=excludes_attributes))
-            os.remove(stxml)
-
-    # Validate all of the example InfoFiles
-    def test_validate_filters(self):
-        """
-        Test validate filter files
-        """
-        for ftype in ["PoleZeros", "FIR"]:
-            for fname in glob.glob(os.path.join(self.infofiles_path,
-                                                "instrumentation",
-                                                "*",
-                                                "responses",
-                                                ftype,
-                                                "*.filter.yaml")):
-                self.assertTrue(validate(fname, quiet=True))
-
-    def test_validate_responses(self):
-        """
-        Test validate sensor files
-        """
-        for component_dir in ["sensors", "dataloggers", "preamplifiers"]:
-            glob_name = os.path.join(self.infofiles_path, "instrumentation",
-                                     component_dir, "responses",
-                                     "*.response.yaml")
-            for fname in glob.glob(glob_name):
-                self.assertTrue(validate(fname, quiet=True))
-
-    def test_validate_components(self):
-        """
-        Test validate instrument_component files
-        """
-        for component in ["sensor", "datalogger", "preamplifier"]:
-            glob_name = os.path.join(self.infofiles_path, "instrumentation",
-                                     component+'s', f"*.{component}.yaml")
-            for fname in glob.glob(glob_name):
-                self.assertTrue(validate(fname, quiet=True))
-
-    def test_validate_instrumentation(self):
-        """
-        Test validate instrumentation files
-        """
-        for fname in glob.glob(os.path.join(self.infofiles_path,
-                                            "instrumentation",
-                                            "*.instrumentation.yaml")):
-            self.assertTrue(validate(fname, quiet=True))
-
-    def test_validate_networks(self):
-        """
-        Test validate network files
-        """
-        for fname in glob.glob(os.path.join(self.infofiles_path,
-                                            "campaign",
-                                            "*.network.yaml")):
-            self.assertTrue(validate(fname, quiet=True))
-
-    def test_validate_station(self):
-        """
-        Test validate network files
-        """
-        for fname in glob.glob(os.path.join(self.infofiles_path,
-                                            "campaign",
-                                            "*.station.yaml")):
-            self.assertTrue(validate(fname, quiet=True))
-
-    def test_validate_campaign(self):
-        """
-        Test validate campaign files
-        """
-        for fname in glob.glob(os.path.join(self.infofiles_path,
-                                            "campaign",
-                                            "*.campaign.yaml")):
-            self.assertTrue(validate(fname, quiet=True))
+        datafile = os.path.join(self.testing_path,
+                                "20190519T060917_MONA.mseed")
+        respfile = os.path.join(self.testing_path, "SPOBS2_response.json")
+        stream = obspy_read(datafile, 'MSEED')
+        wid = WaveformStreamID(network_code=stream[0].stats.network,
+                               station_code=stream[0].stats.station,
+                               channel_code=stream[0].stats.channel)
+        Ppick = Pick(time=UTCDateTime('2019-05-19T06:09:48.83'),
+                     phase_hint='P', waveform_id=wid)
+        Spick = Pick(time=UTCDateTime('2019-05-19T06:09:51.52'),
+                     phase_hint='S', waveform_id=wid)
+        obj = LocalAmplitude(stream, [Ppick, Spick], respfile, 'JSON_PZ')
+        amp_wood_calc = obj.get_iaml(plot=False, method='wood_calc')
+        amp_wood_est = obj.get_iaml(plot=False, method='wood_est')
+        amp_raw = obj.get_iaml(plot=False, method='raw_disp')
+        self.assertAlmostEqual(amp_wood_calc.generic_amplitude,
+                               3.7848367595677965e-07)
+        self.assertAlmostEqual(amp_wood_calc.period, 0.12)
 
 
 def suite():

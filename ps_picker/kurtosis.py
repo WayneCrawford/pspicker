@@ -10,7 +10,7 @@ from obspy.core.trace import Trace
 
 from .trace_utils import smooth_filter
 from .pick_candidate import PickCandidate
-from .logger import log
+# from .logger import log
 
 
 class Kurtosis_pick():
@@ -96,7 +96,8 @@ class Kurtosis():
         :param extrem_smooths: smoothing to apply when following extrema
         :param extrem_normalize: normalize the cumulative Kurtosis gradient
         :param extrem_which:
-            'first': select first 'n_extrema' extrema > 0.1, order right to left
+            'first': select first 'n_extrema' extrema > 0.1, order right to
+                     left
             'max': select the 'n_extrema' biggest extrema, order biggest
                        to smallest
         :returns:  list of PickCandidates
@@ -122,8 +123,8 @@ class Kurtosis():
         # trace2FWkurto.m:26
         assert isinstance(trace, Trace), "trace is not an obspy Trace"
 
-        sr = trace.stats.sampling_rate
-        data_length = trace.stats.endtime - trace.stats.starttime
+        # sr = trace.stats.sampling_rate
+        # data_length = trace.stats.endtime - trace.stats.starttime
         if starttime is None:
             starttime = trace.stats.starttime
         elif starttime < trace.stats.starttime:
@@ -157,7 +158,7 @@ class Kurtosis():
     def calc_cum_kurtoses(self, B, win_len):
         """
         Calculate kurtoses and cumulative kurtoses for given window length
-        
+
         :param B: list of data, filtered in different bands
         :win_len: window length in seconds
         """
