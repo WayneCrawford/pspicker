@@ -29,8 +29,7 @@ from .polarity import Polarity
 from .associator import Associator
 from .plotter import Plotter
 from .local_amplitude import LocalAmplitude
-from .trace_utils import (select_traces, smooth_filter)
-from .utils import picks_ps_times
+from .utils import (select_traces, smooth_filter, picks_ps_times)
 from .logger import log
 
 
@@ -159,11 +158,13 @@ class PSPicker():
             log(f'{len(picks):d} picks after association', level='verbose')
         plotter.pw.plot_picks(picks, self.loop.t_begin, assoc.p_cluster,
                               assoc.s_cluster, assoc.o_cluster)
-        obspy_picks = [x.to_pick(self.run.channel_maps,
-                                 self.param.SNR.quality_thresholds)
-                       for x in picks]
-        amplitudes = self._calc_amplitudes(obspy_picks)
-        self._save_event(obspy_picks, amplitudes)
+        obspy_pa = [x.to_obspy(self.run.channel_maps,
+                               self.param.SNR.quality_thresholds)
+                    for x in picks]
+        obspy_picks = [x[0] for x in obspy_pa]
+        obspy_arrivals = [x[1] for x in obspy_pa if x[1] is not None]
+        amplitudes, obspy_picks = self._calc_amplitudes(obspy_picks)
+        self._save_event(obspy_picks, amplitudes, obspy_arrivals)
 
     def _pick_one_station(self, station_name, chan_map, plotter):
         """
@@ -513,39 +514,71 @@ class PSPicker():
                 self.param.station_parameters[station].resp_file,
                 self.param.response_file_type)
             # log(la, 'debug')
-            amp = la.get_iaml(method='wood_calc')
+            amp, pick = la.get_iaml(method='wood_calc')
             if amp is not None:
                 amplitudes.append(amp)
-        return amplitudes
+                picks.append(pick)
+        return amplitudes, picks
 
-    def _save_event(self, picks, amplitudes):
+    @staticmethod
+    def save_nordic_event(picks, origin_time, filepath, filename,
+                          amplitudes=[], arrivals=[], wavefiles=None,
+                          evtype='L', debug=True):
+        """
+        Save event to NORDIC file
+
+        Arrivals are used to fix the pick weighting: curently direct mapping,
+        in version 2.0 will use inverse mapping which correponds to the
+        difference between QuakeML and Nordic pick weights
+        :param picks: event picks (including amplitude picks)
+        :type picks: list
+        :param origin_time: event origin time
+        :type origin_time: UTCDateTime
+        :param amplitudes: event amplitudes
+        :type amplitudes: list
+        :param arrivals: event arrivals
+        :type arrivals: list
+        :param wavefiles: list of waveform files corresponding to this event
+        :param filepath: path to write to
+        :param filename: name of file to write
+        :param evtype: event type ('L', 'R' or 'D')
+        """
+        assert isinstance(picks, list)
+        assert isinstance(amplitudes, list)
+        assert isinstance(arrivals, list)
+        if len(picks) == 0:
+            warnings.warn('No picks to save!')
+        origin = obspy_Origin(time=origin_time, arrivals=arrivals)
+        event = obspy_Event(
+            event_type='earthquake',
+            picks=picks,
+            origins=[origin],
+            amplitudes=amplitudes)
+        if debug:
+            log(event, level='debug')
+        cat = obspy_Catalog(events=[event])
+        # How to change uncertainties to "0", "1", "2", "3"?
+        # By creating an associated arrival and setting it's time_weight
+        # to the appropriate number (which makes no sense because
+        # a weight of zero should have no importance!)
+        output_dbfile = os.path.join(filepath, filename)
+        cat.write(output_dbfile, format='NORDIC', evtype=evtype,
+                  wavefiles=wavefiles, high_accuracy=True)
+
+    def _save_event(self, picks, amplitudes=[], arrivals=[]):
         """
         Save event to NORDIC file
         """
         # Replaces a large section from Pick_Function.m 840-887
         if len(picks) == 0:
-            warnings.warn('No picks saved!')
             o_time = self.run.first_time
         else:
             o_time = estimate_origin_time(picks)
-        event = obspy_Event(
-            event_type='earthquake',
-            picks=picks,
-            origins=[obspy_Origin(time=o_time)],
-            amplitudes=amplitudes)
-        log(event, level='debug')
-        cat = obspy_Catalog(events=[event])
-        # How can I change uncertainties to "0", "1", "2", "3"?
-        # By creating an associated arrival and setting it's time_weight
-        # to the appropriate number (which makes no sense because
-        # a weight of zero should have no importance!)
-        output_dbfile = os.path.join(self.rea_path_out,
-                                     os.path.basename(self.run.rea_name))
-        cat.write(output_dbfile,
-                  format='NORDIC',
-                  evtype='L',
-                  wavefiles=[self.run.wavefile],
-                  high_accuracy=True)
+        self.save_nordic_event(picks, o_time, self.rea_path_out,
+                               os.path.basename(self.run.rea_name),
+                               amplitudes=amplitudes,
+                               arrivals=arrivals,
+                               wavefiles=[self.run.wavefile])
 
     def _write_debug_file(self, debug_fname, err, s_file):
         """

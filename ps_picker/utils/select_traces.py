@@ -1,7 +1,7 @@
 # from readMSEEDTraces.m  ?
 import re
 
-from ..utils import ChannelMap
+from ..channel_map import ChannelMap
 
 
 def select_traces(stream, map_rules, debug=False):

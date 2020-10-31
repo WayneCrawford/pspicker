@@ -8,7 +8,7 @@ from scipy.signal import lfilter
 from obspy.core.stream import Stream
 from obspy.core.trace import Trace
 
-from .trace_utils import smooth_filter
+from .utils import smooth_filter
 from .pick_candidate import PickCandidate
 # from .logger import log
 

@@ -66,7 +66,8 @@ class PAZ():
         :param input_units: units (usually physical) at the sensor entry
         :param output_units: units as stored
         :param gain: pole-zero gain (NOT passband gain)
-        :param norm_fact: A0 normalization factor (blocks automatic calculation)
+        :param norm_fact: A0 normalization factor (blocks automatic
+            calculation)
         """
         assert gain is None or passband_gain is None,\
             "both gain and passband_gain cannot be declared"
@@ -94,11 +95,11 @@ class PAZ():
             return self._norm_factor
         else:
             return self.calc_norm_factor()
-    
+
     @norm_factor.setter
     def norm_factor(self, value):
         self._norm_factor = value
-        
+
     @property
     def input_units(self):
         return self._input_units
@@ -118,7 +119,7 @@ class PAZ():
     def calc_norm_factor(self):
         """
         Calculate A0 normalization factor
-        
+
         Returns A0 such that A0 * prod(s-z_n)/prod(s-p_n) = 1 at ref_freq
         (SEED recommendation)
         """
@@ -134,7 +135,7 @@ class PAZ():
     def __eq__(self, obj, places=2):
         """
         Return true if objects are equal to within places decimal places
-        
+
         :param places: decimal place precision used for gain
         """
         diff = abs(self.gain/obj.gain - 1) * 10**places
@@ -157,7 +158,7 @@ class PAZ():
         if not self.ref_freq == obj.ref_freq:
             return False
         return True
-        
+
     def __str__(self):
         s = 'PAZ: '
         s += f'gain={self.gain:.4g}, '
@@ -175,7 +176,7 @@ class PAZ():
     def to_obspy(self):
         """
         Return obspy paz dict
-        
+
         obspy is not clear about what is in the "gain" and "sensitivity"
         keys.  I tried self.norm_factor and self.gain, respectively, but
         this makes their product depend on f_ref.  Switched to:
@@ -202,7 +203,7 @@ class PAZ():
             self.zeros = np.append(self.zeros, np.zeros(relnz))
         elif relnz < 0:
             relnp = -relnz
-            i_zero_zeros = np.where(np.absolute(self.zeros)==0)[0]
+            i_zero_zeros = np.where(np.absolute(self.zeros) == 0)[0]
             if len(i_zero_zeros) > 0:
                 if len(i_zero_zeros) >= relnp:
                     self.zeros = np.delete(self.zeros, i_zero_zeros[:relnp])
@@ -253,7 +254,7 @@ class PAZ():
                 paz_base.poles.extend(s.poles)
                 paz_base.zeros.extend(s.zeros)
                 paz_base.normalization_factor *= s.normalization_factor
-            resp.response_stages = [paz_base] + s_others 
+            resp.response_stages = [paz_base] + s_others
         paz = resp.get_paz()
         val = cls(poles=paz.poles, zeros=paz.zeros,
                   passband_gain=sens.value,
@@ -340,23 +341,23 @@ class PAZ():
                     info['sampling_rate'] = float(line[46:56])
                 # PAZ2 line is specified in Table 14, page 70
                 elif line[:4] == 'PAZ2':
-                        info['norm_const'] = float(line[10:25])
-                        num_poles = float(line[40:43])
-                        num_zeros = float(line[44:47])
-                        info['poles'] = []
-                        info['zeros'] = []
-                        for p in np.arange(num_poles):
-                            A = next(fic).split()
-                            info['poles'].append(np.complex(float(A[0]),
-                                                            float(A[1])))
-                        for z in np.arange(num_zeros):
-                            A = next(fic).split()
-                            info['zeros'].append(np.complex(float(A[0]),
-                                                            float(A[1])))
+                    info['norm_const'] = float(line[10:25])
+                    num_poles = float(line[40:43])
+                    num_zeros = float(line[44:47])
+                    info['poles'] = []
+                    info['zeros'] = []
+                    for p in np.arange(num_poles):
+                        A = next(fic).split()
+                        info['poles'].append(np.complex(float(A[0]),
+                                                        float(A[1])))
+                    for z in np.arange(num_zeros):
+                        A = next(fic).split()
+                        info['zeros'].append(np.complex(float(A[0]),
+                                                        float(A[1])))
                 # DIG2 line is specified in Table 17, page 72
                 elif line[:4] == 'DIG2':
-                            info['amplifier_gain'] = float(line[8:23])
-                            info['digitizer'] = line[36:].strip()
+                    info['amplifier_gain'] = float(line[8:23])
+                    info['digitizer'] = line[36:].strip()
                 else:
                     continue
         info['f_ref'] = info.get('f_ref', 1.)

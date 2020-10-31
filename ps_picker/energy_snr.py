@@ -4,7 +4,7 @@ import numpy as np
 from obspy.signal.util import smooth as obspy_smooth
 from obspy.core.stream import Stream
 
-from .trace_utils import smooth_filter
+from .utils import smooth_filter
 
 
 class EnergySNR():

@@ -79,7 +79,7 @@ class LocalAmplitude():
 
     def get_iaml(self, plot=False, method='wood_calc'):
         """
-        get IAML amplitude
+        get IAML amplitude and associated pick
         From IAPEI CoSOI 2013 Working Group recommentations:
         "ML = log10(A) + 1.11log10(R) + 0.00189*R - 2.09
         where
@@ -116,8 +116,9 @@ class LocalAmplitude():
                         obspy.signal.invsim.estimate_wood_anderson_amplitude()
             "raw_disp": calculate amplitude on the signal transformed to
                         displacement in nm
-        :returns: amplitude in meters, type=IAML, pick ids integrated
-        :rtype: ~class obspy.core.event.magnitude.Amplitude
+        :returns: amplitude in meters (type=IAML), associated Pick
+        :rtype: ~class obspy.core.event.magnitude.Amplitude,
+                ~class obspy.core.event.origin.Pick
         """
         if self.ref_pick is None:
             log('No ref_pick!', 'debug')
@@ -128,7 +129,6 @@ class LocalAmplitude():
         # do all work in nm
         paz_simulate, paz_simulate_obspy = None, None
         paz_remove = self.paz.copy()
-        amp_div = 1.e9  # All methods output nm
         if method == 'wood_est':
             paz_remove.input_units = 'm/s'
             plot_units = 'Original (counts)'
@@ -153,24 +153,29 @@ class LocalAmplitude():
         if method == 'wood_est':
             amp.value = estimate_wood_anderson_amplitude(paz_remove.to_obspy(),
                                                          amp.value, amp.period)
-            amp.value /= 2080./1e6   # estimate...() gives displacement
-                                     # amplitude ON Wood anderson seismometer,
-                                     # divide by 2080 then multiply by 1e6 to
-                                     # get ground motion in nm?)
-        # log(f'method = {method}', 'debug')
-        # log(f'amp = {amp}')
+            # estimate...() gives displacement amplitude ON a Wood-Anderson
+            # seismometer, divide by 2080 then multiply by 1e6 to get ground
+            # motion in nm?
+            amp.value /= 2080./1e6
         if plot:
-            # log(f'self.paz = {self.paz}')
-            # log(f'paz_remove = {paz_remove}')
-            # log(f'paz_remove_obspy = {paz_remove.to_obspy()}')
-            # log(f'paz_simulate = {paz_simulate}')
             self.plot(signal, amp, plot_units)
-        return Amplitude(generic_amplitude=amp.value/(2. * 1.e9),
-                         type='IAML',
-                         unit='m',  # obspy.core.event.header.AmplitudeUnit,
-                         period=amp.period,
-                         # pick_id=self.ref_pick.resource_id,
-                         waveform_id=self.ref_pick.waveform_id)
+        waveform_id = self.ref_pick.waveform_id
+        waveform_id.channel_code = amp.channel
+        pick = Pick(time=amp.time,
+                    waveform_id=waveform_id,
+                    method_id='ps_picker',
+                    phase_hint='IAML',
+                    evaluation_mode='automatic',
+                    evaluation_status='preliminary')
+        obspy_amp = Amplitude(generic_amplitude=amp.value/(2. * 1.e9),
+                              type='IAML',
+                              unit='m',
+                              period=amp.period,
+                              magnitude_hint='ML',
+                              category='period',
+                              pick_id=pick.resource_id,
+                              waveform_id=pick.waveform_id)
+        return obspy_amp, pick
 
     def _set_ampl_window(self):
         if self.pick_S is not None and self.pick_P is not None:
@@ -262,15 +267,12 @@ class LocalAmplitude():
                          label=label)
         axs[1].plot(tr.times("matplotlib")[imin], tr.data[imin], color='k',
                     marker='x')
-                    # marker='CARETUP')
         axs[1].plot(tr.times("matplotlib")[imax], tr.data[imax], color='k',
                     marker='x')
         axs[2].plot(tr.times("matplotlib")[imin], tr.data[imin], color='k',
                     marker='x')
-                    # marker='CARETUP')
         axs[2].plot(tr.times("matplotlib")[imax], tr.data[imax], color='k',
                     marker='x')
-                    # marker='CARETDOWN')
         axs[2].set_ylabel(trans_units)
 
         plt.tight_layout()
@@ -305,7 +307,7 @@ def pk2pk(stream, start_time, end_time):
     :param pick_time: time of reference (usually a pick)
     :param start_time: start of amplitude window (UTCDateTime)
     :param end_time: end of amplitude window (UTCDateTime)
-    :returns: {'period': value, 'amplitude': value, 'time': UTCDateTime]
+    :returns: Amp object
     """
     amp = Amp(value=0)
     for tr in stream:
@@ -335,7 +337,7 @@ def pk2pk(stream, start_time, end_time):
 def get_response(filename, format=None, component=None):
     """
     Read response file and output PoleZeros object
-    
+
     :param filename: name of the file to read
     :param format: 'GSE', 'JSON_PZ, 'SACPZ', 'STATIONXML' or None
     :param component: component to read, if STATIONXML
