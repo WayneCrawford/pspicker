@@ -152,8 +152,7 @@ class PSPicker():
             log(f'{len(picks):d} picks before association',  level='verbose')
         if assoc is None:
             assoc = Associator(self.param.assoc)
-        # picks = assoc.remove_nonclustered(picks)
-        picks = assoc.find_same_origin_time(picks, candidates)
+        picks = assoc.run(picks, candidates)
         if self.verbose:
             log(f'{len(picks):d} picks after association', level='verbose')
         plotter.pw.plot_picks(picks, self.loop.t_begin, assoc.p_cluster,

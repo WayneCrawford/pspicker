@@ -75,6 +75,23 @@ class Associator():
                     + "', using default", "warning")
         self.debug = debug
 
+    def run(self, picks, candidates):
+        """
+        Run associator
+
+        Tries to associate by origin time, if that doesn't work associates by
+        pick clustering
+        :param picks: list of preferred picks
+        :param candidates: all pick candidates (including preferred picks)
+
+        Future upgrade: associate by position (requires velocity model and
+        station positions)
+        """
+        picks, associated = self.find_same_origin_time(picks, candidates)
+        if not associated:
+            picks = self.remove_nonclustered(picks)
+        return picks
+
     def remove_nonclustered(self, picks):
         """
         Very basic (clustering-based) pick selection by association
@@ -95,10 +112,13 @@ class Associator():
 
     def find_same_origin_time(self, picks, candidates):
         """
+        Select picks by origin time
+
         :param picks: list of PickCandidates pre-selected as P and S picks
         :candidates: list of all PickCandidates
 
-        :returns: list of picks
+        :returns: list of picks, whether associator worked
+        :rtype: list of PickCandidate, bool
         """
         stations = _pick_stations(picks)
         ots = []
@@ -113,12 +133,12 @@ class Associator():
         if len(ots) < 3:
             log('less than 3 P-S calculated origin times, cannot associate '
                 'by this criteria')
-            return picks
+            return picks, False
         indices = cluster_clean_indices(self.cluster_window_otime,
                                         [t for t in ots])
         if len(indices) < 3:
             log('less than 3 P-S origin times agree, cannot associate')
-            return picks
+            return picks, False
         good_ots = [ots[i] for i in indices]
         if self.debug:
             log(f'good_ots = {good_ots}', 'debug')
@@ -126,7 +146,7 @@ class Associator():
         new_picks = self._find_otime_matching(ot, picks, candidates)
         # for x in new_picks:
         #     log(x, 'debug')
-        return new_picks
+        return new_picks, True
 
     def _find_otime_matching(self, ot, picks, candidates):
         """
