@@ -4,6 +4,7 @@ from obspy.core import UTCDateTime
 from obspy.core.stream import Stream
 
 from .logger import log
+from .timer import Timer
 
 
 class Polarity:
@@ -93,33 +94,34 @@ class Polarity:
         if len(times) == 0:
             return None
         # Pick_Function.m:543
-        rectP, aziP, dipP = self.polar_analysis(times)
-        if np.max(np.abs(dipP.data)) < min_dip_threshold:
-            if self.verbose:
-                log("max dip ({:.1f}) < threshold ({:g}), no DR calculated".
-                    format(np.max(np.abs(dipP.data)), min_dip_threshold),
-                    "verbose")
-            return None
+        with Timer(text="    polarity.calc_dip_rect(): {:0.4f}s"):
+            rectP, aziP, dipP = self.polar_analysis(times)
+            if np.max(np.abs(dipP.data)) < min_dip_threshold:
+                if self.verbose:
+                    log("max dip ({:.1f}) < threshold ({:g}), no DR calculated".
+                        format(np.max(np.abs(dipP.data)), min_dip_threshold),
+                        "verbose")
+                return None
 
-        dipp = np.sin(np.abs(np.radians(dipP.data)))  # 1 for vert, 0 for hor
-        smooth_samples = int(np.round(self.params.DR_smooth_length * self.sr))
-        if smooth_samples < 2:
-            smooth_samples = 2
-        a = np.ones(smooth_samples) / smooth_samples
-        a2 = np.ones(2*smooth_samples) / (2 * smooth_samples)
-        smooth_dipp = signal.lfilter(a, 1, dipp)
-        smooth_rectP = signal.lfilter(a, 1, rectP.data)
-        Drb = np.sign(1.3 * smooth_dipp - smooth_rectP)  # pos for P, neg for S
-        DR = rectP.copy()
-        DR.data *= Drb
-        DR.data = signal.lfilter(a2, 1, DR.data)
+            dipp = np.sin(np.abs(np.radians(dipP.data)))  # 1 for vert, 0 for hor
+            smooth_samples = int(np.round(self.params.DR_smooth_length * self.sr))
+            if smooth_samples < 2:
+                smooth_samples = 2
+            a = np.ones(smooth_samples) / smooth_samples
+            a2 = np.ones(2*smooth_samples) / (2 * smooth_samples)
+            smooth_dipp = signal.lfilter(a, 1, dipp)
+            smooth_rectP = signal.lfilter(a, 1, rectP.data)
+            Drb = np.sign(1.3 * smooth_dipp - smooth_rectP)  # pos for P, neg for S
+            DR = rectP.copy()
+            DR.data *= Drb
+            DR.data = signal.lfilter(a2, 1, DR.data)
         # DR.data = signal.lfilter(a2, 1, np.multiply(rectP.data, Drb))
-        DR.data[rectP.data == 0] = 0
-        if plot:
-            DR.stats.channel = 'DR'
-            dipP.stats.channel = 'DIP'
-            Stream([DR, dipP, self.tracez, self.tracen, self.tracee]).plot(
-                equal_scale=False)
+            DR.data[rectP.data == 0] = 0
+            if plot:
+                DR.stats.channel = 'DR'
+                dipP.stats.channel = 'DIP'
+                Stream([DR, dipP, self.tracez, self.tracen, self.tracee]).plot(
+                    equal_scale=False)
         return DR
 
     def polar_analysis(self, times):
@@ -132,34 +134,30 @@ class Polarity:
         :returns: rect, azi (degrees), dip (degrees)
         """
         # fast_polar_analysis.m:17
-        ind_vec, n_half_analyze = self._calc_indices(times)
+        with Timer(text="    polarity.polar_analysis() calc_indices: {:0.4f}s"):
+            ind_vec, n_half_analyze = self._calc_indices(times)
 
-        rectP = self.tracez.copy()
-        rectP.data[:] = 0.
-        aziP = rectP.copy()
-        dipP = rectP.copy()
-        for k in ind_vec:
-            eP = self.tracee.data[k - n_half_analyze: k + n_half_analyze]
-            nP = self.tracen.data[k - n_half_analyze: k + n_half_analyze]
-            zP = self.tracez.data[k - n_half_analyze: k + n_half_analyze]
-            MP = np.cov(np.array([eP, nP, zP]))
-            D, V = linalg.eig(MP)
-            i_sort = np.argsort(D)  # sort from min (0) to max (2)
-            D = np.abs(D[i_sort])
-            V = V[:, i_sort]
-            # 2 = major axis, 0 = minor axis, 1 = intermediate
-            rectP.data[k] = 1 - ((D[0] + D[1]) / (2 * D[2]))
-            V_major = V[:, 2]
-            aziP.data[k] = np.degrees(np.arctan(V_major[1] / V_major[0]))
-            dipP.data[k] = np.degrees(np.arctan(V_major[2]
-                                                / np.sqrt(V_major[1]**2
-                                                          + V_major[0]**2)))
-        # if self.verbose:
-        #     dipPs = np.abs(dipP.data[dipP.data != 0])
-        #     rectPs = rectP.data[rectP.data != 0]
-        #     log("Min/max rect={:.2f}/{:.2f} dip={:.1f}/{:.1f}".
-        #                  format(np.min(rectPs), np.max(rectPs),
-        #                         np.min(dipPs), np.max(dipPs)), 'verbose')
+        with Timer(text="    polarity.polar_analysis() rest: {:0.4f}s"):
+            rectP = self.tracez.copy()
+            rectP.data[:] = 0.
+            aziP = rectP.copy()
+            dipP = rectP.copy()
+            for k in ind_vec:
+                eP = self.tracee.data[k - n_half_analyze: k + n_half_analyze]
+                nP = self.tracen.data[k - n_half_analyze: k + n_half_analyze]
+                zP = self.tracez.data[k - n_half_analyze: k + n_half_analyze]
+                MP = np.cov(np.array([eP, nP, zP]))
+                D, V = linalg.eig(MP)
+                i_sort = np.argsort(D)  # sort from min (0) to max (2)
+                D = np.abs(D[i_sort])
+                V = V[:, i_sort]
+                # 2 = major axis, 0 = minor axis, 1 = intermediate
+                rectP.data[k] = 1 - ((D[0] + D[1]) / (2 * D[2]))
+                V_major = V[:, 2]
+                aziP.data[k] = np.degrees(np.arctan(V_major[1] / V_major[0]))
+                dipP.data[k] = np.degrees(np.arctan(V_major[2]
+                                                    / np.sqrt(V_major[1]**2
+                                                              + V_major[0]**2)))
         return rectP, aziP, dipP
 
     def _calc_indices(self, pick_times):
@@ -171,8 +169,10 @@ class Polarity:
         """
         n_compute = round(self.sr * self.params.calculate_window)
         ind_vec = np.array([], dtype='int32')
+        # ztimes = self.tracez.times('utcdatetime')
+        ztimes = self.tracez.times('timestamp')
         for t in pick_times:
-            index = self.tracez.times('utcdatetime').searchsorted(t)
+            index = ztimes.searchsorted(t.timestamp)
             iwind = np.arange(index, index + n_compute, dtype='int32')
             ind_vec = np.concatenate([ind_vec, iwind])
 
