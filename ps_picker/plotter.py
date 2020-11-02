@@ -120,7 +120,7 @@ class Picks_Window():
         self.stations = sorted(stations)
         N = len(stations)
         # fig.clf()
-        self.ax.set_title('Phase 3: Select final picks based on clustering')
+        self.ax.set_title('Phase 3: Select final picks based using Association')
         # ax.set_xlim(starttime.matplotlib_date, endtime.matplotlib_date)
         self.ax.set_xlim(starttime.datetime, endtime.datetime)
         self.ax.set_ylim(-0.5, N-0.5)

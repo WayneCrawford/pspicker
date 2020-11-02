@@ -122,56 +122,57 @@ class PSPicker():
         :param assoc: Associator object (useful for multiple runs with same
             Associator)
         """
-        # Run basic Kurtosis and assoc to find most likely window for picks
-        self.debug = debug
-        if verbose is not None:
-            self.verbose = verbose
-        with Timer(text="Setup Plotter: {:0.4f}s"):
-            plotter = Plotter(plot_global, plot_stations)
+        with Timer(text="Run one event: {:0.4f}s"):
+            # Run basic Kurtosis and assoc to find most likely window for picks
+            self.debug = debug
+            if verbose is not None:
+                self.verbose = verbose
+            with Timer(text="Setup Plotter: {:0.4f}s"):
+                plotter = Plotter(plot_global, plot_stations)
 
-        # Read in data and select global pick window
-        with Timer(text="Read waveforms: {:0.4f}s"):
-            st, fwf = self._read_waveforms(rea_name)
-        with Timer(text="Choose global window: {:0.4f}s"):
-            cmaps, ft, lt = self._choose_global_window(st, plotter)
-            self.run = PickerRunParameters(rea_name=rea_name, wavefile=fwf,
-                                       stream=st, channel_maps=cmaps,
-                                       first_time=ft, last_time=lt)
-            plotter.gw.plot_timebounds(ft, lt, self.run.stations)
-            plotter.pw.setup(ft, lt, self.run.stations)
+            # Read in data and select global pick window
+            with Timer(text="Read waveforms: {:0.4f}s"):
+                st, fwf = self._read_waveforms(rea_name)
+            with Timer(text="Choose global window: {:0.4f}s"):
+                cmaps, ft, lt = self._choose_global_window(st, plotter)
+                self.run = PickerRunParameters(rea_name=rea_name, wavefile=fwf,
+                                           stream=st, channel_maps=cmaps,
+                                           first_time=ft, last_time=lt)
+                plotter.gw.plot_timebounds(ft, lt, self.run.stations)
+                plotter.pw.setup(ft, lt, self.run.stations)
 
-        # Pick on individual traces
-        candidates, picks = [], []
-        for sta, chan_map in self.run.channel_maps.items():
-            # Reject stations not listed in parameter file
-            if sta not in self.param.stations:
+            # Pick on individual traces
+            candidates, picks = [], []
+            for sta, chan_map in self.run.channel_maps.items():
+                # Reject stations not listed in parameter file
+                if sta not in self.param.stations:
+                    if self.verbose:
+                        log(f'{sta} not in self.param.stations, ignored',
+                            'verbose')
+                    continue
+                with Timer(text="Pick one station: {:0.4f}s"):
+                    p, c = self._pick_one_station(sta, chan_map, plotter)
+                    picks.extend(p)
+                    candidates.extend(c)
+
+            with Timer(text="Associate: {:0.4f}s"):
                 if self.verbose:
-                    log(f'{sta} not in self.param.stations, ignored',
-                        'verbose')
-                continue
-            with Timer(text="Pick one station: {:0.4f}s"):
-                p, c = self._pick_one_station(sta, chan_map, plotter)
-                picks.extend(p)
-                candidates.extend(c)
-
-        with Timer(text="Associate: {:0.4f}s"):
-            if self.verbose:
-                log(f'{len(picks):d} picks before association',  level='verbose')
-            if assoc is None:
-                assoc = Associator(self.param.assoc)
-            picks = assoc.run(picks, candidates)
-            if self.verbose:
-                log(f'{len(picks):d} picks after association', level='verbose')
-            plotter.pw.plot_picks(picks, self.loop.t_begin, assoc.p_cluster,
-                                  assoc.s_cluster, assoc.o_cluster)
-        with Timer(text="Save picks: {:0.4f}s"):
-            obspy_pa = [x.to_obspy(self.run.channel_maps,
-                                   self.param.SNR.quality_thresholds)
-                        for x in picks]
-            obspy_picks = [x[0] for x in obspy_pa]
-            obspy_arrivals = [x[1] for x in obspy_pa if x[1] is not None]
-            amplitudes, obspy_picks = self._calc_amplitudes(obspy_picks)
-            self._save_event(obspy_picks, amplitudes, obspy_arrivals)
+                    log(f'{len(picks):d} picks before association',  level='verbose')
+                if assoc is None:
+                    assoc = Associator(self.param.assoc)
+                picks = assoc.run(picks, candidates)
+                if self.verbose:
+                    log(f'{len(picks):d} picks after association', level='verbose')
+                plotter.pw.plot_picks(picks, self.loop.t_begin, assoc.p_cluster,
+                                      assoc.s_cluster, assoc.o_cluster)
+            with Timer(text="Save picks: {:0.4f}s"):
+                obspy_pa = [x.to_obspy(self.run.channel_maps,
+                                       self.param.SNR.quality_thresholds)
+                            for x in picks]
+                obspy_picks = [x[0] for x in obspy_pa]
+                obspy_arrivals = [x[1] for x in obspy_pa if x[1] is not None]
+                amplitudes, obspy_picks = self._calc_amplitudes(obspy_picks)
+                self._save_event(obspy_picks, amplitudes, obspy_arrivals)
 
     def _pick_one_station(self, station_name, chan_map, plotter):
         """
@@ -182,50 +183,50 @@ class PSPicker():
         :param plotter: Plotter object
         """
         # make shortened reference to often-used station_parameters
-        with Timer(text="  pick_one_station(): setup {:0.4f}s"):
-            station_params = self.param.station_parameters[station_name]
-            self.loop = PickerStationParameters(station=station_name,
-                                                station_params=station_params,
-                                                channel_map=chan_map,
-                                                stream=self.run.stream)
-            plotter.sw.setup(self.loop.datP[0])
-            c_P, c_S, candidates = None, None, []
+        # with Timer(text="  pick_one_station(): setup {:0.4f}s"):
+        station_params = self.param.station_parameters[station_name]
+        self.loop = PickerStationParameters(station=station_name,
+                                            station_params=station_params,
+                                            channel_map=chan_map,
+                                            stream=self.run.stream)
+        plotter.sw.setup(self.loop.datP[0])
+        c_P, c_S, candidates = None, None, []
 
         # SNR analysis
-        with Timer(text="  pick_one_station(): SNR {:0.4f}s"):
-            datS_filt = self.loop.datS.copy().filter(
-                'bandpass', corners=3,
-                freqmin=station_params.energy_frequency_band[0],
-                freqmax=station_params.energy_frequency_band[1])
-            energy = EnergySNR(datS_filt, self.param.SNR, plot=self.debug)
+        # with Timer(text="  pick_one_station(): SNR {:0.4f}s"):
+        datS_filt = self.loop.datS.copy().filter(
+            'bandpass', corners=3,
+            freqmin=station_params.energy_frequency_band[0],
+            freqmax=station_params.energy_frequency_band[1])
+        energy = EnergySNR(datS_filt, self.param.SNR, plot=self.debug)
         if energy.slice(self.run.first_time,
                         self.run.last_time).is_trustworthy():
-            with Timer(text="  pick_one_station(): Kurtosis {:0.4f}s"):
-                if self.verbose:
-                    log(f"{station_name}: snr trustworthy", level='verbose')
-                c_P, c_S, kurt, candidates = self._run_Kurtosis(energy, plotter)
-                for c in candidates:
-                    c.station = station_name
+            # with Timer(text="  pick_one_station(): Kurtosis {:0.4f}s"):
+            if self.verbose:
+                log(f"{station_name}: snr trustworthy", level='verbose')
+            c_P, c_S, kurt, candidates = self._run_Kurtosis(energy, plotter)
+            for c in candidates:
+                c.station = station_name
 
             # Verify phases using Polarity analysis
             DR = None
-            with Timer(text="  pick_one_station(): Polarity analysis {:0.4f}s"):
-                if station_params.use_polarity and (len(datS_filt) == 3):
-                    c_P, c_S, DR, candidates = self._polarity_analysis(
-                            c_P, c_S, candidates, datS_filt)
-                plotter.sw.plot_data(self.run.first_time, self.run.last_time,
-                                     self.param.SNR.quality_thresholds,
-                                     self.loop.datP[0],
-                                     energy,
-                                     kurt.mean_kurtosis,
-                                     kurt.kurto_gradients,
-                                     DR,
-                                     self.param.polarity.DR_threshold_P,
-                                     self.param.polarity.DR_threshold_S)
-                if len(candidates) > 0:
-                    plotter.sw.candidates(candidates,
-                                          self.param.polarity.DR_threshold_P,
-                                          self.param.polarity.DR_threshold_S)
+            # with Timer(text="  pick_one_station(): Polarity analysis {:0.4f}s"):
+            if station_params.use_polarity and (len(datS_filt) == 3):
+                c_P, c_S, DR, candidates = self._polarity_analysis(
+                        c_P, c_S, candidates, datS_filt)
+            plotter.sw.plot_data(self.run.first_time, self.run.last_time,
+                                 self.param.SNR.quality_thresholds,
+                                 self.loop.datP[0],
+                                 energy,
+                                 kurt.mean_kurtosis,
+                                 kurt.kurto_gradients,
+                                 DR,
+                                 self.param.polarity.DR_threshold_P,
+                                 self.param.polarity.DR_threshold_S)
+            if len(candidates) > 0:
+                plotter.sw.candidates(candidates,
+                                      self.param.polarity.DR_threshold_P,
+                                      self.param.polarity.DR_threshold_S)
         elif self.verbose:
             log(f"{station_name}: snr untrustworthy, not picking", 'verbose')
 
@@ -652,20 +653,19 @@ def estimate_origin_time(picks, vp_over_vs=1.7):
         return times[0]
 
 
-def _average_ps_o_time(picks, vp_over_vs):
+def _average_ps_o_time(picks, vp_vs):
     """
     Find origin times for each P-S pair
 
-    Uses the equation: o_time = p_time - (s_time - p_time)/(vp/vs - 1)
     :param picks: list of obspy Pick objects
-    :param vp_over_vs: assumed velocity ratio
+    :param vp_vs: assumed velocity ratio
     """
     o_times = []
     ps_delays, p_times = picks_ps_times(picks)
     if ps_delays is None:
         return None
     for ps, p in zip(ps_delays, p_times):
-        o_times.append(p - ps/(vp_over_vs - 1))
+        o_times.append(Associator.estimate_origin_time(p, p+ps, vpvs=vp_vs))
     # Throw out values more than 3 std away
     zs = np.abs(stats.zscore([x.timestamp for x in o_times]))
     mean_timestamp = np.mean([o.timestamp for o, z in zip(o_times, zs)

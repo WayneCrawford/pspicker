@@ -24,15 +24,18 @@ class Associator():
         - Add velocity model-based selection criteria
     """
     # Values from Kennett 1995 for 0, 1, 5, 10, 30 and 90 degrees
-    default_ps_delays = [0, 13.92, 59.63, 114.2, 300.00, 654.43]
-    default_p_delays = [0, 19.17, 76.27, 144.90, 370.27, 781.35]
+    # default_delays = {'op': [0, 19.17, 76.27, 144.90, 370.27, 781.35],
+    #                   'ps': [0, 13.92, 59.63, 114.2, 300.00, 654.43]}
 
-    def __init__(self, params, vel_model=None, target_depth=10.,
+    def __init__(self, params, vel_model=None, vp_over_vs=1.7,
+                 target_depth=10.,
                  max_offset=1., cluster_window_otime=1, debug=False):
         """
         :param params: AssociatorParameters object
         :param cluster_window_otime: acceptable variation in origin times
             (for velocity-model-based association using P-S delays)
+        :param vp_over_vs: velocity ratio, to be used for origin_time
+            calculation if no velocity model.
         :param vel_model: velocity model (obspy taup valid string or the
             absolute path name of a .nd file)
         :param target_depth: event depth to use to construct travel-time tables
@@ -64,15 +67,15 @@ class Associator():
         self.s_cluster = {}   # a dictionary with key=station and value=stime
         self.ps_cluster = {}   # a dictionary with key=station and value=stime
         self.o_cluster = {}   # a dictionary with key=station and value=otime
-        self.ps_delays = self.default_ps_delays
-        self.p_delays = self.default_p_delays
+        self.delays = None
         if vel_model is not None:
             try:
-                self.ps_delays, self.p_delays = self._get_delays(
-                    vel_model, target_depth, max_offset)
+                self.delays = self._get_delays(vel_model, target_depth,
+                                               max_offset)
             except Exception:
                 log("Couldn't generate ps delays using '" + vel_model
                     + "', using default", "warning")
+        self.vp_over_vs = vp_over_vs
         self.debug = debug
 
     def run(self, picks, candidates):
@@ -301,19 +304,22 @@ class Associator():
         good_picks = [p for p in picks if p.station not in bad_delay]
         return good_picks
 
-    def _get_delays(self, vel_mod, target_depth, max_dist=1., num_vals=20):
+    def _get_origtime_delays(self, vel_mod, target_depth, max_dist=1.,
+                              num_vals=20):
         """
         :param max_dist: maximum distance (degrees) at which to calculate
         :param num_vals: number of distances (from 0 to max_distance) at
             which to calculate delats
-        :returns: ps_delays, p_delays, sorted lists of delay times
+        :returns: dict with keys 'op' and 'ps' corresponding to sorted lists 
+            of delay times from origin-to-p and p-to-s
         """
         try:
             model = TauPyModel(model=vel_mod)
         except Exception:
             build_taup_model(vel_mod)   # converts from np or tvel to npz
             model = TauModel.from_file(vel_mod)  # reads npz
-        ps_delays, p_delays = [0], [0]
+        delays = {'op': [0], 'ps': [0]}
+        # ps_delays, p_delays = [0], [0]
         step = max_dist / num_vals
         for distance in np.arange(step, max_dist + .001, step):
             arrivals = model.get_travel_times(target_depth, distance,
@@ -322,12 +328,12 @@ class Associator():
             s_delay = [x.time for x in arrivals if x.phase == "S"]
             ps_delay = s_delay - p_delay
             if len(ps_delay) == 1 and len(p_delay) == 1:
-                ps_delays.append(ps_delay[0])
-                p_delays.append(p_delay[0])
+                delays['ps'].append(ps_delay[0])
+                delays['op'].append(p_delay[0])
             else:
                 log('Could not calculate delays for dist={:.2g} degrees'
                     .format(distance), 'warning')
-        return ps_delays, p_delays
+        return delays
 
     def _ps_to_otime(self, p_time, s_time):
         """
@@ -336,7 +342,30 @@ class Associator():
         :param p_time: p arrival time
         :param s_time: s arrival time
         """
-        return p_time - np.interp(s_time-p_time, self.ps_delays, self.p_delays)
+        return self.estimate_origin_time(p_time, s_time, self.vp_over_vs,
+                                           self.delays)
+
+    @staticmethod
+    def estimate_origin_time(p_time, s_time, vpvs=1.7, delays_model=None):
+        """
+        Calculate origin time given P and S arrival times
+
+        :param p_time: P arrival time (UTCDateTime)
+        :param s_time: S arrival time (UTCDateTime)
+        :param delays_model: dict with keys='op' and 'ps', each with an
+            equal-length sorted list of origin-to-P and P-to-S delays
+        :param vpvs: Vp/Vs ratio, to be used if delays_model == None, using the
+            equation  o_time = p_time - ps_delay / (vp/vs - 1)
+        :returns: origin_time
+        :rtype: UTCDateTime
+        """
+        origin_time = p_time
+        if delays_model is not None:
+            origin_time -= np.interp(s_time-p_time,
+                                     self.delays['ps'], self.delays['op'])
+        else:
+            origin_time -= (s_time - p_time) / (vpvs - 1)
+        return origin_time
 
 
 def clean_distri(values, n_std=3, mode='median', min_vals=3):

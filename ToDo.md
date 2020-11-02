@@ -1,8 +1,5 @@
 # Critical
 - Make run_many() work
-- See if there are any major timing logjams
-- Allow origin-time based clustering simply with a Vp_over_Vs ratio
-    - Have ps_picker use Associator's calc_orig_time
 
 # Non-critical
 
