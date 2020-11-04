@@ -1,5 +1,4 @@
 # Critical
-- Make run_many() work
 
 # Non-critical
 
