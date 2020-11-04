@@ -148,7 +148,9 @@ stations:  # List of stations with their station_parameters and responsefiles
 
 ## To Do
 
-    - Allow SAC PZ files for response files
     - Add event location-based acceptance of solitary P- and S- candidates
     - In P-, S- and P-S clustering stage, allow unused candidates to be
       substituted for rejected picks
+    - More in [ToDo.md](ToDo.md)
+    
+Also see the [profiling file](profiling.md)
