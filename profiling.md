@@ -19,8 +19,9 @@
 ## ACTION: In polarity:_calc_indices(): took calculation of trace.times out of loop
 
 ### Result:
-    - cumtime reduced to 15.7s
-    - time in trace.times() reduced to 7.1s [24 calls at 0.296s/call]
+- cumtime reduced to 15.7s
+- time in trace.times() reduced to 7.1s [24 calls at 0.296s/call]
+
 ### Profiling `run_one()` without plots:
 - **15.7** seconds total
 - 13.9 in ps_picker.run_one()
