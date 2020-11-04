@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.signal import lfilter
+from ..logger import log
 
 from obspy.core.stream import Stream as obspy_Stream
 
@@ -45,6 +46,8 @@ def smooth_filter(traces, n_smooth):
         if len(i_nan) > 0:
             smooth_tr.data[i_nan] = np.nan
         smoothed_traces.append(smooth_tr)
+    if len(smoothed_traces) == 0:
+        return None
     if bare_trace:
         return smoothed_traces[0]
     else:

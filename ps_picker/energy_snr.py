@@ -3,8 +3,10 @@ import copy
 import numpy as np
 from obspy.signal.util import smooth as obspy_smooth
 from obspy.core.stream import Stream
+from obspy.core import UTCDateTime
 
 from .utils import smooth_filter
+from .logger import log
 
 
 class EnergySNR():
@@ -23,6 +25,7 @@ class EnergySNR():
         self.params = params
         self.snr_threshold = None
         self.nrg = self._calc_energy(stream)
+        self.station = self._get_station(stream)
         self.snr = self._calc_snr()
         self.nrg.stats.channel = 'NRG'
         self.snr.stats.channel = 'SNR'
@@ -44,9 +47,31 @@ class EnergySNR():
         temp = stream.copy()
         for t in temp:
             t.data = np.power(t.data, 2)
-        energy = temp.stack()[0]
+        try:
+            energy = temp.stack(npts_tol=1)[0]
+            # stack may set the starttime to "0" if npts not same
+            energy.stats.starttime = stream[0].stats.starttime  # 
+        except ValueError as err:
+            log(err, 'error')
+            log('Slicing to same size', 'warning')
+            log(temp, 'warning')
+            last_start = UTCDateTime(max([t.stats.starttime.timestamp
+                                          for t in temp]))
+            first_end = UTCDateTime(min([t.stats.endtime.timestamp
+                                         for t in temp]))
+            temp.trim(last_start, first_end)
+            log(temp, 'warning')
+            energy = temp.stack(npts_tol=1)[0]
         energy.data = np.power(energy.data, 0.5)
         return energy
+
+    @staticmethod
+    def _get_station(stream):
+        stations = list(set([t.stats.station for t in stream]))
+        if len(stations) == 1:
+            return stations[0]
+        else:
+            return "MULTIPLE STATIONS"
 
     def _calc_snr(self):
         """
@@ -68,10 +93,17 @@ class EnergySNR():
         # Shift times so that noise is BEFORE reference time and signal AFTER
         w_noise.stats.starttime += self.params.noise_window/2
         w_signal.stats.starttime -= self.params.signal_window/2
-        global_start = w_noise.stats.starttime
-        global_end = w_signal.stats.endtime
-        w_noise.trim(global_start, global_end)
-        w_signal.trim(global_start, global_end)
+        noise_start = w_noise.stats.starttime
+        signal_end = w_signal.stats.endtime
+        if noise_start >= signal_end:
+            log("SNR noise_start >= signal_end, no SNR calculated"
+                "(trace, signal, noise lengths = {.2g}, {.2g}, {.2g})".format(
+                self.nrg.stats.npts / self.nrg.stats.sampling_rate,
+                self.params.signal_window,
+                self.params.noise_window), 'error')
+            return None
+        w_noise.trim(noise_start, signal_end)
+        w_signal.trim(noise_start, signal_end)
         w_signal.data /= w_noise.data
         return w_signal
 
@@ -97,7 +129,15 @@ class EnergySNR():
             analysis
         """
         # Pick_Function.m:380
+        if self.snr.stats.npts == 0:
+            log(f'station {self.station} self.snr has zero length', 'error')
+            return False
         snr_smooth = smooth_filter(self.snr, n_smooth)
+        if snr_smooth is None:
+            log('Could not smooth_filter self.snr for station "{}"'
+                .format(self.station), 'error')
+            log(self.snr, 'error')
+            return False
         self._set_snr_threshold(snr_smooth)
         sign_change = np.diff(np.sign(snr_smooth.data - self.snr_threshold))
         crossings = len(sign_change[sign_change == 2])

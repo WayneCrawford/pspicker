@@ -33,21 +33,47 @@ For each station:
     - If less than 3 origin times are clustered, reject bad P- and S- picks
       based on clustering of P-pick times, S-pick times and P-S delays
 
-## Examples
+## Example workflow
+
+### Start by autopicking a few events, with all the bells and whistles on:
 
 To pick one event from a database in `/SEISAN/MAYOBS`:
 ```python
 from ps_picker import PSPicker
 
-picker = PSPicker('/SEISAN/MAYOBS/WAV/MAYOB', 'parameters_C.yaml')
-picker.run_one('/SEISAN/MAYOBS/REA/MAYOB/2019/05/19-0607-59L.S201905')
+picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB', 
+                  '/SEISAN/MAYOBS/REA/MAYOB')
+picker.run_one('19-0607-59L.S201905', plot_global=True, plot_stations=True,
+               verbose=True)
 ```
-To pick events from May to September 2019 in the same database:
+Look at all of the plots and verify that the picks and association are as
+you expect.  If not, change the paramters and run again.
+
+### Next, pick several events with only the global plots on
+
+The bells and whistles text will be saved to a log file named
+run_{DATETIME}.log
+
+To pick events from May 5th to 25th in the same database:
 ```python
 from ps_picker import PSPicker
 
-picker = PSPicker('/SEISAN/MAYOBS/WAV/MAYOB/', 'my_params.yaml')
-picker.run_many('/SEISAN/MAYOBS/REA/MAYOB/', '201905', '201909')
+picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB', 
+                  '/SEISAN/MAYOBS/REA/MAYOB')
+picker.run_many('20190505', '20190525', plot_global=True)
+```
+
+### Finally, run the whole database without plots
+
+*(run_{DATETIME}.log is always created)*
+
+To pick events from May 26th 2019 May 1st 2020:
+```python
+from ps_picker import PSPicker
+
+picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB', 
+                  '/SEISAN/MAYOBS/REA/MAYOB')
+picker.run_many('20190526', '20200501')
 ```
 ## Parameters
 Picker parameters are passed in a
@@ -122,32 +148,7 @@ stations:  # List of stations with their station_parameters and responsefiles
 
 ## To Do
 
-    - Make associator switch to cluster-based if origin-time based doesn't work
-        - and make sure origin-time based parameters are in paramter file
-    - Fix magnitude calculations
-        - Allow SAC PZ files for response files
-    - Figure out why S-picks aren't being saved
-    - Put pick uncertainties into Nordic files
-        - short-term solution: by creating an associated arrival and setting
-          its time_weight to the appropriate number
-        - long-term solution: integrating my recommended time-weight procedure
-          into obspy nordic:
-            - add a parameter uncertainty-mapping to write_select. This could
-              be a list of the maximum time_errors for a given nordic_weight,
-              for example [0.1, 0.2, 0.4, 0.8] would give a weight of "0" for
-              uncertainties less than 0.1s, "1" for 0.1-0.2s, "2" for 0.2-0.4,
-              "3" for 0.4-0.8 and "4" for the rest. No weight is given for
-              a pick without a time_error
-            - if this parameter is not set, then the pick weight will be based
-              on the Arrival.time_weight according to the following formula:
-                ```
-                if all(time_weight <= 1): 
-                    nordic_weight = round(4. * (1-time_weight))  # alternatively floor(4.9999. * (1-time_weight))
-                else:
-                    nordic_weight = round(4. * (max(time_weights) - 1)  # or the alternate form
-            - Should I also make nordic outputs include I lines (all in one
-              integrated variable including waveform filenames)?
-
+    - Allow SAC PZ files for response files
     - Add event location-based acceptance of solitary P- and S- candidates
     - In P-, S- and P-S clustering stage, allow unused candidates to be
       substituted for rejected picks

@@ -1,39 +1,54 @@
 import logging
 import sys
 import inspect
+from datetime import datetime
 
+from obspy.core import UTCDateTime
 
-def log(string, level="info", give_caller=True):
+def setup_log(stream_log_level=logging.INFO):
+    ts = datetime.today().strftime('%Y%m%dT%H%M')
+    logging.basicConfig(filename=f'run_{ts}.log',
+                        format='%(asctime)s %(caller)-25s %(levelname)-8s %(message)s',
+                        datefmt='%m-%d %H:%M',
+                        filemode='w',
+                        level=logging.DEBUG)
+    console = logging.StreamHandler()
+    console.setLevel(stream_log_level)
+    f = logging.Formatter('%(caller)-25s %(levelname)-8s %(message)s')
+    f = logging.Formatter('%(levelname)-8s %(message)s')
+    console.setFormatter(f)
+    logger = logging.getLogger('')
+    if len(logger.handlers) == 1:
+        logger.addHandler(console)
+    else:
+        logger.handlers[1] = console
+
+def log(string, level="info"):
     """
-    Prints a colorful and fancy string and logs the same string.
+    Prints a string and logs to file
 
     :param level: the log level
-        'info' gives a green output and no level text
-        'verbose' gives a YELLOW output and 'VERBOSE' text
-        'debug' gives a magenta output and 'DEBUG' text
-        Everything else gives a red color and capitalized level text.
-
-    Copied from Lion Krischer's hypoDDpy
     """
-    logging.info(string)
-    caller_str = ''
-    if give_caller:
-        caller = inspect.stack()[1]
-        # caller_str = caller[1] + ':' + caller[3] + ': '
-        caller_str = caller[3] + '()'
-    # Info is green
-    if level == "info":
-        print(bc.BRIGHTGREEN + f">>> {string} (in {caller_str})" + bc.RESET)
+    caller = inspect.stack()[1]
+    caller_str = caller[3] + '()'
+    level = level.upper()
+    extra = {'caller':caller_str}
+    if level == "INFO":
+        #print(bc.BRIGHTGREEN + full_str + bc.RESET)
+        logging.info(string, extra=extra)
+    elif level in ["VERBOSE", "DEBUG"]:
+        #print(bc.BRIGHTYELLOW + full_str + bc.RESET)
+        logging.debug(string, extra=extra)
+    elif level == "ERROR":
+        logging.error(string, extra=extra)
+    elif level == 'WARNING':
+        logging.warning(string, extra=extra)
+    elif level == 'CRITICAL':
+        logging.critical(string, extra=extra)
     else:
-        level = level.upper()
-        if level == "DEBUG":
-            color = bc.BRIGHTMAGENTA
-        elif level == "VERBOSE":
-            color = bc.BRIGHTYELLOW
-        else:
-            color = bc.BRIGHTRED
-        print(color + f">>> {level}: {string} (in {caller_str})" + bc.RESET)
-    sys.stdout.flush()
+        logging.warning(str, extra=extra)
+        #print(color + full_str + bc.RESET)
+    # sys.stdout.flush()
 
 
 class bc:

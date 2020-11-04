@@ -5,6 +5,8 @@ from obspy.core import UTCDateTime
 from obspy.core.event.origin import Pick, Arrival
 from obspy.core.event.base import WaveformStreamID, QuantityError
 
+from .logger import log
+
 
 class PickCandidate():
     def __init__(self, time, picker_type, picker_value, snr=None,
@@ -37,11 +39,9 @@ class PickCandidate():
         self.weight = weight
 
     def __str__(self):
-        s = f"PickCandidate: {self.time.strftime('%Y%m%dT%H%M%S')}"
-        s += f", {self.picker_type} value={self.picker_value:.3g}"
-        if self.snr is None:
-            s += ", snr=None"
-        else:
+        s = f"time={self.time.strftime('%Y%m%dT%H%M%S')}"
+        s += f", {self.picker_type}, value={self.picker_value:.3g}"
+        if self.snr is not None:
             s += f", snr={self.snr:.3g}"
         if self.DR is not None:
             s += f", DR={self.DR:.3g}"
@@ -52,6 +52,27 @@ class PickCandidate():
         if self.station is not None:
             s += f', station="{self.station}"'
         return s
+
+    def __eq__(self, other):
+        if not self.time == other.time:
+            return False
+        if not self.picker_type == other.picker_type:
+            return False
+        if not self.picker_value == other.picker_value:
+            return False
+        if not self.snr == other.snr:
+            return False
+        if not self.DR == other.DR:
+            return False
+        if not self.phase_guess == other.phase_guess:
+            return False
+        if not self.sampling_rate == other.sampling_rate:
+            return False
+        if not self.station == other.station:
+            return False
+        if not self.weight == other.weight:
+            return False
+        return True
 
     def to_obspy(self, channel_maps, quality_thresholds=None):
         """
@@ -138,3 +159,22 @@ class PickCandidate():
         if self.phase_guess == 'S':
             uncertainty *= 2.
         return QuantityError(uncertainty)
+
+    @staticmethod
+    def remove_duplicates(pick_list):
+        """
+        Remove duplicate PickCandidates from a list
+    
+        Mostly a debugging routine
+        """
+        i_remove = []
+        for i in range(len(pick_list)-1):
+            for j in range(i+1, len(pick_list)):
+                if pick_list[i] == pick_list[j]:
+                    log(f'picks {i} & {j} are identical: {pick_list[i]}',
+                        'warning')
+                    i_remove.append(j)
+        if len(i_remove) > 0:
+            pick_list = [p for p,i in zip(pick_list, range(len(pick_list)))
+                         if i not in i_remove]
+        return pick_list

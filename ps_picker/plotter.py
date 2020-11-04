@@ -32,60 +32,77 @@ class Global_Window():
     def __init__(self, plot=True):
         self.plot = plot
         if not plot:
-            self.fig = None
-            self.ax = None
+            self.fig, self.ax = None, None
         else:
-            self.fig, self.ax = plt.subplots(num="PSPicker: Overview")
+            self.fig, self.ax = plt.subplots(num="PSPicker: Overview",
+                                             clear=True)
+        self.stations = []  # ordered list of stations
 
-    def plot_trace(self, trace, i_station, candidates):
+    def setup(self, starttime, endtime, stations):
+        """
+        :param starttime: plot start time
+        :param endtime: plot end time
+        :param stations: sorted list of stations
+        """
+        if not self.plot:
+            return
+        # Pick_Function.m:250
+        self.stations = sorted(stations)
+        N = len(stations)
+        self.ax.set_title('Phase 1: Calculate global window')
+        self.ax.set_xlabel(starttime.strftime('%Y-%m-%d'))
+        self.ax.set_xlim(starttime.datetime, endtime.datetime)
+        self.ax.set_ylim(-0.5, N + 0.5)
+        # self.ax.set_ylim(-0.5, N-0.5)
+        self.ax.set_yticks(np.arange(0, N))
+        self.ax.set_yticklabels(stations)
+        self.ax.set_xlabel(starttime.strftime('%Y-%m-%d'))
+        plt.draw()
+        self.fig.canvas.draw_idle()
+        plt.show(block=False)
+        plt.pause(0.001)
+
+    def plot_trace(self, trace, station, candidates):
         """
         Plot one trace
         :param trace: trace to plot
-        :param i_station: y-index of the trace (used to separate traces)
+        :param station: station name
         :param candidates: candidate picks
         """
         # Pick_Function.m: ~160?
         if not self.plot:
             return
-        ax = self.ax
+        i_sta = self.stations.index(station)
         norm_trace = trace.copy().detrend().normalize()
-        ax.plot_date(norm_trace.times(type="matplotlib"),
-                     (0.5 * norm_trace.data) + i_station,
-                     fmt='-',
-                     label=trace.stats.station)
-        ax.vlines([x.time.matplotlib_date for x in candidates],
-                  i_station + 0.45, i_station - 0.45, color='k')
-        plt.draw()
-        plt.show(block=False)
+        self.ax.plot_date(norm_trace.times(type="matplotlib"),
+                          (0.5 * norm_trace.data) + i_sta,
+                          fmt='-', label=trace.stats.station)
+        self.ax.vlines([x.time.matplotlib_date for x in candidates],
+                       i_sta + 0.45, i_sta - 0.45, color='k')
+        #plt.draw()
+        #self.fig.canvas.draw_idle()
+        #plt.show(block=False)
+        #plt.pause(0.001)
 
-    def plot_timebounds(self, rect_start_time, rect_end_time, stations):
+    def plot_pickbounds(self, rect_start_time, rect_end_time):
         """
-        Plot the global time bounds and set axis limits
+        Plot the global pick bounds
 
-        :param rect_start_time: global window start time
-        :param rect_end_time: global window end time
-        :param stations: list of stations in same order as iTrace above
+        :param rect_start_time: global pick window start time
+        :param rect_end_time: global pick window end time
         """
         if not self.plot:
             return
-        # Pick_Function.m:231
-        ax = self.ax
-        N = len(stations)
-        # print(f'plot_timebounds: {rect_start_time}, {rect_end_time},
-        #       {len(stations)}')
+        N = len(self.stations)
         width = rect_end_time - rect_start_time
         patch = Rectangle((rect_start_time.matplotlib_date, -0.5),
                           width=width/86400, height=N + 1, color='lightblue',
-                          alpha=0.1, edgecolor=None)
-        ax.axvline(rect_start_time.matplotlib_date)
-        ax.axvline(rect_end_time.matplotlib_date)
-        ax.add_patch(patch)
-        ax.set_title('Phase 1: Calculate global window')
-        ax.set_xlabel(rect_start_time.strftime('%Y-%m-%d'))
-        ax.set_ylim(-0.5, N + 0.5)
-        ax.set_yticks(np.arange(0, N))
-        ax.set_yticklabels(stations)
-        plt.draw()
+                          alpha=0.3, edgecolor=None)
+        self.ax.axvline(rect_start_time.matplotlib_date)
+        self.ax.axvline(rect_end_time.matplotlib_date)
+        self.ax.add_patch(patch)
+        # plt.draw()
+        self.fig.canvas.draw_idle()
         plt.show(block=False)
         plt.pause(0.001)
 
@@ -102,10 +119,10 @@ class Picks_Window():
     def __init__(self, plot=True):
         self.plot = plot
         if not plot:
-            self.fig = None
-            self.ax = None
+            self.fig, self.ax = None, None
         else:
-            self.fig, self.ax = plt.subplots(num="PSPicker: all picks")
+            self.fig, self.ax = plt.subplots(num="PSPicker: all picks",
+                                             clear=True)
         self.stations = []  # ordered list of stations
 
     def setup(self, starttime, endtime, stations):
@@ -126,6 +143,7 @@ class Picks_Window():
         self.ax.set_ylim(-0.5, N-0.5)
         self.ax.set_yticks(np.arange(0, N))
         self.ax.set_yticklabels(stations)
+        self.ax.set_xlabel(starttime.strftime('%Y-%m-%d'))
         plt.draw()
         plt.show(block=False)
         plt.pause(0.001)
@@ -183,7 +201,6 @@ class Picks_Window():
         self._add_cluster_rectangle(p_clust, 'b', '#a0a0ff')
         self._add_cluster_rectangle(s_clust, 'r', '#ffa0a0')
         self._add_cluster_rectangle(o_clust, 'g', '#a0ffa0')
-        self.ax.set_xlabel(t_begin.strftime('%Y-%m-%d'))
         plt.draw()
         plt.show(block=False)
         plt.pause(0.001)
@@ -255,7 +272,7 @@ class Station_Window():
             return
         # Pick_Function.m:334
         name = trace.stats.station
-        self.fig, axs = plt.subplots(5, 1, sharex=True, num=name)
+        self.fig, axs = plt.subplots(5, 1, sharex=True, num=name, clear=True)
         self.fig.subplots_adjust(hspace=0)
         self.ax_picks = axs[0]
         self.ax_cand = axs[1]

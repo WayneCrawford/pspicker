@@ -3,7 +3,7 @@ class PickerRunParameters():
     Parameters associated with the run of one event
     """
     def __init__(self,
-                 rea_name,
+                 database_filename,
                  wavefile=None,
                  stream=None,
                  channel_maps=None,
@@ -11,7 +11,7 @@ class PickerRunParameters():
                  last_time=None,
                  t_begin=None):
         """
-        :param rea_name: database file to read
+        :param database_filename: database file to read
         :param wavefile: name of the file containing the waveforms
         :param stream: all of the data waveforms
         :param channel_maps: a dict of ChannelMapping objects with station
@@ -20,7 +20,7 @@ class PickerRunParameters():
         :param first_time: never look before this time
         :param last_time: never look after this time
         """
-        self.rea_name = rea_name
+        self.database_filename = database_filename
         self.channel_maps = channel_maps
         self.wavefile = wavefile
         self.stream = stream

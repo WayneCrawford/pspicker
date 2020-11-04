@@ -5,6 +5,10 @@
 
 Allow catalog reads (automatically link station names to their responses)
 
+Allow existing manual picks to be used (and kept as basis for other picks)
+
+Allow manual specification of the global window
+
 Check that the polarity analysis works like that in Ppol (and make a test case)
 
 Change smoothing parameters to seconds rather than samples? Or set a

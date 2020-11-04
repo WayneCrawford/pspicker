@@ -150,6 +150,8 @@ class LocalAmplitude():
                             paz_simulate=paz_simulate_obspy,
                             water_level=60.0)
         amp = pk2pk(signal, self.win_start, self.win_end)
+        if amp is None:
+            return None, None
         if method == 'wood_est':
             amp.value = estimate_wood_anderson_amplitude(paz_remove.to_obspy(),
                                                          amp.value, amp.period)
@@ -196,12 +198,14 @@ class LocalAmplitude():
         return win_start, win_end, pick, pick.waveform_id.station_code
 
     @staticmethod
-    def _get_pick(picks, component):
-        pick = [x for x in picks if x.phase_hint[0] == component]
+    def _get_pick(picks, phase):
+        pick = [x for x in picks if x.phase_hint[0] == phase]
         if len(pick) == 0:
             return None
         else:
-            assert len(pick) == 1
+            if not len(pick) == 1:
+                log('{:d} picks have phase[0] == "{}": {}, returning first one'
+                    .format(len(pick), pick[0].phase_hint[0], pick),'error')
             return pick[0]
 
     def plot(self, transformed, Amp, trans_units):
@@ -310,13 +314,20 @@ def pk2pk(stream, start_time, end_time):
     :returns: Amp object
     """
     amp = Amp(value=0)
+    if start_time > end_time:
+        log('pk2pk amplitude window start_time > end_time, returning',
+            'error')
+        return None
     for tr in stream:
-        window = tr.copy().trim(start_time, end_time).data
+        window = tr.copy().trim(start_time, end_time, pad=True).data
         sr = tr.stats.sampling_rate
         # print(f'tr = {tr}')
         # print(f'window = {window}')
         i_mins, _ = find_peaks(-1. * window)
         i_maxs, _ = find_peaks(window)
+        
+        if len(i_mins) == 0 or len(i_maxs) == 0:
+            return(None)
 
         # Make sure there is an i_max after the last i_min
         if i_mins[-1] == len(window)-1:

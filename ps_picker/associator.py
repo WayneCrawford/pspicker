@@ -11,7 +11,7 @@ from obspy.core import UTCDateTime
 
 from .utils import picks_matched_stations
 from .logger import log
-# from .pick_candidate import PickCandidate
+from .pick_candidate import PickCandidate
 
 
 class Associator():
@@ -28,8 +28,8 @@ class Associator():
     #                   'ps': [0, 13.92, 59.63, 114.2, 300.00, 654.43]}
 
     def __init__(self, params, vel_model=None, vp_over_vs=1.7,
-                 target_depth=10.,
-                 max_offset=1., cluster_window_otime=1, debug=False):
+                 target_depth=10., max_offset=1., cluster_window_otime=1,
+                 verbose=True, debug=False):
         """
         :param params: AssociatorParameters object
         :param cluster_window_otime: acceptable variation in origin times
@@ -76,7 +76,9 @@ class Associator():
                 log("Couldn't generate ps delays using '" + vel_model
                     + "', using default", "warning")
         self.vp_over_vs = vp_over_vs
+        self.verbose = verbose
         self.debug = debug
+        self.min_clust = 3  # minimum number of values in a "cluster"
 
     def run(self, picks, candidates):
         """
@@ -92,7 +94,10 @@ class Associator():
         """
         picks, associated = self.find_same_origin_time(picks, candidates)
         if not associated:
+            log('Could not associate by origin time, trying pick clustering',
+                'verbose')
             picks = self.remove_nonclustered(picks)
+        picks = PickCandidate.remove_duplicates(picks)
         return picks
 
     def remove_nonclustered(self, picks):
@@ -133,22 +138,26 @@ class Associator():
             if not (len(p_pick) == 1 and len(s_pick) == 1):
                 continue
             ots.append(self._ps_to_otime(p_pick[0].time, s_pick[0].time))
-        if len(ots) < 3:
-            log('less than 3 P-S calculated origin times, cannot associate '
-                'by this criteria')
+        if len(ots) < self.min_clust:
+            log(f'less than {self.min_clust} P-S calculated origin times'
+                    ', cannot associate by this criteria', 'verbose')
+            log(picks, 'verbose')
             return picks, False
-        indices = cluster_clean_indices(self.cluster_window_otime,
-                                        [t for t in ots])
-        if len(indices) < 3:
-            log('less than 3 P-S origin times agree, cannot associate')
+        # log('running _cluster_clean_otimes', 'debug')
+        good_ots = self._cluster_clean_otimes([t for t in ots])
+        # log(f'good_orig_times = {good_ots}', 'debug')
+        if len(good_ots) < self.min_clust:
+            log('less than {} P-S origin times agree, cannot associate'
+                    .format(self.min_clust), 'verbose')
+            log(picks, 'verbose')
             return picks, False
-        good_ots = [ots[i] for i in indices]
-        if self.debug:
-            log(f'good_ots = {good_ots}', 'debug')
-        ot = UTCDateTime(np.mean([x.timestamp for x in good_ots]))
-        new_picks = self._find_otime_matching(ot, picks, candidates)
-        # for x in new_picks:
-        #     log(x, 'debug')
+        # log(f'good_ots = {good_ots}', 'debug')
+        mean_ot = UTCDateTime(np.mean([x.timestamp for x in good_ots]))
+        # log('testing for duplicate picks before otime_matching', 'debug')
+        # new_picks = PickCandidate.remove_duplicates(picks)
+        # log('done testing for duplicate picks before otime_matching', 'debug')
+        new_picks = self._find_otime_matching(mean_ot, picks, candidates)
+        # log(f'new_picks={new_picks}', 'debug')
         return new_picks, True
 
     def _find_otime_matching(self, ot, picks, candidates):
@@ -175,35 +184,46 @@ class Associator():
 
             # If we have a P and an S candidate that match ot, keep them
             if s_existing is not None and p_existing is not None:
+                # log(f'{station}: s_existing and p_existing', 'debug')
                 otime = self._ps_to_otime(p_existing.time, s_existing.time)
                 if np.abs(otime - ot) < otime_margin:
                     new_picks.extend([p_existing, s_existing])
                     self.o_cluster[station] = otime
                     continue
-            # Otherwise, if a P cand matches ot with another cand, keep them
+            # Otherwise, if a P cand matches another cand's ot, keep them
             if p_existing is not None:
-                otimes = [self._ps_to_otime(p_existing.time, x.time)
-                          for x in sta_candidates]
-                offsets = [np.abs(x - ot) for x in otimes]
-                if np.min(offsets) < otime_margin:
-                    s_candidate = sta_candidates[np.argmin(offsets)]
-                    s_candidate.phase_guess = 'S'
-                    new_picks.extend([p_existing, s_candidate])
-                    self.o_cluster[station] = otimes[np.argmin(offsets)]
-                    continue
-            # Otherwise, an S cand that matches with another cand, keep them
+                # log(f'{station}: p_existing top', 'debug')
+                # log(p_existing, 'debug')
+                cands = [x for x in sta_candidates if not x == p_existing]
+                if len(cands) > 0:
+                    otimes = [self._ps_to_otime(p_existing.time, x.time)
+                              for x in cands]
+                    offsets = [np.abs(x - ot) for x in otimes]
+                    if np.min(offsets) < otime_margin:
+                        s_candidate = cands[np.argmin(offsets)]
+                        s_candidate.phase_guess = 'S'
+                        # log(p_existing, 'debug')
+                        # log(s_candidate, 'debug')
+                        new_picks.extend([p_existing, s_candidate])
+                        self.o_cluster[station] = otimes[np.argmin(offsets)]
+                        continue
+                # Otherwise, an S cand that matches with another cand, keep them
             if s_existing is not None:
-                otimes = [self._ps_to_otime(x.time, s_existing.time)
-                          for x in sta_candidates]
-                offsets = [np.abs(x - ot) for x in otimes]
-                if np.min(offsets) < otime_margin:
-                    p_candidate = sta_candidates[np.argmin(offsets)]
-                    p_candidate.phase_guess = 'P'
-                    new_picks.append([p_candidate, s_existing])
-                    self.o_cluster[station] = otimes[np.argmin(offsets)]
-                    continue
+                # log(f'{station}: s_existing top', 'debug')
+                cands = [x for x in sta_candidates if not x == s_existing]
+                if len(cands) > 0:
+                    otimes = [self._ps_to_otime(x.time, s_existing.time)
+                              for x in cands]
+                    offsets = [np.abs(x - ot) for x in otimes]
+                    if np.min(offsets) < otime_margin:
+                        p_candidate = cands[np.argmin(offsets)]
+                        p_candidate.phase_guess = 'P'
+                        new_picks.extend([p_candidate, s_existing])
+                        self.o_cluster[station] = otimes[np.argmin(offsets)]
+                        continue
             # Otherwise, if any combination of cands matches ot, keep them
             if sta_candidates is not None:
+                # log(f'{station}: neither s_existing nor p_existing', 'debug')
                 sort_cands = sorted(sta_candidates, key=lambda x: x.time)
                 min_offset = otime_margin
                 new_p, new_s = None, None
@@ -224,25 +244,29 @@ class Associator():
             # Otherwise, keep a solitary P or S pick
             # (if I used station positions, I could compare times here)
             if p_existing is not None and s_existing is None:
+                # log(f'{station}: p_existing bottom', 'debug')
+                assert isinstance(p_existing, PickCandidate)
                 new_picks.append(p_existing)
             elif p_existing is None and s_existing is not None:
+                # log(f'{station}: s_existing bottom', 'debug')
+                assert isinstance(s_existing, PickCandidate)
                 new_picks.append(s_existing)
+        # log('about to test for duplicates', 'debug')
+        # new_picks = PickCandidate.remove_duplicates(new_picks)
+        # log('just tested for duplicates', 'debug')
         return new_picks
 
     @staticmethod
     def _get_existing(picks, station):
-        p_existing = [x for x in picks if x.station == station
-                      and x.phase_guess == 'P']
-        s_existing = [x for x in picks if x.station == station
-                      and x.phase_guess == 'S']
-        if len(p_existing) > 0:
-            p_existing = p_existing[0]
-        else:
-            p_existing = None
-        if len(s_existing) > 0:
-            s_existing = s_existing[0]
-        else:
-            s_existing = None
+        p_existings = [x for x in picks if x.station == station
+                       and x.phase_guess == 'P']
+        s_existings = [x for x in picks if x.station == station
+                       and x.phase_guess == 'S']
+        p_existing, s_existing = None, None
+        if len(p_existings) > 0:
+            p_existing = p_existings[0]
+        if len(s_existings) > 0:
+            s_existing = s_existings[0]
         return p_existing, s_existing
 
     def _remove_unclustered(self, picks):
@@ -256,12 +280,14 @@ class Associator():
         # Pick_Function.m:746
         p_picks = [p for p in picks if p.phase_guess == 'P']
         if len(p_picks) >= self.distri_min_values:
-            p_picks = cluster_clean_picks(self.cluster_window_P, p_picks)
+            p_picks = self._cluster_clean_picks('P'. p_picks)
+            log(f'clustered p_picks = {p_picks}', 'debug')
             self.p_cluster = {x.station: x.time for x in p_picks}
 
         s_picks = [p for p in picks if p.phase_guess == 'S']
         if len(s_picks) >= self.distri_min_values:
-            s_picks = cluster_clean_picks(self.cluster_window_S, s_picks)
+            s_picks = self._cluster_clean_picks('S', s_picks)
+            log(f'clustered s_picks = {s_picks}', 'debug')
             self.p_cluster = {x.station: x.time for x in s_picks}
 
         return p_picks + s_picks
@@ -368,6 +394,63 @@ class Associator():
         return origin_time
 
 
+    def _cluster_clean_otimes(self, times=None):
+        """
+        Return indices of origin times fitting in largest cluster
+        """
+        indices = cluster_clean_indices(self.min_clust,
+                                        self.cluster_window_otime,  times)
+        return [times[i] for i in indices]
+
+
+    def _cluster_clean_picks(self, window_sec=None, picks=None):
+        """
+        Return picks fitting in the largest cluster
+
+        :param phase: "P" or "S"
+        :param picks: list of obspy Picks
+        :returns: picks that fit the cluster criteria
+        """
+        assert phase in 'PS', f'phase is "{phase}", should be "P" or "S"'
+        if phase == 'P':
+            window_sec = self.cluster_window_P
+        else:
+            window_sec = self.cluster_window_S
+        indices = cluster_clean_indices(self.min_clust, window_sec,
+                                        [x.time for x in picks])
+        return [picks[i] for i in indices]
+
+
+def cluster_clean_indices(min_clust=None, window_sec=None, times=None):
+    """
+    Return indices of times fitting in the largest cluster
+
+    :param min_clust: minimum cluster size
+    :param window_sec: cluster window length
+    :param times: list of UTCDateTime
+
+    :returns: indices of times that fit the cluster criteria
+    """
+    if len(times) == 0:
+        return []
+    elif len(times) == 1:
+        return [0]
+    else:
+        cluster_data = fclusterdata(np.array([[x.timestamp for x in times]]).T,
+                                    t=window_sec, criterion='distance')
+        cluster_groups = dict()
+        for cnum in cluster_data:
+            cluster_groups[cnum] = cluster_groups.get(cnum, 0) + 1
+        max_length = max(cluster_groups.values())
+        max_keys = [k for k, v in cluster_groups.items() if v == max_length]
+
+        if len(max_keys) > 1 and max_length >= min_clust:
+            log('{:d} clusters of max_length ({:d}), returning first one'
+                          .format(len(max_keys), max_length), 'warning')
+            log(np.nonzero(cluster_data == max_keys[0])[0], 'debug')
+        indices = np.nonzero(cluster_data == max_keys[0])[0]
+        return indices
+
 def clean_distri(values, n_std=3, mode='median', min_vals=3):
     """
     Remove extreme values in a vector
@@ -401,47 +484,6 @@ def clean_distri(values, n_std=3, mode='median', min_vals=3):
 
     return x[in_rm], in_rm
 
-
-def cluster_clean_indices(window_sec=None, times=None):
-    """
-    Return indices of times fitting in the largest cluster
-
-    :param window_sec: cluster window length
-    :param times: list of UTCDateTime
-
-    :returns: indices of times that fit the cluster criteria
-    """
-    if len(times) == 0:
-        return []
-    elif len(times) == 1:
-        return [0]
-    else:
-        cluster_data = fclusterdata(np.array([[x.timestamp for x in times]]).T,
-                                    t=window_sec, criterion='distance')
-        cluster_groups = dict()
-        for cnum in cluster_data:
-            cluster_groups[cnum] = cluster_groups.get(cnum, 0) + 1
-        max_length = max(cluster_groups.values())
-        max_keys = [k for k, v in cluster_groups.items() if v == max_length]
-
-        if len(max_keys) > 1:
-            warnings.warn('{} clusters of max_length ({:d}), returning first'
-                          .format(len(max_keys), max_length))
-        indices = np.nonzero(cluster_data == max_keys[0])[0]
-        return indices
-
-
-def cluster_clean_picks(window_sec=None, picks=None):
-    """
-    Return picks fitting in the largest cluster
-
-    :param window_sec: cluster window length
-    :param picks: list of obspy Picks
-
-    :returns: picks that fit the cluster criteria
-    """
-    indices = cluster_clean_indices(window_sec, [x.time for x in picks])
-    return [picks[i] for i in indices]
 
 
 def _pick_stations(picks):

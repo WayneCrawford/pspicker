@@ -5,7 +5,9 @@
 import os.path
 import warnings
 import glob
-# import logging
+import warnings
+import logging
+from datetime import datetime
 # import sys
 
 # Publicly available libraries
@@ -26,36 +28,49 @@ from .parameters import (PickerParameters, PickerRunParameters,
 from .kurtosis import Kurtosis
 from .energy_snr import EnergySNR
 from .polarity import Polarity
+from .pick_candidate import PickCandidate
 from .associator import Associator
 from .plotter import Plotter
 from .local_amplitude import LocalAmplitude
 from .utils import (select_traces, smooth_filter, picks_ps_times)
-from .logger import log
+from .logger import log, setup_log
 from .timer import Timer
 
+warnings.filterwarnings("ignore", message="Lines of type I have not been implemented yet, please submit a development request")
 
 class PSPicker():
     """
     Pick P and S arrivals on multiple stations using the Kurtosis and
     do a very basic cluster-based association
     """
-    def __init__(self, wav_base_path, parm_file,
-                 rea_path_out='./Sfile_directory', verbose=True,
-                 debug=False):
+    def __init__(self, parm_file, wav_base_path, database_path_in,
+                 database_path_out='./Sfile_directory',
+                 database_format='NORDIC',
+                 verbose=True, debug_plots=False):
         """
+        :param parm_file: path/name of the parameter file
         :param wav_base_path: absolute basepath to the waveform files
             (just before the YEAR/MONTH subdirectories)
-        :param parm_file: path/name of the parameter file
-        :param rea_path_out: path to output REA files
-        :param verbose: talk a bit
+        :param database_path_in: absolute basepath to the database/catalog
+            file(s) (just before the YEAR/MONTH subdirectories)
+        :param database_path_out: path to output database files
+        :param database_format:
+            'NORDIC': assume waveform files and database files are named using
+                SEISAN conventions and located in YEAR/MONTH subdirectories
+                under wav_base_path and database_path_in, respectively
+        :param verbose: output "verbose" and "debug" logs to console
+                        (will be flagged "DEBUG" because logging module has
+                        no "VERBOSE" level)
+        :param debug_plots: plot some "debugging" plots
         """
-        self.wav_base_path = wav_base_path
         self.parm_file = parm_file
-        self.rea_path_out = rea_path_out
-        self.rea_name = None
+        self.wav_base_path = wav_base_path
+        self.database_path_in =database_path_in
+        self.database_path_out = database_path_out
+        # self.database_filename = None
         self.param = PickerParameters.from_yaml_file(parm_file)
         self.verbose = verbose
-        self.debug = debug
+        self.debug_plots = debug_plots
         self.run = None
 
     def __str__(self):
@@ -63,116 +78,203 @@ class PSPicker():
         """
         str = "PSPicker\n"
         str += f"    wav_base: {self.wav_base_path}\n"
-        str += f"    output db directory: {self.rea_path_out}\n"
+        str += f"    output db directory: {self.database_path_out}\n"
         str += f"    parameters: {self.param}\n"
         return str
 
-    def run_many(self, rea_base_path_in, start_yearmonth, end_yearmonth,
-                 plot_global=True, plot_stations=False):
+    def run_many(self, start_date, end_date, plot_global=False,
+                 plot_stations=False, verbose=False, ignore_fails=False):
         """
         Loops over events in a date range
 
-        :param rea_base_path_in: absolute basepath to the input datbase
-            files (just before the YEAR/MONTH subdirectories)
-        :param start_yearmonth: "YYYYMM" of first month to process
-        :param end_yearmonth: "YYYYMM" of last month to process
+        :param start_date: "YYYYMMDD" or "YYYYMMDDHHMM" of first data to process
+        :param end_date: "YYYYMMDD" of last data to process
         :param plot_global: show global and overall pick plots
         :param plot_stations: show individual station plots
+        :param ignore_fails: keep going if one run fails
         """
-        self.rea_base_path_in = rea_base_path_in
-        start_year = float(start_yearmonth[:4])
-        start_month = float(start_yearmonth[4:6])
-        end_year = float(end_yearmonth[:4])
-        end_month = float(end_yearmonth[4:6])
-        debug_fname =\
-            'ps_picker_debug_{:04d}.{:02d}-{:04d}.{:02d}_run{}.txt'.format(
-                start_year, start_month, end_year, end_month,
-                UTCDateTime.now().strftime('%Y.%m.%d'))
+        if verbose:
+            setup_log(logging.DEBUG)
+        else:
+            setup_log(logging.INFO)
+        start_year, start_month, start_day, start_hour, start_minute =\
+            self._split_date(start_date)
+        end_year, end_month, end_day, _, _ = self._split_date(end_date)
+        debug_fname = 'ps_picker_debug_{}-{}_run{}.txt'.format(
+                start_date, end_date, datetime.today().strftime('%Y%m%d'))
         for year in range(start_year, end_year + 1):
+            first_month = 1
+            last_month = 12
             if year == start_year:
                 first_month = start_month
-            else:
-                first_month = 1
             if year == end_year:
                 last_month = end_month
-            else:
-                last_month = 12
             for month in range(first_month, last_month + 1):
-                log(f'{year:04d}/{month:02d}')
-                s_files = glob.glob(os.path.join(
-                    rea_base_path_in, f'{year:04d}', f'{month:02d}', '*.S*'))
-                for s_file in s_files:
-                    try:
-                        self.run_one(s_file, plot_global=plot_global,
-                                     plot_stations=plot_stations)
-                    except Exception as err:
-                        warnings.warn('Pick_Function failed for {s_file}')
-                        self._write_debug_file(debug_fname, err, s_file)
+                first_day = 1
+                last_day = 31
+                if year == start_year and month == start_month:
+                    first_day = start_day
+                    first_hour = start_hour
+                    first_minute = start_minute
+                if year == end_year and month == end_month:
+                    last_day = end_day
+                for day in range(first_day, last_day + 1):
+                    first_hour = 0
+                    first_minute = 0
+                    if year == start_year and month == start_month and day == start_day:
+                        first_hour = start_hour
+                        first_minute = start_minute
+                    self._run_one_day(year, month, day, first_hour, first_minute,
+                                      plot_global, plot_stations,
+                                      ignore_fails, debug_fname, verbose)
 
-    # @Timer
-    def run_one(self, rea_name, plot_global=True, plot_stations=False,
-                assoc=None, verbose=None, debug=False):
+    def run_one(self, database_filename, plot_global=True, plot_stations=False,
+                assoc=None, verbose=False, debug_plots=None):
         """
         Picks P and S arrivals on one waveform, using the Kurtosis
 
         Information in the database file will be appended with the picks.
-        :param rea_name: database file to read (full path)
+        :param database_filename: database file to read
         :param plot_global: show global and overall pick plots
         :param plot_stations: show individual station plots
         :param assoc: Associator object (useful for multiple runs with same
             Associator)
+        :param verbose: same as in creator
+        :param debug_plots: same as in creator
         """
-        with Timer(text="Run one event: {:0.4f}s"):
-            # Run basic Kurtosis and assoc to find most likely window for picks
-            self.debug = debug
-            if verbose is not None:
-                self.verbose = verbose
-            with Timer(text="Setup Plotter: {:0.4f}s"):
-                plotter = Plotter(plot_global, plot_stations)
+        if verbose is not None:
+            self.verbose = verbose
+        if debug_plots is not None:
+            self.debug_plots = debug_plots
+        if self.verbose:
+            setup_log(logging.DEBUG)
+        else:
+            setup_log(logging.INFO)
+        timer = Timer(logger=None)
+        timer.start()
+        # Run basic Kurtosis and assoc to find most likely window for picks
+        # with Timer(text="Setup Plotter: {:0.4f}s"):
+        plotter = Plotter(plot_global, plot_stations)
 
-            # Read in data and select global pick window
-            with Timer(text="Read waveforms: {:0.4f}s"):
-                st, fwf = self._read_waveforms(rea_name)
-            with Timer(text="Choose global window: {:0.4f}s"):
-                cmaps, ft, lt = self._choose_global_window(st, plotter)
-                self.run = PickerRunParameters(rea_name=rea_name, wavefile=fwf,
-                                           stream=st, channel_maps=cmaps,
-                                           first_time=ft, last_time=lt)
-                plotter.gw.plot_timebounds(ft, lt, self.run.stations)
-                plotter.pw.setup(ft, lt, self.run.stations)
+        # Read in data and select global pick window
+        # with Timer(text="Read waveforms: {:0.4f}s"):
+        st, wavefile = self._read_waveforms(
+            self._full_nordic_database_filename(database_filename))
+        # print(st.__str__(extended=True))
+        if len(st)==0:
+            log('No data found in {wavefile}, referred by {database_filename}',
+                'error')
+            return
+        sta_list = sorted(list(set([tr.stats.station for tr in st])))
+        log('Read waveforms from stations {}'.format(', '.join(sta_list)),
+            'verbose')
+        # with Timer(text="Choose global window: {:0.4f}s"):
+        cmaps, ft, lt = self._choose_global_window(st, plotter)
+        _check_timelimits(st, ft, lt)
+        self.run = PickerRunParameters(
+            database_filename=database_filename, wavefile=wavefile,
+            stream=st, channel_maps=cmaps, first_time=ft, last_time=lt)
+        plotter.gw.plot_pickbounds(ft, lt)
+        plotter.pw.setup(ft, lt, self.run.stations)
 
-            # Pick on individual traces
-            candidates, picks = [], []
-            for sta, chan_map in self.run.channel_maps.items():
-                # Reject stations not listed in parameter file
-                if sta not in self.param.stations:
-                    if self.verbose:
-                        log(f'{sta} not in self.param.stations, ignored',
-                            'verbose')
-                    continue
-                with Timer(text="Pick one station: {:0.4f}s"):
-                    p, c = self._pick_one_station(sta, chan_map, plotter)
-                    picks.extend(p)
-                    candidates.extend(c)
+        # Pick on individual traces
+        candidates, picks = [], []
+        for sta, chan_map in self.run.channel_maps.items():
+            # Reject stations not listed in parameter file
+            if sta not in self.param.stations:
+                log(f'{sta} not in self.param.stations, ignored',
+                        'warning')
+                continue
+            # with Timer(text="Pick one station: {:0.4f}s"):
+            log(f'Picking station {sta}', 'verbose')
+            p, c = self._pick_one_station(sta, chan_map, plotter)
+            picks.extend(p)
+            candidates.extend(c)
 
-            with Timer(text="Associate: {:0.4f}s"):
-                if self.verbose:
-                    log(f'{len(picks):d} picks before association',  level='verbose')
-                if assoc is None:
-                    assoc = Associator(self.param.assoc)
-                picks = assoc.run(picks, candidates)
-                if self.verbose:
-                    log(f'{len(picks):d} picks after association', level='verbose')
-                plotter.pw.plot_picks(picks, self.loop.t_begin, assoc.p_cluster,
-                                      assoc.s_cluster, assoc.o_cluster)
-            with Timer(text="Save picks: {:0.4f}s"):
-                obspy_pa = [x.to_obspy(self.run.channel_maps,
-                                       self.param.SNR.quality_thresholds)
-                            for x in picks]
-                obspy_picks = [x[0] for x in obspy_pa]
-                obspy_arrivals = [x[1] for x in obspy_pa if x[1] is not None]
-                amplitudes, obspy_picks = self._calc_amplitudes(obspy_picks)
-                self._save_event(obspy_picks, amplitudes, obspy_arrivals)
+        # with Timer(text="Associate: {:0.4f}s"):
+        log(f'{len(picks):d} picks before association', 'verbose')
+        if assoc is None:
+            assoc = Associator(self.param.assoc, verbose=self.verbose)
+        picks = assoc.run(picks, candidates)
+        log(f'{len(picks):d} picks after association', 'verbose')
+        plotter.pw.plot_picks(picks, self.loop.t_begin, assoc.p_cluster,
+                              assoc.s_cluster, assoc.o_cluster)
+        # with Timer(text="Save picks: {:0.4f}s"):
+        # log(f'picks = {picks}', 'debug')
+        picks = PickCandidate.remove_duplicates(picks)
+        obspy_pa = [x.to_obspy(self.run.channel_maps,
+                               self.param.SNR.quality_thresholds)
+                    for x in picks]
+        obspy_picks = [x[0] for x in obspy_pa]
+        obspy_arrivals = [x[1] for x in obspy_pa if x[1] is not None]
+        amplitudes, obspy_picks = self._calc_amplitudes(obspy_picks)
+        self._save_event(obspy_picks, amplitudes, obspy_arrivals)
+        elapsed_time = timer.stop()
+        log('    {}: {:2d} Picks and {:2d} Amplitudes in {:0.2f} seconds'
+            .format(database_filename, len(obspy_picks) - len(amplitudes),
+                    len(amplitudes), elapsed_time))
+
+    def _run_one_day(self, year, month, day, first_hour, first_minute,
+                     plot_global, plot_stations, ignore_fails, debug_fname,
+                     verbose):
+        """Select and run events for one day"""
+        s_paths = glob.glob(os.path.join(self.database_path_in, f'{year:04d}',
+                                         f'{month:02d}', f'{day:02d}-*.S*'))
+        if len(s_paths) > 0:
+            if first_hour > 0 or first_minute > 0:
+                s_paths = [p for p in s_paths
+                           if self._after(p, first_hour, first_minute)]
+        if len(s_paths) > 0:
+            log('Running {:d} events on {:04d}-{:02d}-{:02d}'.format(
+                len(s_paths), year, month, day))
+            for s_path in s_paths:
+                s_file = os.path.basename(s_path)
+                log("   Running {}...".format(s_file), 'verbose')
+                t = Timer(logger=None)
+                t.start()
+                try:
+                    self.run_one(s_file, plot_global=plot_global,
+                                 plot_stations=plot_stations, verbose=verbose)
+                except Exception as err:
+                    log(f'run_one() failed for {s_file}', 'critical')
+                    log(err, 'error')
+                    if not ignore_fails:
+                        raise Exception(err)
+                elapsed_time = t.stop()
+
+    @staticmethod
+    def _after(p, first_hour, first_minute):
+        """
+        Returns True if the event is on or after the given hour-minute
+        :param p: file pathname
+        :param first_hour:
+        :param first_minute:
+        """
+        f = os.path.basename(p)
+        hour = int(f[3:5])
+        minute = int(f[5:7])
+        if hour > first_hour:
+            return True
+        elif hour == first_hour and minute >= first_minute:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def _split_date(the_date):
+        """Splits a date string ("YYYYMMDD" or "YYMMDDHHMM)
+        :returns: year, month, day, hour, minute
+        """
+        d = the_date
+        assert isinstance(d, str), 'date is not a string'
+        assert d.isnumeric(), 'date is not numeric'
+        assert len(d) == 8 or len(d) == 12,\
+            f'"date" is {len(d)} numerals, should be 8 or 12'
+        if len(d) == 8:
+            return int(d[:4]), int(d[4:6]), int(d[6:]), 0, 0
+        if len(d) == 12:
+            return (int(d[:4]), int(d[4:6]), int(d[6:8]), int(d[8:10]),
+                    int(d[10:]))
 
     def _pick_one_station(self, station_name, chan_map, plotter):
         """
@@ -198,12 +300,11 @@ class PSPicker():
             'bandpass', corners=3,
             freqmin=station_params.energy_frequency_band[0],
             freqmax=station_params.energy_frequency_band[1])
-        energy = EnergySNR(datS_filt, self.param.SNR, plot=self.debug)
+        energy = EnergySNR(datS_filt, self.param.SNR, plot=self.debug_plots)
         if energy.slice(self.run.first_time,
                         self.run.last_time).is_trustworthy():
             # with Timer(text="  pick_one_station(): Kurtosis {:0.4f}s"):
-            if self.verbose:
-                log(f"{station_name}: snr trustworthy", level='verbose')
+            log(f"{station_name}: snr trustworthy", level='verbose')
             c_P, c_S, kurt, candidates = self._run_Kurtosis(energy, plotter)
             for c in candidates:
                 c.station = station_name
@@ -227,8 +328,7 @@ class PSPicker():
                 plotter.sw.candidates(candidates,
                                       self.param.polarity.DR_threshold_P,
                                       self.param.polarity.DR_threshold_S)
-        elif self.verbose:
-            log(f"{station_name}: snr untrustworthy, not picking", 'verbose')
+        log(f"{station_name}: snr untrustworthy, not picking", 'verbose')
 
         plotter.pw.plot_traces_candidates(self.loop.datP, c_P, c_S,
                                           candidates, station_name)
@@ -237,9 +337,9 @@ class PSPicker():
         new_picks = self._make_picks(c_P, c_S)
         return new_picks, candidates
 
-    def _read_waveforms(self, rea_name, format='NORDIC'):
+    def _read_waveforms(self, database_filename, format='NORDIC'):
         if format == 'NORDIC':
-            full_wavefile = self._get_nordic_wavefile_name(rea_name)
+            full_wavefile = self._get_nordic_wavefile_name(database_filename)
         else:
             raise NameError(f'type {type} not implemented')
         stream = obspy_read(full_wavefile, 'MSEED')
@@ -249,15 +349,38 @@ class PSPicker():
             tr.detrend(type='demean')
         return stream, full_wavefile
 
-    def _get_nordic_wavefile_name(self, rea_name):
-        if self.verbose:
-            log(f'database filename = {rea_name}', level='verbose')
-        cat, wav_names = read_nordic(rea_name, return_wavnames=True)
+    def _get_nordic_wavefile_name(self, database_filename):
+        log(f'database filename = {database_filename}', level='verbose')
+        cat, wav_names = read_nordic(database_filename, return_wavnames=True)
         assert len(wav_names) == 1, 'More than one wav_name in database file'
         parts = wav_names[0][0].split('-')
         full_wav_name = os.path.join(self.wav_base_path, parts[0], parts[1],
                                      wav_names[0][0])
         return full_wav_name
+
+    def _full_nordic_database_filename(self, filename):
+        """
+        Look for a NORDIC database file and return its path
+        
+        Looks in local directory, then self.database_path_in, then
+        self.database_path_in/YEAR/month
+        """
+        # In local directory
+        if os.path.isfile(filename):
+            return os.path.join(filename)
+        # In database directory
+        fullname = os.path.join(self.database_path_in, filename)
+        if os.path.isfile(fullname):
+            return fullname
+        # In database/year/month directory
+        a = filename.split('.')[-1]
+        year = a[1:5]
+        month = a[5:]
+        fullname = os.path.join(self.database_path_in, year, month, filename)
+        if os.path.isfile(fullname):
+            return fullname
+        else:
+            raise NameError(f'database file "{filename}" not found')
 
     def _choose_global_window(self, stream, plotter):
         """
@@ -269,12 +392,11 @@ class PSPicker():
         t_begin = min([t.stats.starttime for t in stream])
         t_end = max([t.stats.endtime for t in stream])
         chan_maps = select_traces(stream, self.param.channel_mapping_rules)
-        if self.verbose:
-            log(self._channel_maps_str(chan_maps), level='verbose')
+        plotter.gw.setup(t_begin, t_end, [s for s in chan_maps.keys()])
+        log(self._channel_maps_str(chan_maps), level='debug')
         distri, chan_maps = self._gw_get_distri(stream, chan_maps, plotter)
         ft, lt, distri = self._gw_set_window(t_begin, t_end, distri)
-        if self.verbose:
-            log(f'Global window bounds: {ft} to {lt}', level='verbose')
+        log(f'Global window bounds: {ft} to {lt}', level='verbose')
         return chan_maps, ft, lt
 
     def _channel_maps_str(self, channel_maps):
@@ -303,7 +425,6 @@ class PSPicker():
         # Pick_Function.m:134
         p = self.param
         overall_distri = []
-        i_station = 0
         rm_stations = []
         for station, channel_map in channel_maps.items():
             trace = stream.select(id=channel_map.Z)[0]
@@ -322,8 +443,7 @@ class PSPicker():
             for x in candidates:
                 x.station = station
             overall_distri.extend([x.time for x in candidates])
-            plotter.gw.plot_trace(trace, i_station, candidates)
-            i_station += 1
+            plotter.gw.plot_trace(trace, station, candidates)
 
         # REMOVE PROBLEM STATIONS (if necessary)
         channel_maps = {s: v for s, v in channel_maps.items()
@@ -379,12 +499,11 @@ class PSPicker():
                                   extrem_smooths=self.loop.station_params.
                                   kurt_extrema_smoothings)
         #  Trace.times('utcdatetime') takes 0.3s per call!
-#         times = energy.snr.times('utcdatetime')
-#         for c in candidates:
-#             c.snr = energy.snr.data[times.searchsorted(c.time)]
         times = energy.snr.times('timestamp')
+        imax = energy.snr.stats.npts - 1
         for c in candidates:
-            c.snr = energy.snr.data[times.searchsorted(c.time.timestamp)]
+            c.snr = energy.snr.data[min(times.searchsorted(c.time.timestamp),
+                                        imax)]
 
         # calculate picks using only candidates with SNR above min threshold
         strong_candidates = [x for x in candidates
@@ -446,9 +565,8 @@ class PSPicker():
                        verbose=self.verbose)
         DR = pol.calc_dip_rect([c.time for c in candidates])
         if DR is None:
-            if self.verbose:
-                log("DR not returned, keeping input picks", "verbose")
-                return c_P, c_S, DR, candidates
+            log("DR not returned, keeping input picks", "debug")
+            return c_P, c_S, DR, candidates
 
         for c in candidates:
             window = DR.slice(
@@ -474,8 +592,7 @@ class PSPicker():
                 if cFirst.DR > cSecond.DR:
                     c_P = cFirst
                     c_S = cSecond
-        if self.debug:
-            log(f'polarity-verified c_P={c_P}, c_S={c_S}', 'debug')
+        log(f'polarity-verified c_P={c_P}, c_S={c_S}', 'verbose')
         return c_P, c_S, DR, candidates
 
     def _calc_follows(self, candidates):
@@ -539,7 +656,7 @@ class PSPicker():
     @staticmethod
     def save_nordic_event(picks, origin_time, filepath, filename,
                           amplitudes=[], arrivals=[], wavefiles=None,
-                          evtype='L', debug=True):
+                          evtype='L', debug=False):
         """
         Save event to NORDIC file
 
@@ -563,15 +680,14 @@ class PSPicker():
         assert isinstance(amplitudes, list)
         assert isinstance(arrivals, list)
         if len(picks) == 0:
-            warnings.warn('No picks to save!')
+            log('No picks to save!', 'warning')
         origin = obspy_Origin(time=origin_time, arrivals=arrivals)
         event = obspy_Event(
             event_type='earthquake',
             picks=picks,
             origins=[origin],
             amplitudes=amplitudes)
-        if debug:
-            log(event, level='debug')
+        log(event, level='verbose')
         cat = obspy_Catalog(events=[event])
         # How to change uncertainties to "0", "1", "2", "3"?
         # By creating an associated arrival and setting it's time_weight
@@ -590,8 +706,8 @@ class PSPicker():
             o_time = self.run.first_time
         else:
             o_time = estimate_origin_time(picks)
-        self.save_nordic_event(picks, o_time, self.rea_path_out,
-                               os.path.basename(self.run.rea_name),
+        self.save_nordic_event(picks, o_time, self.database_path_out,
+                               os.path.basename(self.run.database_filename),
                                amplitudes=amplitudes,
                                arrivals=arrivals,
                                wavefiles=[self.run.wavefile])
@@ -608,8 +724,19 @@ class PSPicker():
             fid.write('-'*60 + '\n')
             fid.write(f'{err}\n')
             fid.write('To reproduce the error, type:\n')
-            fid.write(f'    picker.run_one("{s_file}"\n\n')
+            fid.write(f'    picker.run_one("{s_file}")\n\n')
 
+
+def _check_timelimits(st, ft, lt):
+    """ Check if there are traces outside of the time limits """
+    bad_traces = [tr for tr in st
+                  if tr.stats.starttime > lt or tr.stats.endtime < ft]
+    if len(bad_traces) > 0:
+        stream = st.copy()
+        stream.traces = bad_traces
+        log('some traces are outside of the pick window:', 'error')
+        log(stream, 'error')
+        
 
 def center_distri(v, win_size, n_steps=1000):
     """
@@ -666,10 +793,27 @@ def _average_ps_o_time(picks, vp_vs):
         return None
     for ps, p in zip(ps_delays, p_times):
         o_times.append(Associator.estimate_origin_time(p, p+ps, vpvs=vp_vs))
-    # Throw out values more than 3 std away
-    zs = np.abs(stats.zscore([x.timestamp for x in o_times]))
-    mean_timestamp = np.mean([o.timestamp for o, z in zip(o_times, zs)
-                              if z < 3])
+    # Throw out nans
+    o_ts = [o.timestamp for o in o_times]
+    # log(o_ts, 'debug')
+    if np.any(np.isnan(o_ts)):
+        log('there are o_times with timestamp = NaN!', 'error')
+        o_ts = [o for o in o_ts if not np.isnan(o)]
+    if len(o_ts) == 1:
+        mean_timestamp = o_ts[0]
+    elif len(o_ts) == 0:
+        log('No valid origin times', 'warning')
+        return None
+    else:
+        # Throw out values more than 3 std away
+        zs = np.abs(stats.zscore([x for x in o_ts]))
+        # log(zs, 'debug')
+        if np.any(np.isnan(zs)):
+            log(f"can't use z-values because they have NaNs ({len(o_ts)} origin_time(s))", 'warning')
+            mean_timestamp = np.mean(o_ts)
+        else:
+            mean_timestamp = np.mean([o for o, z in zip(o_ts, zs) if z < 3])
+    # log(f'mean_timestamp = {mean_timestamp}', 'debug')
     return UTCDateTime(mean_timestamp)
 
 
