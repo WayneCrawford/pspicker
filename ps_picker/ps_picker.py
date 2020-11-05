@@ -3,6 +3,7 @@
 
 # Standard libraries
 import os.path
+import shutil
 import warnings
 import glob
 import warnings
@@ -210,16 +211,17 @@ class PSPicker():
         amplitudes, obspy_picks = self._calc_amplitudes(obspy_picks)
         self._save_event(obspy_picks, amplitudes, obspy_arrivals)
         elapsed_time = timer.stop()
-        log('    {}: {:2d} Picks and {:2d} Amplitudes in {:0.2f} seconds'
+        log('    {}: {:2d} Picks and {:2d} Amplitudes on {:2d} stations in {:0.2f} seconds'
             .format(database_filename, len(obspy_picks) - len(amplitudes),
-                    len(amplitudes), elapsed_time))
+                    len(amplitudes), len(cmaps), elapsed_time))
 
     def _run_one_day(self, year, month, day, first_hour, first_minute,
                      plot_global, plot_stations, ignore_fails, debug_fname,
                      verbose):
         """Select and run events for one day"""
-        s_paths = glob.glob(os.path.join(self.database_path_in, f'{year:04d}',
-                                         f'{month:02d}', f'{day:02d}-*.S*'))
+        db_path = os.path.join(self.database_path_in, f'{year:04d}',
+                                         f'{month:02d}')
+        s_paths = glob.glob(os.path.join(db_path, f'{day:02d}-*.S*'))
         if len(s_paths) > 0:
             if first_hour > 0 or first_minute > 0:
                 s_paths = [p for p in s_paths
@@ -240,6 +242,10 @@ class PSPicker():
                     log(err, 'error')
                     if not ignore_fails:
                         raise Exception(err)
+                    log(f'copying original to dest', 'info')
+                    shutil.copyfile(s_path,
+                                    os.path.join(self.database_path_out,
+                                                 s_file))
                 elapsed_time = t.stop()
 
     @staticmethod
@@ -679,8 +685,8 @@ class PSPicker():
         assert isinstance(picks, list)
         assert isinstance(amplitudes, list)
         assert isinstance(arrivals, list)
-        if len(picks) == 0:
-            log('No picks to save!', 'warning')
+        # if len(picks) == 0:
+        #     log('No picks to save!', 'warning')
         origin = obspy_Origin(time=origin_time, arrivals=arrivals)
         event = obspy_Event(
             event_type='earthquake',

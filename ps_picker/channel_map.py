@@ -18,6 +18,7 @@ class ChannelMap():
         """
         assert P_write_cmp in "ZNEH", 'not in "ZNEH"'
         assert S_write_cmp in "ZNEH", 'not in "ZNEH"'
+        assert Z is not None
         self.Z = Z
         self.N = N
         self.E = E
@@ -54,21 +55,25 @@ class ChannelMap():
 
             return s
         elif format == 'table_row':
+            H, Z, N, E = 'None', 'None', 'None', 'None'
             if self.H is not None:
                 H = self.H.split('.')[-1]
-            else:
-                H = 'None'
+            if self.Z is not None:
+                Z = self.Z.split('.')[-1]
+            if self.N is not None:
+                N = self.N.split('.')[-1]
+            if self.E is not None:
+                E = self.E.split('.')[-1]
             s = '{:^6s}|{:^6s}|{:^6s}|{:^6s}|{:^9s}|{:^9s}|{:^8s}|{:^8s}|'.\
-                format(self.Z.split('.')[-1], self.N.split('.')[-1],
-                       self.E.split('.')[-1], H,
+                format(Z, N, E, H,
                        self._write_cmp_str(self._P_write_cmp),
                        self._write_cmp_str(self._S_write_cmp),
                        self.P_write_phase, self.S_write_phase)
             return s
         else:
-            s = f'            Z: {self.Z}\n'
-            s += f'            N: {self.N}\n'
-            s += f'            E: {self.E}\n'
+            s = f'            Z: {str(self.Z)}\n'
+            s += f'            N: {str(self.N)}\n'
+            s += f'            E: {str(self.E)}\n'
             s += f'            H: {str(self.H)}\n'
             s += f'  P_write_cmp: {self._P_write_cmp} (=>{self.P_write_cmp})\n'
             s += f'  S_write_cmp: {self._S_write_cmp} (=>{self.S_write_cmp})\n'

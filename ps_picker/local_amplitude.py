@@ -315,7 +315,8 @@ def pk2pk(stream, start_time, end_time):
     """
     amp = Amp(value=0)
     if start_time > end_time:
-        log('pk2pk amplitude window start_time > end_time, returning',
+        sta = list(set([tr.stats.station for tr in stream]))
+        log(f'station {sta} pk2pk amplitude window start_time > end_time',
             'error')
         return None
     for tr in stream:

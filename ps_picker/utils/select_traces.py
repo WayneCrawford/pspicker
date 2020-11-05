@@ -2,14 +2,15 @@
 import re
 
 from ..channel_map import ChannelMap
+from ..logger import log
 
 
 def select_traces(stream, map_rules, debug=False):
     """
-    select traces and other stuff
-
-    based on old readMSEEDTraces()
-
+    Map traces and phases
+    
+    selects traces corresponding to "Z", "N", "E" and "H", names the 
+    components to write picks to and defines the phase names
     :param stream: obspy stream
     :param map_rules: ChannelMappingRules object
     :param verbose: talk
@@ -19,15 +20,25 @@ def select_traces(stream, map_rules, debug=False):
     stations = list(set([t.stats.station for t in stream]))
     mr = map_rules
     for station in sorted(stations):
-        channel_map[station] = ChannelMap(
-            Z=findChannel(stream, station, mr.compZ, mr.band_order),
-            N=findChannel(stream, station, mr.compN, mr.band_order),
-            E=findChannel(stream, station, mr.compE, mr.band_order),
-            H=findChannel(stream, station, mr.compH, mr.band_order),
-            P_write_cmp=mr.P_write_cmp,
-            S_write_cmp=mr.S_write_cmp,
-            P_write_phase=mr.P_write_phase,
-            S_write_phase=mr.S_write_phase)
+        Z = findChannel(stream, station, mr.compZ, mr.band_order)
+        N = findChannel(stream, station, mr.compN, mr.band_order)
+        E = findChannel(stream, station, mr.compE, mr.band_order)
+        H = findChannel(stream, station, mr.compH, mr.band_order)
+        if Z is None:
+            sta_st = stream.select(station=station)
+            log('No Z channel found for station {}: {} not in "{}"'.format(
+                station, [t.stats.channel[-1] for t in sta_st], mr.compZ),
+                'error')
+        else:
+            channel_map[station] = ChannelMap(
+                Z=findChannel(stream, station, mr.compZ, mr.band_order),
+                N=findChannel(stream, station, mr.compN, mr.band_order),
+                E=findChannel(stream, station, mr.compE, mr.band_order),
+                H=findChannel(stream, station, mr.compH, mr.band_order),
+                P_write_cmp=mr.P_write_cmp,
+                S_write_cmp=mr.S_write_cmp,
+                P_write_phase=mr.P_write_phase,
+                S_write_phase=mr.S_write_phase)
 
     if debug:
         print('Channel Map:')
