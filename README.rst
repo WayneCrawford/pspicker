@@ -53,10 +53,15 @@ Code and parameter file examples
 
 Response files
 ####################################
-Are used to calculate local amplitudes.  The can be in SAC PZ, GSE2, "Baillard"
-or JSON format.  It either directly reads a gain, or calculates it from 
-a "passband" gain given at a reference frequency.  The parameters used
-for each format are:
+
+Response files are needed to calculate local amplitudes.  They can be provided
+in 'SACPZ', 'GSE2', "Baillard" or 'JSON' format (the latter is just an easier-to-
+read version of the "Baillard' format).  The code either reads an absolute gain
+or calculates it from  a "passband" gain provided for a reference frequency.  
+The "A0" normalization constant needed calculate the absolute gain from the
+passband gain is directly calculated from the poles and zeros such that A0 times
+the pole-zero formula equals 1.0 at the reference frequency. The
+parameters used for each format are:
 
 +----------+----------+--------------------------+-------+-------+-------------+
 | format   | gain     | passband gain @ ref_freq | poles | zeros | input units |
@@ -67,7 +72,7 @@ for each format are:
 |          |          |  (values from CAL2 line) |       |       |             |
 +----------+----------+--------------------------+-------+-------+-------------+
 | Baillard |          | 1/sensitivity (line 1)   | poles | zeros |  nm         |
-| Baillard |          | at f_req(line 2)         |       |       |             |
+|          |          | at f_req(line 2)         |       |       |             |
 +----------+----------+--------------------------+-------+-------+-------------+
 | JSON     |          | 1/sensitivity at f_ref   | poles | zeros |  nm         |
 +----------+----------+--------------------------+-------+-------+-------------+
