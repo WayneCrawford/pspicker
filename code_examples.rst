@@ -8,38 +8,39 @@ Docstrings of the three main methods:
 .. code:: python
 
     def __init__(self, parm_file, wav_base_path, database_path_in,
-        database_path_out=\'Sfile_directory\', database_format=\'NORDIC\',
-        verbose=True, debug_plots=False):
+                 database_path_out='Sfile_directory', database_format='NORDIC',
+                 verbose=True, debug_plots=False):
         """
-        *parm_file*: path/name of the parameter file
-        *wav_base_path*: absolute basepath to the waveform files (just before
-        the YEAR/MONTH subdirectories)
-        *database_path_in*: absolute basepath to the database/catalog file(s)
+        :param parm_file: path/name of the parameter file
+        :param wav_base_path: absolute basepath to the waveform files (just before
+            the YEAR/MONTH subdirectories)
+        :param database_path_in: absolute basepath to the database/catalog file(s)
         (just before the YEAR/MONTH subdirectories)
-        *database_path_out*: path to output database files
-        *database_format*: 'NORDIC': Use SEISAN conventions for waveform 
-        and database files (naming, and location in YEAR/MONTH subdirectories)
-        *verbose*: output \'verbose\' and \'debug\' logs to console (will be 
-        flagged DEBUG because logging module has no VERBOSE level)
-        *debug_plots*: show debugging plots
+        :param database_path_out: path to output database files
+        :param database_format: 'NORDIC' is the only choice for now
+            'NORDIC': Use SEISAN conventions for waveform  and database files
+            (naming, and location in YEAR/MONTH subdirectories)
+        :param verbose: output 'verbose' and 'debug' logs to console (will be 
+            flagged DEBUG because logging module has no VERBOSE level)
+        :param debug_plots: show debugging plots
         """
 
-:: python
+.. code:: python
 
     def run_one(self, database_filename, plot_global=True, plot_stations=False,
-        assoc=None, verbose=False, debug_plots=None):
+                assoc=None, verbose=False, debug_plots=None):
         """
         Picks P and S arrivals on one waveform, using the Kurtosis
     
         Information in the database file will be appended with the picks.
-        *database_filename*: database file to read
-        *plot_global*: show global and overall pick plots
-        *plot_stations*: show individual station plots
-        *assoc*: Associator object (used by run_many())
-        *verbose*: same as in creator
-        *debug_plots*: same as in creator
+        :param database_filename: database file to read
+        :param plot_global: show global and overall pick plots
+        :param plot_stations: show individual station plots
+        :param assoc: Associator object (used by run_many())
+        :param verbose: same as in creator
+        :param debug_plots: same as in creator
         """
-::python
+.. code:: python
 
     def run_many(self, start_date, end_date, plot_global=False,
         plot_stations=False, verbose=False, ignore_fails=False):
@@ -64,7 +65,7 @@ If the program can't read your's, try using an online YAML validator, like
 With every line commented
 -------------------------------
 
-::yaml
+.. code:: yaml
     ---
     global_window: # Parameters affecting the initial selection of a global pick window across all stations using the distribution of kurtosis extrema)
         kurt_frequency_band:       # Kurtosis cutoff frequencies [low, high] for kurtosis calculation
@@ -135,7 +136,8 @@ Example
 -------------------------------
 Using default values for some attributes
 
-::yaml
+.. code:: yaml
+
     ---
     global_window:
         kurt_frequency_band: [5, 30]
