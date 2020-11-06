@@ -44,38 +44,63 @@ Step 3: associate picks
       based on clustering of P-pick times, S-pick times and P-S delays
 
 
-Code and parameter file examples
+The three main methods:
 ####################################
 
-`Docstrings of the main methods <code_examples.rst>`_
+.. code:: python
 
-`Parameter files <code_examples.rst>`_
+    def __init__(self, parm_file, wav_base_path, database_path_in,
+                 database_path_out='Sfile_directory', database_format='NORDIC',
+                 verbose=True, debug_plots=False):
+        """
+        :param parm_file: path/name of the parameter file
+        :param wav_base_path: absolute basepath to the waveform files (just before
+                              the YEAR/MONTH subdirectories)
+        :param database_path_in: absolute basepath to the database/catalog file(s)
+                                 (just before the YEAR/MONTH subdirectories)
+        :param database_path_out: path to output database files
+        :param database_format: 'NORDIC' is the only choice for now
+            'NORDIC': Use SEISAN conventions for waveform  and database files
+                      (naming, and location in YEAR/MONTH subdirectories)
+        :param verbose: output 'verbose' and 'debug' logs to console (will be 
+                        flagged DEBUG because logging module has no VERBOSE level)
+        :param debug_plots: show debugging plots
+        """
 
-Response files
+.. code:: python
+
+    def run_one(self, database_filename, plot_global=True, plot_stations=False,
+                assoc=None, verbose=False, debug_plots=None):
+        """
+        Picks P and S arrivals on one waveform, using the Kurtosis
+    
+        Information in the database file will be appended with the picks.
+        :param database_filename: database file to read
+        :param plot_global: show global and overall pick plots
+        :param plot_stations: show individual station plots
+        :param assoc: Associator object (used by run_many())
+        :param verbose: same as in creator
+        :param debug_plots: same as in creator
+        """
+.. code:: python
+
+    def run_many(self, start_date, end_date, plot_global=False,
+        plot_stations=False, verbose=False, ignore_fails=False):
+        """
+        Loops over events in a date range
+    
+        :param start_date: "YYYYMMDD" or "YYYYMMDDHHMM" of first data to process
+        :param end_date: "YYYYMMDD" of last data to process
+        :param plot_global: show global and overall pick plots
+        :param plot_stations: show individual station plots
+        :param ignore_fails: keep going if one run fails
+        
+        """
+Parameter and response files 
 ####################################
 
-Response files are needed to calculate local amplitudes.  They can be provided
-in 'SACPZ', 'GSE2', "Baillard" or 'JSON' format (the latter is just an easier-to-
-read version of the "Baillard' format).  The code either reads an absolute gain
-or calculates it from  a "passband" gain provided for a reference frequency.  
-The "A0" normalization constant needed calculate the absolute gain from the
-passband gain is directly calculated from the poles and zeros such that A0 times
-the pole-zero formula equals 1.0 at the reference frequency. The
-parameters used for each format are:
+`Are documented here <file_examples.rst>`_
 
-+----------+----------+--------------------------+-------+-------+-------------+
-| format   | gain     | passband gain @ ref_freq | poles | zeros | input units |
-+==========+==========+==========================+=======+=======+=============+
-| SAC PZ   | CONSTANT |                          | POLES | ZEROS |  meters     |
-+----------+----------+--------------------------+-------+-------+-------------+
-| GSE2     |          |  1/sensitivity at f_ref  | poles | zeros |  nm         |
-|          |          |  (values from CAL2 line) |       |       |             |
-+----------+----------+--------------------------+-------+-------+-------------+
-| Baillard |          | 1/sensitivity (line 1)   | poles | zeros |  nm         |
-|          |          | at f_req(line 2)         |       |       |             |
-+----------+----------+--------------------------+-------+-------+-------------+
-| JSON     |          | 1/sensitivity at f_ref   | poles | zeros |  nm         |
-+----------+----------+--------------------------+-------+-------+-------------+
 
 Example workflow
 ####################################
