@@ -61,15 +61,15 @@ for each format are:
 +----------+----------+--------------------------+-------+-------+-------------+
 | format   | gain     | passband gain @ ref_freq | poles | zeros | input units |
 +==========+==========+==========================+=======+=======+=============+
-| SAC PZ   | CONSTANT | ---------------          | POLES | ZEROS |  meters     |
+| SAC PZ   | CONSTANT |                          | POLES | ZEROS |  meters     |
 +----------+----------+--------------------------+-------+-------+-------------+
-| GSE2     | -------- |  1/sensitivity at f_ref  | POLES | zeros |  nm         |
-|          | CONSTANT |  (values from CAL2 line) | POLES |       |             |
+| GSE2     |          |  1/sensitivity at f_ref  | poles | zeros |  nm         |
+|          |          |  (values from CAL2 line) |       |       |             |
 +----------+----------+--------------------------+-------+-------+-------------+
-| Baillard | -------  | 1/sensitivity (line 1)   | poles | zeros |  nm         |
-| Baillard | -------  | at f_req(line 2)         |       |       |  nm         |
+| Baillard |          | 1/sensitivity (line 1)   | poles | zeros |  nm         |
+| Baillard |          | at f_req(line 2)         |       |       |             |
 +----------+----------+--------------------------+-------+-------+-------------+
-| JSON     | -------  | 1/sensitivity at f_ref   | poles | zeros |  nm         |
+| JSON     |          | 1/sensitivity at f_ref   | poles | zeros |  nm         |
 +----------+----------+--------------------------+-------+-------+-------------+
 
 Example workflow
