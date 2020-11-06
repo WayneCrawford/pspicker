@@ -101,7 +101,7 @@ Parameters
 ####################################
 
 Picker parameters are passed in a
-`YAML <https://tools.ietf.org/id/draft-pbryan-zyp-json-ref-03.html>`_ file.
+`YAML <https://yaml.org/spec/1.2/spec.html>`_ file.
 For an example, go `here <code_examples.rst>`_
 
 

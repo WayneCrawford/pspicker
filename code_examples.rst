@@ -57,10 +57,84 @@ Example parameter file
 The file is written in 
 `YAML <https://tools.ietf.org/id/draft-pbryan-zyp-json-ref-03.html>`_
 If the program can't read your's, try using an online YAML validator, like
-`this one<https://codebeautify.org/yaml-validator>`_
+`this one <https://codebeautify.org/yaml-validator>`_
 
-With every line commented
+Example filse
 -------------------------------
+
+.. code:: yaml
+
+    ---
+    global_window:
+        kurt_frequency_band: [5, 30]
+        kurt_window_length: 20
+        distri_secs: 5
+        offsets: [-10, 10]
+        end_cutoff: 0.9
+        n_extrema: 5
+    SNR:
+        noise_window: 2.
+        signal_window: 1.
+        quality_thresholds: [1.5, 2.5, 4, 6]
+        threshold_parameter: -3.
+    polarity:
+        calculate_window: 1.
+        analyze_window: 1.
+    association:
+        cluster_window_otime: 1.
+        otime_vp_vs: 1.70
+        cluster_window_P: 3.
+        cluster_window_S: 5.
+        cluster_window_otime: 1.
+    station_parameters:
+        SPOBS:
+            P_comp: 'Z'
+            S_comp: 'ZNE'
+            energy_frequency_band: [3, 30]
+            energy_window: 20
+            kurt_frequency_bands: [[3, 15], [8, 30]]
+            kurt_window_lengths: [0.3, 0.5, 1, 2, 4, 8]
+            kurt_extrema_smoothings: [2, 4, 6, 8, 10, 20, 30, 40, 50]
+            use_polarity: true
+        BBLAND:
+            P_comp: 'Z'
+            S_comp: 'ZNE'
+            energy_frequency_band: [3, 30]
+            energy_window: 20
+            kurt_frequency_bands: [[3, 15], [8, 30]]
+            kurt_window_lengths: [0.3, 0.5, 1, 2, 4, 8]
+            kurt_extrema_smoothings: [2, 4, 6, 8, 10, 20, 30, 40, 50]
+            use_polarity: true
+    stations:
+        MOCA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
+        MOFA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
+        MONA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
+        MODA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
+        MOSA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
+        MOVA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
+        IF1A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF2A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF3A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF4A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF5A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF6A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF7A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF8A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF1B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF2B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF3B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF4B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF5B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF6B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF7B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        IF8B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        KNKL: {parameters: 'BBLAND', resp_file: 'KNKL_BBOBS1_1.response.txt'}
+
+A description of every line
+-------------------------------
+
+The values provided on some lines are defaults.  If you don't want
+to change them, you don't have to include them in your parameter file.
 
 .. code:: yaml
 
@@ -130,74 +204,3 @@ With every line commented
         station2_name: {parameters: "station_typeM", response: "responsefilename"}
         ...    
 
-Example
--------------------------------
-Using default values for some attributes
-
-.. code:: yaml
-
-    ---
-    global_window:
-        kurt_frequency_band: [5, 30]
-        kurt_window_length: 20
-        distri_secs: 5
-        offsets: [-10, 10]
-        end_cutoff: 0.9
-        n_extrema: 5
-    SNR:
-        noise_window: 2.
-        signal_window: 1.
-        quality_thresholds: [1.5, 2.5, 4, 6]
-        threshold_parameter: -3.
-    polarity:
-        calculate_window: 1.
-        analyze_window: 1.
-    association:
-        cluster_window_otime: 1.
-        otime_vp_vs: 1.70
-        cluster_window_P: 3.
-        cluster_window_S: 5.
-        cluster_window_otime: 1.
-    station_parameters:
-        SPOBS:
-            P_comp: 'Z'
-            S_comp: 'ZNE'
-            energy_frequency_band: [3, 30]
-            energy_window: 20
-            kurt_frequency_bands: [[3, 15], [8, 30]]
-            kurt_window_lengths: [0.3, 0.5, 1, 2, 4, 8]
-            kurt_extrema_smoothings: [2, 4, 6, 8, 10, 20, 30, 40, 50]
-            use_polarity: true
-        BBLAND:
-            P_comp: 'Z'
-            S_comp: 'ZNE'
-            energy_frequency_band: [3, 30]
-            energy_window: 20
-            kurt_frequency_bands: [[3, 15], [8, 30]]
-            kurt_window_lengths: [0.3, 0.5, 1, 2, 4, 8]
-            kurt_extrema_smoothings: [2, 4, 6, 8, 10, 20, 30, 40, 50]
-            use_polarity: true
-    stations:
-        MOCA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        MOFA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        MONA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        MODA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        MOSA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        MOVA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        IF1A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF2A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF3A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF4A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF5A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF6A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF7A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF8A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF1B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF2B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF3B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF4B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF5B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF6B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF7B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF8B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        KNKL: {parameters: 'BBLAND', resp_file: 'KNKL_BBOBS1_1.response.txt'}
