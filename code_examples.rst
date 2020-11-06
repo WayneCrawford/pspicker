@@ -10,15 +10,15 @@ Docstrings of the three main methods:
         """
         :param parm_file: path/name of the parameter file
         :param wav_base_path: absolute basepath to the waveform files (just before
-            the YEAR/MONTH subdirectories)
+                              the YEAR/MONTH subdirectories)
         :param database_path_in: absolute basepath to the database/catalog file(s)
-        (just before the YEAR/MONTH subdirectories)
+                                 (just before the YEAR/MONTH subdirectories)
         :param database_path_out: path to output database files
         :param database_format: 'NORDIC' is the only choice for now
             'NORDIC': Use SEISAN conventions for waveform  and database files
-            (naming, and location in YEAR/MONTH subdirectories)
+                      (naming, and location in YEAR/MONTH subdirectories)
         :param verbose: output 'verbose' and 'debug' logs to console (will be 
-            flagged DEBUG because logging module has no VERBOSE level)
+                        flagged DEBUG because logging module has no VERBOSE level)
         :param debug_plots: show debugging plots
         """
 
@@ -52,14 +52,15 @@ Docstrings of the three main methods:
         
         """
 
-Example parameter file
+The parameter file
 ========================================
-The file is written in 
+
+The parameter file is written in 
 `YAML <https://tools.ietf.org/id/draft-pbryan-zyp-json-ref-03.html>`_
 If the program can't read your's, try using an online YAML validator, like
 `this one <https://codebeautify.org/yaml-validator>`_
 
-Example filse
+Example file
 -------------------------------
 
 .. code:: yaml

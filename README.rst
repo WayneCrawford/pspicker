@@ -111,6 +111,6 @@ To Do
 - Add event location-based acceptance of solitary P- and S- candidates
 - In P-, S- and P-S clustering stage, allow unused candidates to be
   substituted for rejected picks
-- More in [ToDo.md](ToDo.md)
+- More `here <ToDo.md>`_
     
 Also see the `profiling file <profiling.md>`_
