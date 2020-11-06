@@ -44,6 +44,54 @@ Step 3: associate picks
       based on clustering of P-pick times, S-pick times and P-S delays
 
 
+
+Example workflow
+####################################
+
+Start by autopicking a few events, with all bells and whistles on:
+*********************************************************************
+
+To pick one event from a database in `/SEISAN/MAYOBS`:
+
+.. code:: python
+
+    from ps_picker import PSPicker
+    picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
+    picker.run_one('19-0607-59L.S201905', plot_global=True, plot_stations=True, verbose=True)
+
+
+Look at all of the plots and verify that the picks and association are as
+you expect.  If not, change the paramters and run again.
+
+Next, pick several events with only the global plots on
+*********************************************************************
+
+The bells and whistles text will be saved to a log file named
+run_{DATETIME}.log
+
+To pick events from May 5th to 25th in the same database:
+
+.. code:: python
+
+    from ps_picker import PSPicker
+    picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
+    picker.run_many('20190505', '20190525', plot_global=True)
+
+
+Finally, run the whole database without plots
+*********************************************************************
+
+*(run_{DATETIME}.log is always created)*
+
+To pick events from May 26th 2019 May 1st 2020:
+
+.. code:: python
+
+    from ps_picker import PSPicker
+    picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB', '/SEISAN/MAYOBS/REA/MAYOB')
+    picker.run_many('20190526', '20200501')
+
+
 The three main methods:
 ####################################
 
@@ -100,54 +148,6 @@ Parameter and response files
 ####################################
 
 `Are documented here <file_examples.rst>`_
-
-
-Example workflow
-####################################
-
-Start by autopicking a few events, with all bells and whistles on:
-*********************************************************************
-
-To pick one event from a database in `/SEISAN/MAYOBS`:
-
-.. code:: python
-
-    from ps_picker import PSPicker
-    picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
-    picker.run_one('19-0607-59L.S201905', plot_global=True, plot_stations=True, verbose=True)
-
-
-Look at all of the plots and verify that the picks and association are as
-you expect.  If not, change the paramters and run again.
-
-Next, pick several events with only the global plots on
-*********************************************************************
-
-The bells and whistles text will be saved to a log file named
-run_{DATETIME}.log
-
-To pick events from May 5th to 25th in the same database:
-
-.. code:: python
-
-    from ps_picker import PSPicker
-    picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
-    picker.run_many('20190505', '20190525', plot_global=True)
-
-
-Finally, run the whole database without plots
-*********************************************************************
-
-*(run_{DATETIME}.log is always created)*
-
-To pick events from May 26th 2019 May 1st 2020:
-
-.. code:: python
-
-    from ps_picker import PSPicker
-    picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB', '/SEISAN/MAYOBS/REA/MAYOB')
-    picker.run_many('20190526', '20200501')
-
 
 To Do
 ####################################
