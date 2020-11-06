@@ -4,7 +4,7 @@ enhanced Markdown
 Docstrings of the three main methods:
 ========================================
 
-::python
+::
     def __init__(self, parm_file, wav_base_path, database_path_in,
         database_path_out=\'Sfile_directory\', database_format=\'NORDIC\',
         verbose=True, debug_plots=False):
@@ -22,7 +22,7 @@ Docstrings of the three main methods:
         *debug_plots*: show debugging plots
         """
 
-::python
+:: python
     def run_one(self, database_filename, plot_global=True, plot_stations=False,
         assoc=None, verbose=False, debug_plots=None):
         """
