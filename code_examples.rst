@@ -4,7 +4,8 @@ enhanced Markdown
 Docstrings of the three main methods:
 ========================================
 
-::
+
+.. code:: python
 
     def __init__(self, parm_file, wav_base_path, database_path_in,
         database_path_out=\'Sfile_directory\', database_format=\'NORDIC\',
