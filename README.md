@@ -2,7 +2,9 @@
 
 Seismological P- and S- wave picker using the modified Kurtosis method
 
-Python port of the picker described in Baillard et al., 2014 
+Python port of the picker described in Baillard et al., 2014
+
+debugging information is saved to the local file run_{datetime}.log
 
 ## Methodology
 The picker is based around the Kurtosis, but also uses energy levels, polarity,
@@ -32,6 +34,67 @@ For each station:
       candidates for replacemene P and S picks
     - If less than 3 origin times are clustered, reject bad P- and S- picks
       based on clustering of P-pick times, S-pick times and P-S delays
+
+## Important methods
+
+Here is a copy of the docstrings from the three methods that you will
+probably use:
+
+```python
+def __init__(self, parm_file, wav_base_path, database_path_in,
+             database_path_out='./Sfile_directory',
+             database_format='NORDIC',
+             verbose=True, debug_plots=False):
+    """
+    :param parm_file: path/name of the parameter file
+    :param wav_base_path: absolute basepath to the waveform files
+        (just before the YEAR/MONTH subdirectories)
+    :param database_path_in: absolute basepath to the database/catalog
+        file(s) (just before the YEAR/MONTH subdirectories)
+    :param database_path_out: path to output database files
+    :param database_format:
+        'NORDIC': assume waveform files and database files are named using
+            SEISAN conventions and located in YEAR/MONTH subdirectories
+            under wav_base_path and database_path_in, respectively
+    :param verbose: output "verbose" and "debug" logs to console
+                    (will be flagged "DEBUG" because logging module has
+                    no "VERBOSE" level)
+    :param debug_plots: plot some "debugging" plots
+    """
+```
+
+```python
+def run_one(self, database_filename, plot_global=True, plot_stations=False,
+            assoc=None, verbose=False, debug_plots=None):
+    """
+    Picks P and S arrivals on one waveform, using the Kurtosis
+
+    Information in the database file will be appended with the picks.
+    :param database_filename: database file to read
+    :param plot_global: show global and overall pick plots
+    :param plot_stations: show individual station plots
+    :param assoc: Associator object (useful for multiple runs with same
+        Associator)
+    :param verbose: same as in creator
+    :param debug_plots: same as in creator
+    """
+```
+
+```python
+def run_many(self, start_date, end_date, plot_global=False,
+             plot_stations=False, verbose=False, ignore_fails=False):
+    """
+    Loops over events in a date range
+
+    :param start_date: "YYYYMMDD" or "YYYYMMDDHHMM" of first data to process
+    :param end_date: "YYYYMMDD" of last data to process
+    :param plot_global: show global and overall pick plots
+    :param plot_stations: show individual station plots
+    :param ignore_fails: keep going if one run fails
+    """
+```
+
+
 
 ## Example workflow
 
@@ -93,11 +156,11 @@ global_window: # Parameters affecting the initial selection of a global pick win
 SNR: # Parameters affecting the signal-to-noise level calculation and use
     noise_window:              # seconds to use for noise window
     signal_window:             # seconds to use for signal_window
-    max_threshold_crossings: 2 # Maximum allowed crossings of SNR threshold within global window
     quality_thresholds:        # [4-list] of SNR levels associated with quality levels '3', '2', '1' and '0'
     threshold_parameter: 0.2   # Controls the SNR_threshold for SNR-based quality evaluation
                                # if between 0 and 1, then SNR_threshold = max(SNR)*threshold_parameter
                                # if < 0, then SNR_threshold = -threshold_parameter
+    max_threshold_crossings: 2 # Maximum allowed crossings of SNR threshold within global window
 channel_parameters: # Parameters affecting the choice of channels to pick on and save to
     compZ: 'Z3'               # Component names that will be interpreted as 'Z'
     compN: 'N1Y'              # Component names that will be interpreted as 'N'
@@ -112,28 +175,30 @@ channel_parameters: # Parameters affecting the choice of channels to pick on and
 polarity: # polarity analyses parameters (mostly related to dip_rect, or DR, see Baillard et al 2014)
     DR_threshold_P: 0.4   # minimum DR to assign 'P'
     DR_threshold_S: -0.4  # maximum DR to assign 'S'
+    DR_smooth_length: 1.  # smoothing window to apply to dip and rectilinearity when calculating DR
     calculate_window: 2.  # number of seconds after a pick over which to calculate dip_rect
     analyze_window: 4.    # number of seconds around a calc point to calculate polarity
-    smooth_length: 1.     # smoothing window to apply to dip and rectilinearity when calculating DR
 association: # Parameters affecting the association between different stations
-    cluster_windows_P:     # Window length in seconds for cluster-based rejection of P arrivals
-    cluster_windows_S:     # Window length in seconds for cluster-based rejection of S arrivals
+    cluster_window_otime:  # Window length in seconds for cluster-based rejection of origin times
+    otime_vp_vs: 1.75      # Vp/Vs value to use for origin time calculations
+    cluster_window_P:      # Window length in seconds for cluster-based rejection of P arrivals
+    cluster_window_S:      # Window length in seconds for cluster-based rejection of S arrivals
     distri_min_values: 4   # minimum number of values (P picks, S picks, or PS-times) needed for distribution-based rejection
     distri_nstd_picks: 3.2 # reject picks outside of this number of standard deviations
     distri_nstd_delays: 4  # reject delays outside of this number of standard deviations
 response_filetype: '' # 'GSE' or '': the latter means a Baillard PoleZeros-type format
 station_parameters:  # List of objects with key = station_type
     - station_type1
-        P_comp:    # string of all components (one letter each, selected from 'ZNEH') used for P-picks
-        S_comp:    # string of all components (one letter each, selected from 'ZNEH') used for S-picks
-        f_energy:  # frequency band [low, high] used for SNR and energy calculations
+        P_comp:                  # components (one letter each, selected from 'ZNEH') to use for P-picks
+        S_comp:                  # components (one letter each, selected from 'ZNEH') to use for S-picks
+        energy_frequency_band:   # frequency band [low, high] used for SNR and energy calculations
+        energy_window:           # only look at data from t-nrg_win to t when evaluating energy, where t is the time of the peak waveform energy.
+                                 # If == 0, don't use energy criteria.
         kurt_frequency bands:    # Kurtosis list of frequency bands over which to run Kurtosis, e.g.[[3, 15], [8, 30]]
         kurt_window_lengths:     # Kurtosis list of window lengths in seconds, e.g. [0.3, 0.5, 1, 2, 4, 8]
         kurt_extrema_smoothings: # Kurtosis list of smoothing sequences in samples, e.g. [2, 4, 6, 8, 10, 20, 30, 40, 50]
-        use_polarity:    # Use polarities (dip_rect thresholds) to assign P and S picks
-        nrg_win:  # only look at data from t-nrg_win to t when evaluating energy, where t is the time of the peak waveform energy.
-                  # If == 0, don't use energy criteria.
-        n_extrema: 5 # number of extrema to follow
+        use_polarity:            # Use polarities (dip_rect thresholds) to assign P and S picks
+        n_extrema: 5             # number of candidates to pick (a big number allows alternate candidates)
     - station2_name
       ...
     - station3_name

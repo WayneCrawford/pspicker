@@ -101,8 +101,8 @@ class PickerParameters():
                 temp = params['station_parameters'][values['parameters']]
                 temp['resp_file'] = values['resp_file']
                 sp[station] = StationParameters.from_dict(temp)
-            cmr = ChannelMappingRules.from_dict(params.get('channel_parameters',
-                                                       {}))
+            cmr = ChannelMappingRules.from_dict(params.get(
+                'channel_parameters', {}))
             # with Timer(text="    Global Window Parameters: {:0.4f}s"):
             gw = GlobalWindowParameters.from_dict(params['global_window'])
             # with Timer(text="    SNR Parameters: {:0.4f}s"):

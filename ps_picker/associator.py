@@ -27,15 +27,10 @@ class Associator():
     # default_delays = {'op': [0, 19.17, 76.27, 144.90, 370.27, 781.35],
     #                   'ps': [0, 13.92, 59.63, 114.2, 300.00, 654.43]}
 
-    def __init__(self, params, vel_model=None, vp_over_vs=1.7,
-                 target_depth=10., max_offset=1., cluster_window_otime=1,
+    def __init__(self, params, vel_model=None, target_depth=10., max_offset=1.,
                  verbose=True, debug=False):
         """
         :param params: AssociatorParameters object
-        :param cluster_window_otime: acceptable variation in origin times
-            (for velocity-model-based association using P-S delays)
-        :param vp_over_vs: velocity ratio, to be used for origin_time
-            calculation if no velocity model.
         :param vel_model: velocity model (obspy taup valid string or the
             absolute path name of a .nd file)
         :param target_depth: event depth to use to construct travel-time tables
@@ -62,7 +57,8 @@ class Associator():
         self.cluster_window_S = params.cluster_window_S
         self.distri_nstd_picks = params.distri_nstd_picks
         self.distri_nstd_delays = params.distri_nstd_delays
-        self.cluster_window_otime = cluster_window_otime
+        self.cluster_window_otime = params.cluster_window_otime
+        self.vp_over_vs = params.otime_vp_vs
         self.p_cluster = {}   # a dictionary with key=station and value=ptime
         self.s_cluster = {}   # a dictionary with key=station and value=stime
         self.ps_cluster = {}   # a dictionary with key=station and value=stime
@@ -75,7 +71,6 @@ class Associator():
             except Exception:
                 log("Couldn't generate ps delays using '" + vel_model
                     + "', using default", "warning")
-        self.vp_over_vs = vp_over_vs
         self.verbose = verbose
         self.debug = debug
         self.min_clust = 3  # minimum number of values in a "cluster"

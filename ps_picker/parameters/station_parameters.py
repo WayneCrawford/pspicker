@@ -6,9 +6,9 @@ class StationParameters():
     """
     Station Parameters
     """
-    def __init__(self, P_comp, S_comp, energy_frequency_band, kurt_frequency_bands,
-                 kurt_window_lengths, kurt_extrema_smoothings,
-                 energy_window, resp_file,
+    def __init__(self, P_comp, S_comp, energy_frequency_band,
+                 kurt_frequency_bands, kurt_window_lengths,
+                 kurt_extrema_smoothings, energy_window, resp_file,
                  use_polarity=False, lag=999, n_extrema=5):
         """
         param P_Comp: String of components used to search for P arrival
