@@ -47,8 +47,8 @@ Step 3: associate picks
 Code and parameter file examples
 ####################################
 
-Are located `here <code_examples.rst>`_
-
+`Docstrings of the main methods <code_examples.rst>`_
+`Parameter files <code_examples.rst>`_
 
 Example workflow
 ####################################
@@ -97,20 +97,12 @@ To pick events from May 26th 2019 May 1st 2020:
     picker.run_many('20190526', '20200501')
 
 
-Parameters
-####################################
-
-Picker parameters are passed in a
-`YAML <https://yaml.org/spec/1.2/spec.html>`_ file.
-For an example, go `here <code_examples.rst>`_
-
-
 To Do
 ####################################
 
 - Add event location-based acceptance of solitary P- and S- candidates
 - In P-, S- and P-S clustering stage, allow unused candidates to be
   substituted for rejected picks
-- More `here <ToDo.md>`_
+- Dedicated `To Do file <ToDo.md>`_
     
 Also see the `profiling file <profiling.md>`_
