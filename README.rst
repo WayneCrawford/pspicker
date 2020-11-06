@@ -58,7 +58,7 @@ Start by autopicking a few events, with all bells and whistles on:
 
 To pick one event from a database in `/SEISAN/MAYOBS`:
 
-.. code::python
+.. code:: python
 
     from ps_picker import PSPicker
     picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
@@ -76,7 +76,7 @@ run_{DATETIME}.log
 
 To pick events from May 5th to 25th in the same database:
 
-.. code::python
+.. code:: python
 
     from ps_picker import PSPicker
     picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
@@ -90,7 +90,7 @@ Finally, run the whole database without plots
 
 To pick events from May 26th 2019 May 1st 2020:
 
-.. code::python
+.. code:: python
 
     from ps_picker import PSPicker
     picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB', '/SEISAN/MAYOBS/REA/MAYOB')
