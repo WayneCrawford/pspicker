@@ -5,6 +5,7 @@ Docstrings of the three main methods:
 ========================================
 
 ::
+
     def __init__(self, parm_file, wav_base_path, database_path_in,
         database_path_out=\'Sfile_directory\', database_format=\'NORDIC\',
         verbose=True, debug_plots=False):
@@ -23,6 +24,7 @@ Docstrings of the three main methods:
         """
 
 :: python
+
     def run_one(self, database_filename, plot_global=True, plot_stations=False,
         assoc=None, verbose=False, debug_plots=None):
         """
@@ -37,6 +39,7 @@ Docstrings of the three main methods:
         *debug_plots*: same as in creator
         """
 ::python
+
     def run_many(self, start_date, end_date, plot_global=False,
         plot_stations=False, verbose=False, ignore_fails=False):
         """
