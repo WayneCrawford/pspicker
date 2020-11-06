@@ -1,6 +1,3 @@
-Had to put these in a separate file from README because PyPI can't handle
-enhanced Markdown
-
 Docstrings of the three main methods:
 ========================================
 

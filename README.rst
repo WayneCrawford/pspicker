@@ -47,7 +47,7 @@ Step 3: associate picks
 Code and parameter file examples
 ####################################
 
-Are located `here<code_examples.md>`_
+Are located `here <code_examples.md>`_
 
 
 Example workflow
@@ -102,7 +102,7 @@ Parameters
 
 Picker parameters are passed in a
 `YAML <https://tools.ietf.org/id/draft-pbryan-zyp-json-ref-03.html>`_ file.
-For an example, go `here<code_examples.md>`_
+For an example, go `here <code_examples.md>`_
 
 
 To Do
