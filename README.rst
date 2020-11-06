@@ -48,7 +48,29 @@ Code and parameter file examples
 ####################################
 
 `Docstrings of the main methods <code_examples.rst>`_
+
 `Parameter files <code_examples.rst>`_
+
+Response files
+####################################
+Are used to calculate local amplitudes.  The can be in SAC PZ, GSE2, "Baillard"
+or JSON format.  It either directly reads a gain, or calculates it from 
+a "passband" gain given at a reference frequency.  The parameters used
+for each format are:
+
++----------+----------+--------------------------+-------+-------+-------------+
+| format   | gain     | passband gain @ ref_freq | poles | zeros | input units |
++==========+==========+==========================+=======+=======+=============+
+| SAC PZ   | CONSTANT | ---------------          | POLES | ZEROS |  meters     |
++----------+----------+--------------------------+-------+-------+-------------+
+| GSE2     | -------- |  1/sensitivity at f_ref  | POLES | zeros |  nm         |
+|          | CONSTANT |  (values from CAL2 line) | POLES |       |             |
++----------+----------+--------------------------+-------+-------+-------------+
+| Baillard | -------  | 1/sensitivity (line 1)   | poles | zeros |  nm         |
+| Baillard | -------  | at f_req(line 2)         |       |       |  nm         |
++----------+----------+--------------------------+-------+-------+-------------+
+| JSON     | -------  | 1/sensitivity at f_ref   | poles | zeros |  nm         |
++----------+----------+--------------------------+-------+-------+-------------+
 
 Example workflow
 ####################################
