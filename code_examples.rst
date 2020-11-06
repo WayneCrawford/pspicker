@@ -58,14 +58,15 @@ Docstrings of the three main methods:
 Example parameter file
 ========================================
 The file is written in 
-`YAML<https://tools.ietf.org/id/draft-pbryan-zyp-json-ref-03.html>`_
+`YAML <https://tools.ietf.org/id/draft-pbryan-zyp-json-ref-03.html>`_
 If the program can't read your's, try using an online YAML validator, like
-[this one](), for example
+`this one<https://codebeautify.org/yaml-validator>`_, for example
 
 With every line commented
 -------------------------------
 
 .. code:: yaml
+
     ---
     global_window: # Parameters affecting the initial selection of a global pick window across all stations using the distribution of kurtosis extrema)
         kurt_frequency_band:       # Kurtosis cutoff frequencies [low, high] for kurtosis calculation
