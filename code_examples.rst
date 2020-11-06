@@ -60,7 +60,7 @@ Example parameter file
 The file is written in 
 `YAML <https://tools.ietf.org/id/draft-pbryan-zyp-json-ref-03.html>`_
 If the program can't read your's, try using an online YAML validator, like
-`this one<https://codebeautify.org/yaml-validator>`_, for example
+`this one<https://codebeautify.org/yaml-validator>`_
 
 With every line commented
 -------------------------------
