@@ -85,6 +85,7 @@ Picker parameters are passed in a
 [YAML](https://tools.ietf.org/id/draft-pbryan-zyp-json-ref-03.html) file with
 the following fields (fields with values shown have defaults and are not
 required in the file):
+
     ---
     global_window: # Parameters affecting the initial selection of a global pick window across all stations using the distribution of kurtosis extrema)
         kurt_frequency_band:       # Kurtosis cutoff frequencies [low, high] for kurtosis calculation
