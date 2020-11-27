@@ -29,14 +29,24 @@ class ChannelMap():
         self.S_write_phase = S_write_phase
 
     @property
-    def P_write_cmp(self):
-        """ Returns the full name of the component """
+    def P_write_seed_string(self):
+        """ Returns the full seed string name"""
         return getattr(self, self._P_write_cmp)
 
     @property
-    def S_write_cmp(self):
-        """ Returns the full name of the component """
+    def S_write_seed_string(self):
+        """ Returns the full seed string """
         return getattr(self, self._S_write_cmp)
+
+    @property
+    def P_write_cmp(self):
+        """ Returns the component name"""
+        return self.P_write_seed_string.split('.')[-1]
+
+    @property
+    def S_write_cmp(self):
+        """ Returns the component name"""
+        return self.S_write_seed_string.split('.')[-1]
 
     def __str__(self, format=None):
         """
@@ -66,9 +76,11 @@ class ChannelMap():
                 E = self.E.split('.')[-1]
             s = '{:^6s}|{:^6s}|{:^6s}|{:^6s}|{:^9s}|{:^9s}|{:^8s}|{:^8s}|'.\
                 format(Z, N, E, H,
-                       self._write_cmp_str(self._P_write_cmp),
-                       self._write_cmp_str(self._S_write_cmp),
+                       self.P_write_cmp, self.S_write_cmp,
                        self.P_write_phase, self.S_write_phase)
+#                       self._write_cmp_str(self._P_write_cmp),
+#                       self._write_cmp_str(self._S_write_cmp),
+#                       self.P_write_phase, self.S_write_phase)
             return s
         else:
             s = f'            Z: {str(self.Z)}\n'
@@ -81,8 +93,9 @@ class ChannelMap():
             s += f'S_write_phase: {self.S_write_phase}\n'
             return s
 
-    def _write_cmp_str(self, write_cmp):
-        return write_cmp + '(' + getattr(self, write_cmp).split('.')[-1] + ')'
+    # def _write_cmp_str(self, write_cmp):
+    #     return getattr(self, write_cmp).split('.')[-1]
+        # return write_cmp + '(' + getattr(self, write_cmp).split('.')[-1] + ')'
 
     def _shortChName(self, write_to):
         """Shortened channel name of the given seed_id"""

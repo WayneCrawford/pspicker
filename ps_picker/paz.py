@@ -18,6 +18,11 @@ If norm_factor is not specified, it is automatically calculated so that
 as per the SEED recommendation
 
 If A_0 is automatically calculated, it will change if the user changes ref_freq
+or input_units.
+If A_0 is explicity provided, it will not change if the user changes ref_freq
+or input_units, so gain should be modified instead (currently only works for 
+input_units)
+
 The user can also change the input_units after creating the class, in which
 case the poles, zeros, AUTOMATIC norm_factor and gain will all
 be changed if the starting and ending input_units are in self.known_units().
@@ -26,10 +31,10 @@ The norm_factor will NOT be changed if it was manually entered.
 import numpy as np
 import json
 import copy
+import warnings
 
 from obspy.core.inventory import read_inventory
 from obspy.core.inventory.response import PolesZerosResponseStage
-from .logger import log
 
 
 class PAZ():
@@ -164,10 +169,10 @@ class PAZ():
         s += f'gain={self.gain:.4g}, '
         s += f'poles={self.poles}, '
         s += f'zeros={self.zeros}, '
-        s += f'[passband_gain={self.passband_gain:.3g} '
+        s += f'(passband_gain={self.passband_gain:.3g} '
         s += f'{self.output_units}/{self.input_units} '
         s += f'at {self.ref_freq:.3g}Hz, '
-        s += f'A0={self.norm_factor:.4g}]'
+        s += f'A0={self.norm_factor:.4g})'
         return s
 
     def copy(self):
@@ -194,10 +199,12 @@ class PAZ():
         ogain, onz = self._ref_meter(new_input_units)
 
         if igain is None or ogain is None:
-            log('Did not convert', 'warning')
+            warnings.warn('Did not convert')
             return
 
         self.gain *= ogain / igain
+        if self._norm_factor is not None:
+            old_calc_norm_factor = self.calc_norm_factor()
         relnz = onz - inz
         if relnz > 0:
             self.zeros = np.append(self.zeros, np.zeros(relnz))
@@ -212,6 +219,9 @@ class PAZ():
                     self.zeros = np.delete(self.zeros, i_zero_zeros)
                     relnp -= len(i_zero_zeros)
             self.poles = np.append(self.poles, np.zeros(relnp))
+        if self._norm_factor is not None:
+            # Since norm factor cannot change, change gain
+            self.gain *= old_calc_norm_factor / self.calc_norm_factor()
 
     @classmethod
     def read_JSON_PZ(cls, filename):
@@ -431,7 +441,7 @@ class PAZ():
             return (self.converter[units.lower()][0],
                     self.converter[units.lower()][1])
         else:
-            log('Unknown unit for conversion: {}, known values are "{}"'
+            warnings.warn('Unknown unit for conversion: {}, known values are "{}"'
                 .format(units, ', '.join(self.converter.keys())))
             return None, None
 

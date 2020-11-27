@@ -24,8 +24,10 @@ from obspy.core.event.base import WaveformStreamID, QuantityError
 from ps_picker.ps_picker import PSPicker
 from ps_picker.local_amplitude import (LocalAmplitude, get_response)
 from ps_picker.paz import PAZ
+from ps_picker.logger import setup_log
 
 pp = pprint.PrettyPrinter(indent=4)
+setup_log()
 
 
 class TestADDONSMethods(unittest.TestCase):

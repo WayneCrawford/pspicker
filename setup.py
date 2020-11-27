@@ -20,15 +20,16 @@ setuptools.setup(
     include_package_data=True,
     install_requires=[
           'obspy>=1.2',
-          'numpy',
-          'scipy',
-          'matplotlib',
+          'numpy>=1.18',
+          'scipy>=1.5',
+          'verboselogs>=1.7'
+          'matplotlib>=3.2',
           'pyyaml>=3.0,<4',
           'jsonschema>=2.6',
           'jsonref>=0.2'
       ],
     entry_points={},
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=(

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from obspy.core.stream import Stream
 
-# from .logger import log
+from .logger import log
 
 
 class Plotter():
@@ -419,9 +419,9 @@ class Station_Window():
                 linefmt='r-', basefmt='r:', use_line_collection=True)
         ax.set_ylabel('picker_value', color='r')
         ax.tick_params(axis='y', labelcolor='r')
-        print('Doh!')
+        log('Candidates:', 'debug')
         for x in candidates:
-            print(x)
+            log(f'  {x}', 'debug')
         axb.stem([x.time.matplotlib_date for x in candidates],
                  [x.DR for x in candidates], markerfmt='bx',
                  linefmt='b-', basefmt='b:', use_line_collection=True)

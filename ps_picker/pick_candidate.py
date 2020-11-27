@@ -86,11 +86,13 @@ class PickCandidate():
         """
         c_map = channel_maps[self.station]
         if self.phase_guess == 'P':
-            id = WaveformStreamID(seed_string=c_map.P_write_cmp)
+            id = WaveformStreamID(seed_string=c_map.P_write_seed_string)
             phase_hint = c_map.P_write_phase
+            log(f'{phase_hint}: {id.get_seed_string()}', 'verbose')
         elif self.phase_guess == 'S':
-            id = WaveformStreamID(seed_string=c_map.S_write_cmp)
+            id = WaveformStreamID(seed_string=c_map.S_write_seed_string)
             phase_hint = c_map.S_write_phase
+            log(f'{phase_hint}: {id.get_seed_string()}', 'verbose')
         else:
             raise ValueError("phase guess '{self.phase_guess}' not 'P' or 'S'")
         self.weight = self._get_weight(quality_thresholds)

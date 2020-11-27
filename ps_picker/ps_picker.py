@@ -98,36 +98,42 @@ class PSPicker():
             setup_log(logging.DEBUG)
         else:
             setup_log(logging.INFO)
-        start_year, start_month, start_day, start_hour, start_minute =\
-            self._split_date(start_date)
-        end_year, end_month, end_day, _, _ = self._split_date(end_date)
+        start_dt = self._split_date(start_date)
+        end_dt = self._split_date(end_date)
         debug_fname = 'ps_picker_debug_{}-{}_run{}.txt'.format(
                 start_date, end_date, datetime.today().strftime('%Y%m%d'))
-        for year in range(start_year, end_year + 1):
+        print('Running from {} to {}'.format(start_dt.strftime("%Y%m%d-%H%M"),
+                                             end_dt.strftime("%Y%m%d-%H%M")))
+        def _date_match(y, m, d, ref):
+            return y == ref.year and m == ref.month and d==ref.day
+
+        for year in range(start_dt.year, end_dt.year + 1):
             first_month = 1
             last_month = 12
-            if year == start_year:
-                first_month = start_month
-            if year == end_year:
-                last_month = end_month
+            if year == start_dt.year:
+                first_month = start_dt.month
+            if year == end_dt.year:
+                last_month = end_dt.month
             for month in range(first_month, last_month + 1):
                 first_day = 1
                 last_day = 31
-                if year == start_year and month == start_month:
-                    first_day = start_day
-                    first_hour = start_hour
-                    first_minute = start_minute
-                if year == end_year and month == end_month:
-                    last_day = end_day
+                if year == start_dt.year and month == start_dt.month:
+                    first_day = start_dt.day
+                    first_hour = start_dt.hour
+                    first_minute = start_dt.minute
+                if year == end_dt.year and month == end_dt.month:
+                    last_day = end_dt.day
                 for day in range(first_day, last_day + 1):
-                    first_hour = 0
-                    first_minute = 0
-                    if year == start_year and month == start_month and day == start_day:
-                        first_hour = start_hour
-                        first_minute = start_minute
-                    self._run_one_day(year, month, day, first_hour, first_minute,
-                                      plot_global, plot_stations,
-                                      ignore_fails, debug_fname, verbose)
+                    kwargs = {}
+                    if _date_match(year, month, day, start_dt):
+                            kwargs['first_hour'] = start_dt.hour
+                            kwargs['first_minute'] = start_dt.minute
+                    if _date_match(year, month, day, end_dt):
+                            kwargs['last_hour'] = end_dt.hour
+                            kwargs['last_minute'] = end_dt.minute
+                    self._run_one_day(year, month, day, plot_global,
+                                      plot_stations, ignore_fails,
+                                      debug_fname, verbose, **kwargs)
 
     def run_one(self, database_filename, plot_global=True, plot_stations=False,
                 assoc=None, verbose=False, debug_plots=None):
@@ -187,7 +193,6 @@ class PSPicker():
                         'warning')
                 continue
             # with Timer(text="Pick one station: {:0.4f}s"):
-            log(f'Picking station {sta}', 'verbose')
             p, c = self._pick_one_station(sta, chan_map, plotter)
             picks.extend(p)
             candidates.extend(c)
@@ -208,24 +213,29 @@ class PSPicker():
                     for x in picks]
         obspy_picks = [x[0] for x in obspy_pa]
         obspy_arrivals = [x[1] for x in obspy_pa if x[1] is not None]
-        amplitudes, obspy_picks = self._calc_amplitudes(obspy_picks)
+        # amplitudes, obspy_picks = self._calc_amplitudes(obspy_picks)
+        amplitudes, amp_picks = self._calc_amplitudes(obspy_picks)
+        obspy_picks.extend(amp_picks)
         self._save_event(obspy_picks, amplitudes, obspy_arrivals)
         elapsed_time = timer.stop()
         log('    {}: {:2d} Picks and {:2d} Amplitudes on {:2d} stations in {:0.2f} seconds'
             .format(database_filename, len(obspy_picks) - len(amplitudes),
                     len(amplitudes), len(cmaps), elapsed_time))
 
-    def _run_one_day(self, year, month, day, first_hour, first_minute,
-                     plot_global, plot_stations, ignore_fails, debug_fname,
-                     verbose):
+    def _run_one_day(self, year, month, day, plot_global, plot_stations,
+                     ignore_fails, debug_fname, verbose, first_hour=None,
+                     first_minute=None, last_hour=None, last_minute=None):
         """Select and run events for one day"""
         db_path = os.path.join(self.database_path_in, f'{year:04d}',
                                          f'{month:02d}')
         s_paths = glob.glob(os.path.join(db_path, f'{day:02d}-*.S*'))
         if len(s_paths) > 0:
-            if first_hour > 0 or first_minute > 0:
-                s_paths = [p for p in s_paths
-                           if self._after(p, first_hour, first_minute)]
+            if first_hour is not None or first_minute is not None:
+                s_paths = [p for p in s_paths if self._nordic_fname_after(
+                    p, first_hour, first_minute)]
+            if last_hour is not None or last_minute is not None:
+                s_paths = [p for p in s_paths if self._nordic_fname_before(
+                    p, last_hour, last_minute)]
         if len(s_paths) > 0:
             log('Running {:d} events on {:04d}-{:02d}-{:02d}'.format(
                 len(s_paths), year, month, day))
@@ -249,7 +259,7 @@ class PSPicker():
                 elapsed_time = t.stop()
 
     @staticmethod
-    def _after(p, first_hour, first_minute):
+    def _nordic_fname_after(p, hour, minute):
         """
         Returns True if the event is on or after the given hour-minute
         :param p: file pathname
@@ -257,29 +267,45 @@ class PSPicker():
         :param first_minute:
         """
         f = os.path.basename(p)
-        hour = int(f[3:5])
-        minute = int(f[5:7])
-        if hour > first_hour:
+        ev_hour = int(f[3:5])
+        ev_minute = int(f[5:7])
+        if ev_hour > hour:
             return True
-        elif hour == first_hour and minute >= first_minute:
+        elif ev_hour == hour and ev_minute >= minute:
             return True
-        else:
-            return False
+        return False
+
+    @staticmethod
+    def _nordic_fname_before(p, hour, minute):
+        """
+        Returns True if the event is on or before the given hour-minute
+        :param p: file pathname
+        :param hour:
+        :param minutes:
+        """
+        f = os.path.basename(p)
+        ev_hour = int(f[3:5])
+        ev_minute = int(f[5:7])
+        if ev_hour < hour:
+            return True
+        elif ev_hour == hour and ev_minute <= minute:
+            return True
+        return False
 
     @staticmethod
     def _split_date(the_date):
         """Splits a date string ("YYYYMMDD" or "YYMMDDHHMM)
-        :returns: year, month, day, hour, minute
+        :returns: datetime object year, month, day, hour, minute
         """
         d = the_date
         assert isinstance(d, str), 'date is not a string'
         assert d.isnumeric(), 'date is not numeric'
         assert len(d) == 8 or len(d) == 12,\
-            f'"date" is {len(d)} numerals, should be 8 or 12'
+            f'"date" ({d}) is {len(d)} numerals, should be 8 or 12'
         if len(d) == 8:
-            return int(d[:4]), int(d[4:6]), int(d[6:]), 0, 0
+            return datetime(int(d[:4]), int(d[4:6]), int(d[6:]))
         if len(d) == 12:
-            return (int(d[:4]), int(d[4:6]), int(d[6:8]), int(d[8:10]),
+            return datetime(int(d[:4]), int(d[4:6]), int(d[6:8]), int(d[8:10]),
                     int(d[10:]))
 
     def _pick_one_station(self, station_name, chan_map, plotter):
@@ -307,8 +333,10 @@ class PSPicker():
             freqmin=station_params.energy_frequency_band[0],
             freqmax=station_params.energy_frequency_band[1])
         energy = EnergySNR(datS_filt, self.param.SNR, plot=self.debug_plots)
-        if energy.slice(self.run.first_time,
+        if not energy.slice(self.run.first_time,
                         self.run.last_time).is_trustworthy():
+            log(f"{station_name}: snr untrustworthy, not picking", 'verbose')
+        else:
             # with Timer(text="  pick_one_station(): Kurtosis {:0.4f}s"):
             log(f"{station_name}: snr trustworthy", level='verbose')
             c_P, c_S, kurt, candidates = self._run_Kurtosis(energy, plotter)
@@ -334,7 +362,6 @@ class PSPicker():
                 plotter.sw.candidates(candidates,
                                       self.param.polarity.DR_threshold_P,
                                       self.param.polarity.DR_threshold_S)
-        log(f"{station_name}: snr untrustworthy, not picking", 'verbose')
 
         plotter.pw.plot_traces_candidates(self.loop.datP, c_P, c_S,
                                           candidates, station_name)
@@ -399,7 +426,7 @@ class PSPicker():
         t_end = max([t.stats.endtime for t in stream])
         chan_maps = select_traces(stream, self.param.channel_mapping_rules)
         plotter.gw.setup(t_begin, t_end, [s for s in chan_maps.keys()])
-        log(self._channel_maps_str(chan_maps), level='debug')
+        log(self._channel_maps_str(chan_maps), level='verbose')
         distri, chan_maps = self._gw_get_distri(stream, chan_maps, plotter)
         ft, lt, distri = self._gw_set_window(t_begin, t_end, distri)
         log(f'Global window bounds: {ft} to {lt}', level='verbose')
@@ -644,20 +671,27 @@ class PSPicker():
 
     def _calc_amplitudes(self, picks):
         amplitudes = []
+        amp_picks = []
         stations = list(set([p.waveform_id.station_code for p in picks]))
         for station in stations:
-            sta_picks = [p for p in picks
+            sta_picks = [p.copy() for p in picks
                          if p.waveform_id.station_code == station]
+            # Inefficient way to get dat_noH
+            temp = PickerStationParameters(
+                station=station,
+                station_params=self.param.station_parameters[station],
+                channel_map=self.run.channel_maps[station],
+                stream=self.run.stream)
             la = LocalAmplitude(
-                self.loop.dat_noH, sta_picks,
+                temp.dat_noH, sta_picks,
                 self.param.station_parameters[station].resp_file,
                 self.param.response_file_type)
             # log(la, 'debug')
             amp, pick = la.get_iaml(method='wood_calc')
             if amp is not None:
                 amplitudes.append(amp)
-                picks.append(pick)
-        return amplitudes, picks
+                amp_picks.append(pick)
+        return amplitudes, amp_picks
 
     @staticmethod
     def save_nordic_event(picks, origin_time, filepath, filename,
