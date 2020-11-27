@@ -35,13 +35,13 @@ For each station:
 Step 3: associate picks
 *********************************************************************
 
-    - Calculate origin times for each trace, based on the P-S delay and
-      a simple velocity model (could I use a single Vp/Vs value?)
-    - If at least 3 origin times are clustered, use their average origin time
-      to validate all candidates, possibly dipping into the pool of unused
-      candidates for replacemene P and S picks
-    - If less than 3 origin times are clustered, reject bad P- and S- picks
-      based on clustering of P-pick times, S-pick times and P-S delays
+- Calculate origin times for each trace, based on the P-S delay and
+  a simple velocity model (could I use a single Vp/Vs value?)
+- If at least 3 origin times are clustered, use their average origin time
+  to validate all candidates, possibly dipping into the pool of unused
+  candidates for replacemene P and S picks
+- If less than 3 origin times are clustered, reject bad P- and S- picks
+  based on clustering of P-pick times, S-pick times and P-S delays
 
 
 
@@ -130,6 +130,7 @@ The three main methods:
         :param verbose: same as in creator
         :param debug_plots: same as in creator
         """
+
 .. code:: python
 
     def run_many(self, start_date, end_date, plot_global=False,
@@ -144,6 +145,7 @@ The three main methods:
         :param ignore_fails: keep going if one run fails
         
         """
+
 Parameter and response files 
 ####################################
 

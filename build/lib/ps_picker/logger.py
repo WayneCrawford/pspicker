@@ -1,4 +1,4 @@
-import logging
+import logging, verboselogs
 import sys
 import inspect
 from datetime import datetime
@@ -6,18 +6,22 @@ from datetime import datetime
 from obspy.core import UTCDateTime
 
 def setup_log(stream_log_level=logging.INFO):
+    global logger
+    # verboselogs.install()
     ts = datetime.today().strftime('%Y%m%dT%H%M')
     logging.basicConfig(filename=f'run_{ts}.log',
-                        format='%(asctime)s %(caller)-25s %(levelname)-8s %(message)s',
+                        # format='%(asctime)s %(caller)-25s %(levelname)-8s %(message)s',
+                        format='%(asctime)s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M',
                         filemode='w',
-                        level=logging.DEBUG)
+                        level=logging.VERBOSE)
     console = logging.StreamHandler()
     console.setLevel(stream_log_level)
-    f = logging.Formatter('%(caller)-25s %(levelname)-8s %(message)s')
     f = logging.Formatter('%(levelname)-8s %(message)s')
     console.setFormatter(f)
-    logger = logging.getLogger('')
+    logger = verboselogs.VerboseLogger('')
+    logger.addHandler(logging.getLogger(''))
+    # logger = logging.getLogger('')
     if len(logger.handlers) == 1:
         logger.addHandler(console)
     else:
@@ -29,25 +33,26 @@ def log(string, level="info"):
 
     :param level: the log level
     """
+    global logger
     caller = inspect.stack()[1]
     caller_str = caller[3] + '()'
     level = level.upper()
     extra = {'caller':caller_str}
     if level == "INFO":
         #print(bc.BRIGHTGREEN + full_str + bc.RESET)
-        logging.info(string, extra=extra)
-    elif level in ["VERBOSE", "DEBUG"]:
-        #print(bc.BRIGHTYELLOW + full_str + bc.RESET)
-        logging.debug(string, extra=extra)
+        logger.info(string, extra=extra)
+    elif level == "VERBOSE":
+        logger.verbose(string, extra=extra)
+    elif level == "DEBUG":
+        logger.debug(string, extra=extra)
     elif level == "ERROR":
-        logging.error(string, extra=extra)
+        logger.error(string, extra=extra)
     elif level == 'WARNING':
-        logging.warning(string, extra=extra)
+        logger.warning(string, extra=extra)
     elif level == 'CRITICAL':
-        logging.critical(string, extra=extra)
+        logger.critical(string, extra=extra)
     else:
-        logging.warning(str, extra=extra)
-        #print(color + full_str + bc.RESET)
+        logger.warning(string, extra=extra)
     # sys.stdout.flush()
 
 

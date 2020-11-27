@@ -12,7 +12,7 @@ setuptools.setup(
     version=version['__version__'],
     author="Christian Baillard",
     author_email="crawford@ipgp.fr",
-    description="P and S wave picker using kurtosis",
+    description="Kurtosis-based P and S wave picker",
     long_description=long_description,
     long_description_content_type="text/x-rst; charset=UTF-8",
     url="https://github.com/WayneCrawford/ps_picker",

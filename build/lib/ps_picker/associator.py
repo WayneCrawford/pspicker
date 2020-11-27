@@ -136,23 +136,18 @@ class Associator():
         if len(ots) < self.min_clust:
             log(f'less than {self.min_clust} P-S calculated origin times'
                     ', cannot associate by this criteria', 'verbose')
-            log(picks, 'verbose')
+            for p in picks:
+                log(f' {p}', 'verbose')
             return picks, False
-        # log('running _cluster_clean_otimes', 'debug')
         good_ots = self._cluster_clean_otimes([t for t in ots])
-        # log(f'good_orig_times = {good_ots}', 'debug')
         if len(good_ots) < self.min_clust:
             log('less than {} P-S origin times agree, cannot associate'
                     .format(self.min_clust), 'verbose')
-            log(picks, 'verbose')
+            for p in picks:
+                log(f' {p}', 'debug')
             return picks, False
-        # log(f'good_ots = {good_ots}', 'debug')
         mean_ot = UTCDateTime(np.mean([x.timestamp for x in good_ots]))
-        # log('testing for duplicate picks before otime_matching', 'debug')
-        # new_picks = PickCandidate.remove_duplicates(picks)
-        # log('done testing for duplicate picks before otime_matching', 'debug')
         new_picks = self._find_otime_matching(mean_ot, picks, candidates)
-        # log(f'new_picks={new_picks}', 'debug')
         return new_picks, True
 
     def _find_otime_matching(self, ot, picks, candidates):
