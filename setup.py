@@ -22,7 +22,7 @@ setuptools.setup(
           'obspy>=1.2',
           'numpy>=1.18',
           'scipy>=1.5',
-          'verboselogs>=1.7'
+          'verboselogs>=1.7',
           'matplotlib>=3.2',
           'pyyaml>=3.0,<4',
           'jsonschema>=2.6',
