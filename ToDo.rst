@@ -42,6 +42,7 @@ Parameter file
 Replace:
 
 .. code:: yaml
+
   channel_parameters:
     compZ: 'Z3'
     compN: 'N1Y'
@@ -55,6 +56,7 @@ Replace:
 by:
 
 .. code:: yaml
+
   channel_parameters:
     component_orientation_codes:
         Z: 'Z3'
@@ -68,6 +70,7 @@ by:
 Replace:
 
 .. code:: yaml
+
     station_parameters:
         SPOBS:
             P_comp: 'Z'
@@ -78,6 +81,7 @@ Replace:
 by:
 
 .. code:: yaml
+
     station_parameters:
         SPOBS:
             picking_components
