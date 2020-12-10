@@ -3,8 +3,8 @@ Critical
 
 - Make origin-time association works
 
-    - Even if I increase cluster_window_otime to 5 seconds, doesn't increase
-      number of event selected!
+  - Even if I increase cluster_window_otime to 5 seconds, doesn't increase
+    number of events selected!
 
 Non-critical
 ------------------------
