@@ -74,6 +74,10 @@ class PickCandidate():
             return False
         return True
 
+    @property
+    def shortname(self):
+        return f'{self.station}_{self.phase_guess}'
+
     def to_obspy(self, channel_maps, quality_thresholds=None):
         """
         Return obspy Pick and Arrival

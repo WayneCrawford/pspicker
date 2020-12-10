@@ -3,6 +3,7 @@ from scipy.signal import lfilter
 from ..logger import log
 
 from obspy.core.stream import Stream as obspy_Stream
+from obspy.core.stream import Trace
 
 
 def smooth_filter(traces, n_smooth):
@@ -13,7 +14,7 @@ def smooth_filter(traces, n_smooth):
     values, it smooths the entry into "good" data and does not erase the
     first non-nan values.
 
-    This code reproduces Christian's code, which always ramps up the beginning,
+    Reproduces Christian's code, which always ramps up the beginning,
     even if there are no NaNs
 
     :param traces_in: trace of list of traces
@@ -22,16 +23,19 @@ def smooth_filter(traces, n_smooth):
     """
     n_smooth = int(n_smooth)
     bare_trace = False
-    if not isinstance(traces, list) and not isinstance(traces, obspy_Stream):
+    of isinstance(traces, Trace):
         traces = [traces]
         bare_trace = True
-    # smooth_filter.m:15
+    assert isinstance(traces, list) or isinstance(traces, obspy_Stream):
     # Eliminate traces filled with nan
     cleaned_traces_in = [t for t in traces if not np.all(np.isnan(t.data))]
 
     smoothed_traces = []
     for tr in cleaned_traces_in:
-        tr.data[np.isnan(tr.data)] = 0
+        i_nan = np.nonzero(np.isnan(tr.data))[0]
+        if len(i_nan) > 0:
+            tr.data[i_nan] = 0
+        # tr.data[np.isnan(tr.data)] = 0
         smooth_tr = tr.copy()
         smooth_tr.data = lfilter(np.divide(np.ones(n_smooth), n_smooth),
                                  1., tr.data)

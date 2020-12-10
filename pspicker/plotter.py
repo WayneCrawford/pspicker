@@ -4,6 +4,7 @@ from matplotlib.patches import Rectangle
 from obspy.core.stream import Stream
 
 from .logger import log
+from .associator import Associator
 
 
 class Plotter():
@@ -79,10 +80,10 @@ class Global_Window():
                           fmt='-', label=trace.stats.station)
         self.ax.vlines([x.time.matplotlib_date for x in candidates],
                        i_sta + 0.45, i_sta - 0.45, color='k')
-        #plt.draw()
-        #self.fig.canvas.draw_idle()
-        #plt.show(block=False)
-        #plt.pause(0.001)
+        # plt.draw()
+        # self.fig.canvas.draw_idle()
+        # plt.show(block=False)
+        # plt.pause(0.001)
 
     def plot_pickbounds(self, rect_start_time, rect_end_time):
         """
@@ -137,7 +138,7 @@ class Picks_Window():
         self.stations = sorted(stations)
         N = len(stations)
         # fig.clf()
-        self.ax.set_title('Phase 3: Select final picks based using Association')
+        self.ax.set_title('Phase 3: Select final picks using Association')
         # ax.set_xlim(starttime.matplotlib_date, endtime.matplotlib_date)
         self.ax.set_xlim(starttime.datetime, endtime.datetime)
         self.ax.set_ylim(-0.5, N-0.5)
@@ -148,7 +149,8 @@ class Picks_Window():
         plt.show(block=False)
         plt.pause(0.001)
 
-    def plot_traces_candidates(self, traces, c_P, c_S, candidates, station):
+    def plot_traces_candidates(self, traces, c_P, c_S, candidates, station,
+                               assoc=Associator):
         """
         Plot P trace(s) and candidates for one station
 
@@ -157,6 +159,7 @@ class Picks_Window():
         :param c_S: S PickCandidate  or None
         :param candidates: list of PickCandidates
         :param station: station name
+        :param assoc: Associator object
         """
         if not self.plot:
             return
@@ -177,19 +180,20 @@ class Picks_Window():
         if c_S is not None:
             ax.vlines(c_S.time.matplotlib_date, i_sta-0.5, i_sta+0.5,
                       color='r', lw=5, alpha=0.5, zorder=2)
+        if c_S is not None and c_P is not None:
+            o_time = assoc.calc_origin_time(c_P.time, c_S.time)
+            ax.plot(o_time.matplotlib_date, i_sta, 'k+')
         plt.draw()
         plt.show(block=False)
         plt.pause(0.001)
 
-    def plot_picks(self, picks, t_begin, p_clust, s_clust, o_clust):
+    def plot_picks(self, picks, t_begin, assoc):
         """
         Plot initial and final P and S picks for all stations
 
         :picks: all P and S PickCandidates
         :param t_begin: begin time for all plots
-        :param p_clust: p-cluster times {station: time}
-        :param s_clust: s-cluster times {station: time}
-        :param o_clust: origin-cluster times {station: time}
+        :param assoc: Associator object
         """
         if not self.plot:
             return
@@ -198,9 +202,9 @@ class Picks_Window():
         s_picks = [p for p in picks if p.phase_guess == 'S']
         self._add_picks(p_picks, 'b')
         self._add_picks(s_picks, 'r')
-        self._add_cluster_rectangle(p_clust, 'b', '#a0a0ff')
-        self._add_cluster_rectangle(s_clust, 'r', '#ffa0a0')
-        self._add_cluster_rectangle(o_clust, 'g', '#a0ffa0')
+        self._add_cluster_rectangle(assoc.p_cluster, 'b', '#a0a0ff')
+        self._add_cluster_rectangle(assoc.s_cluster, 'r', '#ffa0a0')
+        self._add_cluster_rectangle(assoc.o_cluster, 'g', '#a0ffa0')
         plt.draw()
         plt.show(block=False)
         plt.pause(0.001)
@@ -285,7 +289,7 @@ class Station_Window():
                                 .format(trace.stats.station))
 
     def plot_data(self, starttime, endtime, snr_quality_thresholds,
-                  trace, energy, kurto_mean, kurto_grad, dip_rect,
+                  trace, energy, kurto, dip_rect,
                   dip_thresh_P, dip_thresh_S):
         """
         Plot the waveforms, energy, kurtosis, etc
@@ -295,9 +299,10 @@ class Station_Window():
         :param snr_quality_thresholds: list of SNR quality thresholds
         :param trace: data trace to plot
         :param energy: WaveformEnergy object
-        :param kurto_mean: mean Kurtosis
-        :kurto_grad: list of cumulative kurtosis gradient Traces, for
-                     different smoothings
+        :param kurto: Kurtosis object
+        # :param kurto_mean: mean Kurtosis
+        # :kurto_grad: list of cumulative kurtosis gradient Traces, for
+        #              different smoothings
         :dip_rect: dip-rectilinearity trace or None
         :dip_thresh_P: P-wave dip-rect threshold
         :dip_thresh_S: S-wave dip-rect threshold
@@ -305,18 +310,19 @@ class Station_Window():
         if not self.plot:
             return
         # Pick_Function.m:443
-        # imin, imax = np.nonzero(np.isfinite(all_mean_M))[0][[0, -1]]
-        # tmin, tmax = all_mean_M.times(type="utcdatetime")[[imin, imax]]
-        tmin, tmax = kurto_mean.stats.starttime, kurto_mean.stats.endtime
-        self.kmin, self.kmax = np.min(kurto_mean.data), np.max(kurto_mean.data)
-        kurto_grad_stream = Stream(kurto_grad).slice(tmin, tmax)
+        stats = kurto.mean_kurtosis.stats
+        tmin, tmax = stats.starttime, stats.endtime
+        # tmin, tmax = kurto_mean.stats.starttime, kurto_mean.stats.endtime
+        self.kmin = np.min(kurto.mean_kurtosis.data)
+        self.kmax = np.max(kurto.mean_kurtosis.data)
 
         # Plot the subplots
         self.ax_picks.set_xlim(starttime.datetime, endtime.datetime)
         self.fig.tight_layout()   # (to avoid clipping right labels)
         self._plot_picks(self.ax_picks, trace.slice(tmin, tmax))
         self._plot_cand(self.ax_cand, trace.slice(tmin, tmax))
-        self._plot_kurt(self.ax_kurt, kurto_mean, kurto_grad_stream)
+        self._plot_kurt(self.ax_kurt, kurto)
+        # self._plot_kurt(self.ax_kurt, kurto_mean, kurto_grad_stream)
         self._plot_snr(self.ax_snr, energy.slice(tmin, tmax),
                        snr_quality_thresholds)
         self._plot_pol(self.ax_pol, dip_rect, dip_thresh_P, dip_thresh_S)
@@ -344,30 +350,49 @@ class Station_Window():
         pass
 
     @staticmethod
-    def _plot_kurt(ax, kurto_mean, kurto_grad):
-        ax.plot(kurto_mean.times(type='matplotlib'), kurto_mean.data, 'b')
+    def _plot_kurt(ax, kurto):
+        kurto_mean = kurto.mean_kurtosis
+        kurto_cum_mean = kurto.mean_cumulative_kurtosis
+        smoov = kurto.params.extrema_smoothings
+        tmin, tmax = kurto_mean.stats.starttime, kurto_mean.stats.endtime
+        kurto_grad = Stream(kurto.kurto_gradients).slice(tmin, tmax)
+
+        ax.plot(kurto_mean.times(type='matplotlib'), kurto_mean.data, 'b',
+                label='mean')
+        ax.plot(kurto_cum_mean.times(type='matplotlib'), kurto_cum_mean.data,
+                'b--', label='cumulative')
         ax.set_ylabel('Kurtosis', color='b')
         ax.tick_params(axis='y', labelcolor='b')
+        ax.legend(frameon=False, fontsize='xx-small')   # loc='center right'
         # ax.set_xticklabels([])
         axb = ax.twinx()  # Create a twin axis with a different y-scale
         axb.plot(kurto_grad[0].times(type='matplotlib'),
-                 kurto_grad[0].data, 'r--')
+                 kurto_grad[0].data, 'r--',
+                 label=f'{max(smoov):g}-s smoothing')
         axb.plot(kurto_grad[-1].times(type='matplotlib'),
-                 kurto_grad[-1].data, 'r')
+                 kurto_grad[-1].data, 'r',
+                 label=f'{min(smoov):g}-s smoothing')
         axb.set_ylabel('Extrema', color='r')
         axb.tick_params(axis='y', labelcolor='r')
+        axb.legend(frameon=False, fontsize='xx-small')  # loc='center right'
 
     @staticmethod
     def _plot_snr(ax, energy, snr_quality_thresholds):
         nrgdB = energy.nrg.copy()
         nrgdB.data = 20 * np.log10(nrgdB.data)
-        ax.plot_date(energy.nrg.times(type='matplotlib'), energy.nrg.data,
-                     'r', zorder=0., alpha=0.5)
+        # ax.plot_date(energy.nrg.times(type='matplotlib'), energy.nrg.data,
+        #              'r', zorder=0., alpha=0.5)
+        ax.semilogy(energy.nrg.times(type='matplotlib'), energy.nrg.data,
+                    'r', zorder=0., alpha=0.5)
         ax.set_ylabel('Energy', color='r')
         ax.tick_params(axis='y', labelcolor='r')
         axb = ax.twinx()  # Create a twin axis with a different y-scale
-        axb.plot_date(energy.snr.times(type='matplotlib'), energy.snr.data,
-                      'b', zorder=1.)
+        # axb.semilogy(energy.snr.times(type='matplotlib'), energy.snr.data,
+        #               'b', zorder=1.)
+        # axb.set_ylim(bottom=1.)
+        axb.plot(energy.snr.times(type='matplotlib'), energy.snr.data,
+                 'b', zorder=1.)
+        axb.set_ylim(bottom=0, top=1.5*max(snr_quality_thresholds))
         if energy.snr_threshold is not None:
             axb.axhline(energy.snr_threshold, color='b', ls='--', zorder=0.5)
         for thresh in snr_quality_thresholds:
@@ -430,6 +455,9 @@ class Station_Window():
         axb.set_ylabel('dip-rect', color='b')
         axb.tick_params(axis='y', labelcolor='b')
         axb.set_ylim(-1, 1)
+        plt.draw()
+        plt.show(block=False)
+        plt.pause(0.001)
 
     def onsets(self, onset_P, onset_S, data_limits):
         """
@@ -453,3 +481,6 @@ class Station_Window():
             self.ax_picks.plot(t, data_limits[0], data_limits[1], 'r')
             # self.ax_extrem.plot(t, data_limits[0], data_limits[1], 'r')
             self.ax_kurt.plot(t, self.kmin, self.kmax, 'r')
+        plt.draw()
+        plt.show(block=False)
+        plt.pause(0.001)

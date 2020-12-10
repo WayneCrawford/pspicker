@@ -4,7 +4,7 @@ from obspy.core import UTCDateTime
 from obspy.core.stream import Stream
 
 from .logger import log
-from .timer import Timer
+# from .timer import Timer
 
 
 class Polarity:
@@ -134,7 +134,7 @@ class Polarity:
         :returns: rect, azi (degrees), dip (degrees)
         """
         # fast_polar_analysis.m:17
-        # with Timer(text="    polarity.polar_analysis() calc_indices: {:0.4f}s"):
+        # with Timer(text="polarity.polar_analysis() calc_indices: {:0.4f}s"):
         ind_vec, n_half_analyze = self._calc_indices(times)
 
         # with Timer(text="    polarity.polar_analysis() rest: {:0.4f}s"):

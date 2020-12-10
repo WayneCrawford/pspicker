@@ -55,7 +55,7 @@ To pick one event from a database in `/SEISAN/MAYOBS`:
 
 .. code:: python
 
-    from ps_picker import PSPicker
+    from pspicker import PSPicker
     picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
     picker.run_one('19-0607-59L.S201905', plot_global=True, plot_stations=True, verbose=True)
 
@@ -73,7 +73,7 @@ To pick events from May 5th to 25th in the same database:
 
 .. code:: python
 
-    from ps_picker import PSPicker
+    from pspicker import PSPicker
     picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
     picker.run_many('20190505', '20190525', plot_global=True)
 
@@ -87,7 +87,7 @@ To pick events from May 26th 2019 May 1st 2020:
 
 .. code:: python
 
-    from ps_picker import PSPicker
+    from pspicker import PSPicker
     picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB', '/SEISAN/MAYOBS/REA/MAYOB')
     picker.run_many('20190526', '20200501')
 
@@ -150,6 +150,14 @@ Parameter and response files
 ####################################
 
 `Are documented here <file_examples.rst>`_
+
+To get the same results as with the old Matlab program, set the following
+values:
+
+- set ``association:method`` to **"arrival_time"**
+- set ``station_parameters:{type}:max_candidates`` to **2**
+- set ``SNR:threshold_parameter`` to **0.2**
+- set ``SNR:max_threshold_crossings`` to **5**
 
 To Do
 ####################################

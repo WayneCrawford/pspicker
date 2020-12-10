@@ -5,19 +5,51 @@ from datetime import datetime
 
 from obspy.core import UTCDateTime
 
-def setup_log(stream_log_level=logging.INFO):
-    global logger
+def setup_log(stream_log_level=logging.INFO,
+              file_log_level=logging.VERBOSE):
+    """
+    Set console and log file logging levels
+    
+    :param stream_log_level: log level for console output
+    :kind stream_log_level: verboselogs level, str or None
+    :param file_log_level: log level for log file.  If higher than the 
+        stream_log_leve, will be set to stream_log_level
+    """
+    if stream_log_level is None:
+        stream_log_level = logging.INFO
+    if isinstance(stream_log_level, str):
+        if stream_log_level == 'verbose':
+            stream_log_level = logging.VERBOSE
+        elif stream_log_level == 'debug':
+            stream_log_level = logging.DEBUG
+        elif stream_log_level == 'warning':
+            stream_log_level = logging.WARNING
+        elif stream_log_level == 'error':
+            stream_log_level = logging.ERROR
+        elif stream_log_level == 'critical':
+            stream_log_level = logging.CRITICAL
+        else:
+            stream_log_level = logging.INFO
+    if stream_log_level not in [logging.DEBUG, logging.VERBOSE, logging.INFO,
+                                logging.WARNING, logging.ERROR,
+                                logging.CRITICAL]:
+        stream_log_level = logging.INFO
     ts = datetime.today().strftime('%Y%m%dT%H%M')
+
+    if stream_log_level < file_log_level:
+        file_log_level = stream_log_level
     logging.basicConfig(filename=f'run_{ts}.log',
                         # format='%(asctime)s %(caller)-25s %(levelname)-8s %(message)s',
                         format='%(asctime)s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M',
                         filemode='w',
-                        level=logging.VERBOSE)
+                        level=file_log_level)
     console = logging.StreamHandler()
     console.setLevel(stream_log_level)
     f = logging.Formatter('%(levelname)-8s %(message)s')
     console.setFormatter(f)
+
+    global logger
     logger = verboselogs.VerboseLogger('')
     logger.addHandler(logging.getLogger(''))
     # logger = logging.getLogger('')

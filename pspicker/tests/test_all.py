@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Functions to test ps_picker
+Functions to test pspicker
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -21,10 +21,10 @@ from obspy.core.event.magnitude import Amplitude
 from obspy.core.event.base import WaveformStreamID, QuantityError
 
 # from obsinfo.misc.info_files import _read_json_yaml
-from ps_picker.ps_picker import PSPicker
-from ps_picker.local_amplitude import (LocalAmplitude, get_response)
-from ps_picker.paz import PAZ
-from ps_picker.logger import setup_log
+from pspicker.pspicker import PSPicker
+from pspicker.local_amplitude import (LocalAmplitude, get_response)
+from pspicker.paz import PAZ
+from pspicker.logger import setup_log
 
 pp = pprint.PrettyPrinter(indent=4)
 setup_log()

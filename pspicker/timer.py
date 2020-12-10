@@ -5,8 +5,10 @@ from dataclasses import dataclass, field
 import time
 from typing import Any, Callable, ClassVar, Dict, Optional
 
+
 class TimerError(Exception):
     """A custom exception used to report errors in use of Timer class"""
+
 
 @dataclass
 class Timer(ContextDecorator):
@@ -26,14 +28,14 @@ class Timer(ContextDecorator):
     def start(self) -> None:
         """Start a new timer"""
         if self._start_time is not None:
-            raise TimerError(f"Timer is running. Use .stop() to stop it")
+            raise TimerError("Timer is running. Use .stop() to stop it")
 
         self._start_time = time.perf_counter()
 
     def stop(self) -> float:
         """Stop the timer, and report the elapsed time"""
         if self._start_time is None:
-            raise TimerError(f"Timer is not running. Use .start() to start it")
+            raise TimerError("Timer is not running. Use .start() to start it")
 
         # Calculate elapsed time
         elapsed_time = time.perf_counter() - self._start_time

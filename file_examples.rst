@@ -14,12 +14,13 @@ Example file
 
     ---
     global_window:
-        kurt_frequency_band: [5, 30]
-        kurt_window_length: 20
+        kurtosis:
+            frequency_bands: [[5, 30]]
+            window_lengths: [20]
         distri_secs: 5
         offsets: [-10, 10]
         end_cutoff: 0.9
-        n_extrema: 5
+        max_candidates: 5
     SNR:
         noise_window: 2.
         signal_window: 1.
@@ -40,18 +41,20 @@ Example file
             S_comp: 'ZNE'
             energy_frequency_band: [3, 30]
             energy_window: 20
-            kurt_frequency_bands: [[3, 15], [8, 30]]
-            kurt_window_lengths: [0.3, 0.5, 1, 2, 4, 8]
-            kurt_extrema_smoothings: [2, 4, 6, 8, 10, 20, 30, 40, 50]
+            kurtosis:
+                frequency_bands: [[3, 15], [8, 30]]
+                window_lengths: [0.3, 0.5, 1, 2, 4, 8]
+                extrema_smoothings: [2, 4, 6, 8, 10, 20, 30, 40, 50]
             use_polarity: true
         BBLAND:
             P_comp: 'Z'
             S_comp: 'ZNE'
             energy_frequency_band: [3, 30]
             energy_window: 20
-            kurt_frequency_bands: [[3, 15], [8, 30]]
-            kurt_window_lengths: [0.3, 0.5, 1, 2, 4, 8]
-            kurt_extrema_smoothings: [2, 4, 6, 8, 10, 20, 30, 40, 50]
+            kurtosis:
+                frequency_bands: [[3, 15], [8, 30]]
+                window_lengths: [0.3, 0.5, 1, 2, 4, 8]
+                extrema_smoothings: [2, 4, 6, 8, 10, 20, 30, 40, 50]
             use_polarity: true
     stations:
         MOCA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
@@ -88,21 +91,22 @@ to change them, you don't have to include them in your parameter file.
 
     ---
     global_window: # Parameters affecting the initial selection of a global pick window across all stations using the distribution of kurtosis extrema)
-        kurt_frequency_band:       # Kurtosis cutoff frequencies [low, high] for kurtosis calculation
-        kurt_window_length:        # Kurtosis sliding window length in seconds for kurtosis calculation
-        kurt_extrema_smoothing: 40 # Kurtosis number of samples to smooth extrema by when looking for pick
+        kurtosis:           # Kurtosis calculation parameters
+            frequency_bands:         # list of frequency bands [low, high] to use
+            window_lengths:          # list of sliding window lengths to use
+            extrema_smoothings: [40] # list of number of samples to smooth extrema by when looking for pick
         distri_secs:        # size of window in seconds in which to look for the maximum # of picks
         offsets:            # final window offset in seconds [left, right] from peak distribution
         end_cutoff: 0.9     # don't look for extrema beyond this fraction of the overall time
-        n_extrema: 5        # number of kurtosis extrema to pick for each trace
+        max_candidates: 5   # maxium number of pick candidates for each trace
     SNR: # Parameters affecting the signal-to-noise level calculation and use
         noise_window:              # seconds to use for noise window
         signal_window:             # seconds to use for signal_window
         quality_thresholds:        # [4-list] of SNR levels associated with quality levels '3', '2', '1' and '0'
         threshold_parameter: 0.2   # Controls the SNR_threshold for SNR-based quality evaluation
-                                   # if between 0 and 1, then SNR_threshold = max(SNR)*threshold_parameter
-                                   # if < 0, then SNR_threshold = -threshold_parameter
-        max_threshold_crossings: 2 # Maximum allowed crossings of SNR threshold within global window
+                                   # if between 0 and 1: SNR_threshold = max(max(SNR)*threshold_parameter, quality_thresholds[0])
+                                   # if < 0:  SNR_threshold = -threshold_parameter
+        max_threshold_crossings: 5 # Maximum allowed crossings of SNR threshold within global window
     channel_parameters: # Parameters affecting the choice of channels to pick on and save to
         compZ: 'Z3'               # Component names that will be interpreted as 'Z'
         compN: 'N1Y'              # Component names that will be interpreted as 'N'
@@ -121,6 +125,7 @@ to change them, you don't have to include them in your parameter file.
         calculate_window: 2.  # number of seconds after a pick over which to calculate dip_rect
         analyze_window: 4.    # number of seconds around a calc point to calculate polarity
     association: # Parameters affecting the association between different stations
+        method: 'origin_time'  # Preferred association method: ['origin_time', 'arrival_time']
         cluster_window_otime:  # Window length in seconds for cluster-based rejection of origin times
         otime_vp_vs: 1.75      # Vp/Vs value to use for origin time calculations
         cluster_window_P:      # Window length in seconds for cluster-based rejection of P arrivals
@@ -136,11 +141,15 @@ to change them, you don't have to include them in your parameter file.
             energy_frequency_band:   # frequency band [low, high] used for SNR and energy calculations
             energy_window:           # only look at data from t-nrg_win to t when evaluating energy, where t is the time of the peak waveform energy.
                                      # If == 0, don't use energy criteria.
+            kurtosis:                # Kurtosis calculation parameters
+                frequency_bands:         # list of frequency bands [low, high] to use
+                window_lengths:          # list of sliding window lengths to use
+                extrema_smoothings:      # list of number of samples to smooth extrema by when looking for pick
             kurt_frequency bands:    # Kurtosis list of frequency bands over which to run Kurtosis, e.g.[[3, 15], [8, 30]]
             kurt_window_lengths:     # Kurtosis list of window lengths in seconds, e.g. [0.3, 0.5, 1, 2, 4, 8]
             kurt_extrema_smoothings: # Kurtosis list of smoothing sequences in samples, e.g. [2, 4, 6, 8, 10, 20, 30, 40, 50]
             use_polarity:            # Use polarities (dip_rect thresholds) to assign P and S picks
-            n_extrema: 5             # number of candidates to pick (a big number allows alternate candidates)
+            max_candidates: 5        # number of candidates to pick (a big number allows alternate candidates)
         - station2_name
           ...
         - station3_name

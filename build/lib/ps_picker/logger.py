@@ -7,7 +7,6 @@ from obspy.core import UTCDateTime
 
 def setup_log(stream_log_level=logging.INFO):
     global logger
-    # verboselogs.install()
     ts = datetime.today().strftime('%Y%m%dT%H%M')
     logging.basicConfig(filename=f'run_{ts}.log',
                         # format='%(asctime)s %(caller)-25s %(levelname)-8s %(message)s',

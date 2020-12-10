@@ -4,18 +4,18 @@ with open("README.rst", "r") as fh:
     long_description = fh.read()
     
 version={}
-with open("ps_picker/version.py") as fp:
+with open("pspicker/version.py") as fp:
     exec(fp.read(),version)
 
 setuptools.setup(
-    name="ps_picker",
+    name="pspicker",
     version=version['__version__'],
     author="Christian Baillard",
     author_email="crawford@ipgp.fr",
     description="Kurtosis-based P and S wave picker",
     long_description=long_description,
     long_description_content_type="text/x-rst; charset=UTF-8",
-    url="https://github.com/WayneCrawford/ps_picker",
+    url="https://github.com/WayneCrawford/pspicker",
     packages=setuptools.find_packages(),
     include_package_data=True,
     install_requires=[

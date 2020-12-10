@@ -1,3 +1,5 @@
 .eggs/
 __pycache__/
-ps_picker.egg-info/
+ps_picker.egg-info
+/pspicker.egg-info/
+pspicker/__pycache__
