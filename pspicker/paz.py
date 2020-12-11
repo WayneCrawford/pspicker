@@ -229,7 +229,10 @@ class PAZ():
         read JSON paz format
         """
         with open(filename) as f:
-            paz = json.load(f)
+            try:
+                paz = json.load(f)
+            except Exception as e:
+                raise ValueError(f'Could not load {filename}: {e}')
         poles, zeros = [], []
         for p in paz['poles']:
             poles.append(float(p[0]) + float(p[1])*1.j)

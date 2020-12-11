@@ -354,13 +354,13 @@ def get_response(filename, format=None, component=None):
     :param format: 'GSE', 'JSON_PZ, 'SACPZ', 'STATIONXML' or None
     :param component: component to read, if STATIONXML
     """
-    if format == 'GSE':
+    if format.upper() == 'GSE':
         paz = PAZ.read_GSE(filename)
-    elif format == 'JSON_PZ':
+    elif format.upper() in ['JSON', 'JSON_PZ']:
         paz = PAZ.read_JSON_PZ(filename)
-    elif format == 'SACPZ':
+    elif format.upper() == 'SACPZ':
         paz = PAZ.read_SACPZ(filename)
-    elif format == 'STATIONXML':
+    elif format.upper() == 'STATIONXML':
         assert component is not None
         paz = PAZ.read_STATIONXML(filename, component)
     else:

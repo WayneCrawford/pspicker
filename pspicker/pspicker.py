@@ -71,6 +71,7 @@ class PSPicker():
         self.debug_plots = False
         self.run = None
         self.assoc = None
+        self.log_level = None
 
     def __str__(self):
         """
@@ -82,7 +83,7 @@ class PSPicker():
         return str
 
     def run_many(self, start_date, end_date, plot_global=False,
-                 plot_stations=False, ignore_fails=False, log_level='info'):
+                 plot_stations=False, ignore_fails=True, log_level='info'):
         """
         Loops over events in a date range
 
@@ -96,6 +97,7 @@ class PSPicker():
             'info', 'warning', 'error', 'critical'), default='info'
         """
         setup_log(log_level)
+        self.log_level = log_level
         start_dt = self._split_date(start_date)
         end_dt = self._split_date(end_date)
         debug_fname = 'ps_picker_debug_{}-{}_run{}.txt'.format(
@@ -135,7 +137,7 @@ class PSPicker():
                                       debug_fname, **kwargs)
 
     def run_one(self, database_filename, plot_global=True, plot_stations=False,
-                assoc=None, log_level='info', debug_plots=None):
+                assoc=None, log_level='verbose', debug_plots=None):
         """
         Picks P and S arrivals on one waveform, using the Kurtosis
 
@@ -149,7 +151,9 @@ class PSPicker():
             'info', 'warning', 'error', 'critical'), default='info'
         :param debug_plots: plot some "debugging" plots
         """
-        setup_log(log_level)
+        if not self.log_level:
+            setup_log(log_level)
+            self.log_level = log_level
         if self.assoc is None:
             self.assoc = Associator(self.param.assoc)
         if debug_plots is not None:
@@ -245,7 +249,7 @@ class PSPicker():
                     log(err, 'error')
                     if not ignore_fails:
                         raise Exception(err)
-                    log('copying original to dest', 'info')
+                    log('copying original s-file to dest', 'info')
                     shutil.copyfile(s_path,
                                     os.path.join(self.database_path_out,
                                                  s_file))

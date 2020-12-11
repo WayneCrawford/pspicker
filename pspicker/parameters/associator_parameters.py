@@ -45,7 +45,7 @@ class AssociatorParameters():
 
     def __str__(self):
         str = "AssociatorParameters:\n"
-        str += f"    method = '{self.method}\\n"
+        str += f"    method = '{self.method}\n"
         str += f"    cluster_window_orig = {self.cluster_window_otime}\n"
         str += f"    otime_vp_vs = {self.otime_vp_vs}\n"
         str += f"    cluster_window_P = {self.cluster_window_P}\n"
