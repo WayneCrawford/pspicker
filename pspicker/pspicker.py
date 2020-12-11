@@ -250,9 +250,8 @@ class PSPicker():
                     if not ignore_fails:
                         raise Exception(err)
                     log('copying original s-file to dest', 'info')
-                    shutil.copyfile(s_path,
-                                    os.path.join(self.database_path_out,
-                                                 s_file))
+                    shutil.copyfile(
+                        s_path, os.path.join(self.database_path_out, s_file))
                 # elapsed_time = t.stop()
 
     @staticmethod
