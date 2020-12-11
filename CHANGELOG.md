@@ -31,3 +31,7 @@
 - added a prepend and append to second np.diff in kurtosis._loca_ext(),
   to retain array length and index alignment
 - simplified smooth_filter, eliminating a bug that put zero in the first index
+
+## v0.3.1:
+
+cleaned up parameter file reading, fixed log_level use in run_many()
