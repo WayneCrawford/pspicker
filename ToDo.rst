@@ -11,6 +11,7 @@ Non-critical
 
 - Allow wildcards in station names (would simplify Mayotte to ``MO*``, ``MOOH``,
   ``IF*``, ``IF*E``, ``KNKL``, ``PMZI``, ``MTSB``)
+
   - Needs to intelligently handle conflicting station names (taking the most
     specific)
 
