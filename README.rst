@@ -57,7 +57,7 @@ To pick one event from a database in `/SEISAN/MAYOBS`:
 
     from pspicker import PSPicker
     picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
-    picker.run_one('19-0607-59L.S201905', plot_global=True, plot_stations=True, verbose=True)
+    picker.run_one('19-0607-59L.S201905', plot_global=True, plot_stations=True, log_level='verbose')
 
 
 Look at all of the plots and verify that the picks and association are as
@@ -98,8 +98,7 @@ The three main methods:
 .. code:: python
 
     def __init__(self, parm_file, wav_base_path, database_path_in,
-                 database_path_out='Sfile_directory', database_format='NORDIC',
-                 verbose=True, debug_plots=False):
+                 database_path_out='Sfile_directory', database_format='NORDIC'):
         """
         :param parm_file: path/name of the parameter file
         :param wav_base_path: absolute basepath to the waveform files (just before
@@ -110,15 +109,12 @@ The three main methods:
         :param database_format: 'NORDIC' is the only choice for now
             'NORDIC': Use SEISAN conventions for waveform  and database files
                       (naming, and location in YEAR/MONTH subdirectories)
-        :param verbose: output 'verbose' and 'debug' logs to console (will be 
-                        flagged DEBUG because logging module has no VERBOSE level)
-        :param debug_plots: show debugging plots
         """
 
 .. code:: python
 
     def run_one(self, database_filename, plot_global=True, plot_stations=False,
-                assoc=None, verbose=False, debug_plots=None):
+                assoc=None, log_level="verbose", debug_plots=None):
         """
         Picks P and S arrivals on one waveform, using the Kurtosis
     
@@ -127,14 +123,15 @@ The three main methods:
         :param plot_global: show global and overall pick plots
         :param plot_stations: show individual station plots
         :param assoc: Associator object (used by run_many())
-        :param verbose: same as in creator
+        :param log_level: console log level (choices = 'debug', 'verbose',
+            'info', 'warning', 'error', 'critical'), default='info'
         :param debug_plots: same as in creator
         """
 
 .. code:: python
 
     def run_many(self, start_date, end_date, plot_global=False,
-        plot_stations=False, verbose=False, ignore_fails=False):
+        plot_stations=False, ignore_fails=False, log_level='info'):
         """
         Loops over events in a date range
     
@@ -143,7 +140,8 @@ The three main methods:
         :param plot_global: show global and overall pick plots
         :param plot_stations: show individual station plots
         :param ignore_fails: keep going if one run fails
-        
+        :param log_level: console log level (choices = 'debug', 'verbose',
+                          'info', 'warning', 'error', 'critical'), default='info'        
         """
 
 Parameter and response files 
