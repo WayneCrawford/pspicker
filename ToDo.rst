@@ -9,6 +9,13 @@ Critical
 Non-critical
 ------------------------
 
+- Read responses before running (instead of each time and at the end)
+
+- Make converter to different PAZ formats
+
+- Make run_many create a single log file (looks like run_one makes a new one
+  each time)
+
 - Allow wildcards in station names (would simplify Mayotte to ``MO*``, ``MOOH``,
   ``IF*``, ``IF*E``, ``KNKL``, ``PMZI``, ``MTSB``)
 

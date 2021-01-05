@@ -7,7 +7,7 @@ import shutil
 import warnings
 import glob
 # import warnings
-# import logging
+from logging import info
 from datetime import datetime
 # import sys
 
@@ -34,7 +34,7 @@ from .associator import Associator
 from .plotter import Plotter
 from .local_amplitude import LocalAmplitude
 from .utils import (select_traces, smooth_filter, picks_ps_times)
-from .logger import log, setup_log
+from .logger import setup_log, log
 from .timer import Timer
 
 warnings.filterwarnings("ignore",
@@ -71,7 +71,7 @@ class PSPicker():
         self.debug_plots = False
         self.run = None
         self.assoc = None
-        self.log_level = None
+        # self.log_level = None
 
     def __str__(self):
         """
@@ -97,13 +97,16 @@ class PSPicker():
             'info', 'warning', 'error', 'critical'), default='info'
         """
         setup_log(log_level)
-        self.log_level = log_level
+        # self.log_level = log_level
         start_dt = self._split_date(start_date)
         end_dt = self._split_date(end_date)
         debug_fname = 'ps_picker_debug_{}-{}_run{}.txt'.format(
                 start_date, end_date, datetime.today().strftime('%Y%m%d'))
         log('Running from {} to {}'.format(start_dt.strftime("%Y%m%d-%H%M"),
                                            end_dt.strftime("%Y%m%d-%H%M")))
+        
+        # Print parameter information
+        log(str(self.param), 'verbose')
 
         def _date_match(y, m, d, ref):
             return y == ref.year and m == ref.month and d == ref.day
@@ -148,12 +151,14 @@ class PSPicker():
         :param assoc: Associator object (used for multiple runs with same
             Associator)
         :param log_level: console log level (choices = 'debug', 'verbose',
-            'info', 'warning', 'error', 'critical'), default='info'
+            'info', 'warning', 'error', 'critical').  If None, do not setup log
         :param debug_plots: plot some "debugging" plots
         """
-        if not self.log_level:
+        # if not self.log_level:
+        #     setup_log(log_level)
+        #     self.log_level = log_level
+        if log_level is not None:
             setup_log(log_level)
-            self.log_level = log_level
         if self.assoc is None:
             self.assoc = Associator(self.param.assoc)
         if debug_plots is not None:
@@ -243,7 +248,7 @@ class PSPicker():
                 t.start()
                 try:
                     self.run_one(s_file, plot_global=plot_global,
-                                 plot_stations=plot_stations)
+                                 plot_stations=plot_stations, log_level=None)
                 except Exception as err:
                     log(f'run_one() failed for {s_file}', 'critical')
                     log(err, 'error')

@@ -5,6 +5,14 @@ from datetime import datetime
 
 from obspy.core import UTCDateTime
 
+logger_name = 'pspicker'
+
+# Set up Filter to not output logs from other programs to file handler
+# (because it requires the "caller" variable)
+class NoParsingFilter(logging.Filter):
+    def filter(self, record):
+        return record.name == logger_name
+
 def setup_log(stream_log_level=logging.INFO,
               file_log_level=logging.VERBOSE):
     """
@@ -13,50 +21,52 @@ def setup_log(stream_log_level=logging.INFO,
     :param stream_log_level: log level for console output
     :kind stream_log_level: verboselogs level, str or None
     :param file_log_level: log level for log file.  If higher than the 
-        stream_log_leve, will be set to stream_log_level
+        stream_log_level, will be set to stream_log_level
+    
+    For information, the log levels are:
+        DEBUG: 10
+        VERBOSE: 15
+        INFO: 20
+        WARNING: 30
+        ERROR: 40
+        CRITICAL: 50
     """
     if stream_log_level is None:
         stream_log_level = logging.INFO
-    if isinstance(stream_log_level, str):
-        if stream_log_level == 'verbose':
-            stream_log_level = logging.VERBOSE
-        elif stream_log_level == 'debug':
-            stream_log_level = logging.DEBUG
-        elif stream_log_level == 'warning':
-            stream_log_level = logging.WARNING
-        elif stream_log_level == 'error':
-            stream_log_level = logging.ERROR
-        elif stream_log_level == 'critical':
-            stream_log_level = logging.CRITICAL
-        else:
-            stream_log_level = logging.INFO
+    elif isinstance(stream_log_level, str):
+        stream_log_level = getattr(logging, stream_log_level.upper())
     if stream_log_level not in [logging.DEBUG, logging.VERBOSE, logging.INFO,
                                 logging.WARNING, logging.ERROR,
                                 logging.CRITICAL]:
         stream_log_level = logging.INFO
     ts = datetime.today().strftime('%Y%m%dT%H%M')
 
-    if stream_log_level < file_log_level:
-        file_log_level = stream_log_level
-    logging.basicConfig(filename=f'run_{ts}.log',
-                        # format='%(asctime)s %(caller)-25s %(levelname)-8s %(message)s',
-                        format='%(asctime)s %(levelname)-8s %(message)s',
-                        datefmt='%m-%d %H:%M',
-                        filemode='w',
-                        level=file_log_level)
-    console = logging.StreamHandler()
-    console.setLevel(stream_log_level)
-    f = logging.Formatter('%(levelname)-8s %(message)s')
-    console.setFormatter(f)
+    file_log_level = min(file_log_level, stream_log_level)
+    
+    verboselogs.install()   # Sets VerboseLogger as the default Logger
+
+    # Set up Formatters
+    lf = logging.Formatter('%(asctime)s %(levelname)-8s - %(message)s (in %(caller)s)')
+    cf = logging.Formatter('%(levelname)-8s %(message)s')
+    
+    # Set up Handlers
+    lh = logging.FileHandler(f'run_{ts}.log', 'w')
+    lh.setLevel(file_log_level)
+    lh.setFormatter(lf)
+    lh.addFilter(NoParsingFilter())
+    ch = logging.StreamHandler()
+    ch.setLevel(stream_log_level)
+    ch.setFormatter(cf)
+
 
     global logger
-    logger = verboselogs.VerboseLogger('')
-    logger.addHandler(logging.getLogger(''))
-    # logger = logging.getLogger('')
-    if len(logger.handlers) == 1:
-        logger.addHandler(console)
-    else:
-        logger.handlers[1] = console
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(file_log_level)  # THIS IS NECESSARY!!!!
+    logger.addHandler(lh)
+    logger.addHandler(ch)
+    logging.captureWarnings(True)
+    print(f'{logger=}')
+    print(f'{logger.handlers=}')
 
 def log(string, level="info"):
     """
@@ -64,44 +74,12 @@ def log(string, level="info"):
 
     :param level: the log level
     """
-    global logger
     caller = inspect.stack()[1]
     caller_str = caller[3] + '()'
     level = level.upper()
     extra = {'caller':caller_str}
-    if level == "INFO":
-        #print(bc.BRIGHTGREEN + full_str + bc.RESET)
-        logger.info(string, extra=extra)
-    elif level == "VERBOSE":
-        logger.verbose(string, extra=extra)
-    elif level == "DEBUG":
-        logger.debug(string, extra=extra)
-    elif level == "ERROR":
-        logger.error(string, extra=extra)
-    elif level == 'WARNING':
-        logger.warning(string, extra=extra)
-    elif level == 'CRITICAL':
-        logger.critical(string, extra=extra)
-    else:
-        logger.warning(string, extra=extra)
-    # sys.stdout.flush()
+    
+    level = getattr(logging, level.upper())
 
-
-class bc:
-    RED = '\033[30m'
-    BRIGHTRED = '\033[1;31m'
-    BRIGHTGREEN = '\033[0;32m'
-    BRIGHTYELLOW = '\033[1;33m'
-    BRIGHTBLUE = '\033[1;34m'
-    BRIGHTMAGENTA = '\033[1;35m'
-    BRIGHTCYAN = '\033[1;36m'
-    BRIGHTWHITE = '\033[1;37m'
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    RESET = '\033[0m'
-    ENDC = '\033[1;m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    global logger
+    logger.log(level, string, extra=extra)
