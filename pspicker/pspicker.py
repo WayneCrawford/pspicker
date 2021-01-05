@@ -2,10 +2,10 @@
 # from smop.libsmop import *
 
 # Standard libraries
-import os.path
+from pathlib import Path
 import shutil
 import warnings
-import glob
+# import glob
 # import warnings
 from logging import info
 from datetime import datetime
@@ -63,9 +63,12 @@ class PSPicker():
                 under wav_base_path and database_path_in, respectively
         """
         self.parm_file = parm_file
-        self.wav_base_path = wav_base_path
-        self.database_path_in = database_path_in
-        self.database_path_out = database_path_out
+        self.wav_base_path = Path(wav_base_path)
+        self.database_path_in = Path(database_path_in)
+        self.database_path_out = Path(database_path_out)
+        if not self.database_path_out.is_dir():
+            assert not self.database_path_out.exists()
+            self.database_path_out.mkdir()
         # self.database_filename = None
         self.param = PickerParameters.from_yaml_file(parm_file)
         self.debug_plots = False
@@ -163,6 +166,7 @@ class PSPicker():
             self.assoc = Associator(self.param.assoc)
         if debug_plots is not None:
             self.debug_plots = debug_plots
+        log(f'running {database_filename}', 'debug')
         timer = Timer(logger=None)
         timer.start()
         # Run basic Kurtosis and assoc to find most likely window for picks
@@ -228,21 +232,23 @@ class PSPicker():
                      ignore_fails, debug_fname, first_hour=None,
                      first_minute=None, last_hour=None, last_minute=None):
         """Select and run events for one day"""
-        db_path = os.path.join(self.database_path_in, f'{year:04d}',
-                               f'{month:02d}')
-        s_paths = glob.glob(os.path.join(db_path, f'{day:02d}-*.S*'))
-        if len(s_paths) > 0:
+        log(f'Running {year}-{month}-{day}, {first_hour=}, {first_minute=}, {last_hour=}, {last_minute=}', 'debug')
+        db_path_in = self.database_path_in / f'{year:04d}' / f'{month:02d}'
+        print(db_path_in)
+        s_files = list(db_path_in.glob(f'{day:02d}-*.S*'))
+        print(len(s_files))
+        if len(s_files) > 0:
             if first_hour is not None or first_minute is not None:
-                s_paths = [p for p in s_paths if self._nordic_fname_after(
-                    p, first_hour, first_minute)]
+                s_files = [f for f in s_files if self._nordic_fname_after(
+                           f.name, first_hour, first_minute)]
             if last_hour is not None or last_minute is not None:
-                s_paths = [p for p in s_paths if self._nordic_fname_before(
-                    p, last_hour, last_minute)]
-        if len(s_paths) > 0:
+                s_files = [f for f in s_files if self._nordic_fname_before(
+                           f.name, last_hour, last_minute)]
+        print(len(s_files))
+        if len(s_files) > 0:
             log('Running {:d} events on {:04d}-{:02d}-{:02d}'.format(
-                len(s_paths), year, month, day))
-            for s_path in s_paths:
-                s_file = os.path.basename(s_path)
+                len(s_files), year, month, day))
+            for s_file in s_files:
                 log("   Running {}...".format(s_file), 'verbose')
                 t = Timer(logger=None)
                 t.start()
@@ -255,21 +261,20 @@ class PSPicker():
                     if not ignore_fails:
                         raise Exception(err)
                     log('copying original s-file to dest', 'info')
-                    shutil.copyfile(
-                        s_path, os.path.join(self.database_path_out, s_file))
+                    log(f'{db_path_in=}, {self.database_path_out=}')
+                    shutil.copyfile(db_path_in / s_file,
+                                    self.database_path_out / s_file)
                 # elapsed_time = t.stop()
 
     @staticmethod
-    def _nordic_fname_after(p, hour, minute):
+    def _nordic_fname_after(f, hour, minute):
         """
         Returns True if the event is on or after the given hour-minute
-        :param p: file pathname
+        :param f: filename (str)
         :param first_hour:
         :param first_minute:
         """
-        f = os.path.basename(p)
-        ev_hour = int(f[3:5])
-        ev_minute = int(f[5:7])
+        ev_hour, ev_minute = int(f[3:5]), int(f[5:7])
         if ev_hour > hour:
             return True
         elif ev_hour == hour and ev_minute >= minute:
@@ -277,16 +282,14 @@ class PSPicker():
         return False
 
     @staticmethod
-    def _nordic_fname_before(p, hour, minute):
+    def _nordic_fname_before(f, hour, minute):
         """
         Returns True if the event is on or before the given hour-minute
-        :param p: file pathname
+        :param f: filename (str)
         :param hour:
         :param minutes:
         """
-        f = os.path.basename(p)
-        ev_hour = int(f[3:5])
-        ev_minute = int(f[5:7])
+        ev_hour, ev_minute = int(f[3:5]), int(f[5:7])
         if ev_hour < hour:
             return True
         elif ev_hour == hour and ev_minute <= minute:
@@ -386,10 +389,9 @@ class PSPicker():
         log(f'database filename = {database_filename}', 'verbose')
         cat, wav_names = read_nordic(database_filename, return_wavnames=True)
         assert len(wav_names) == 1, 'More than one wav_name in database file'
-        parts = wav_names[0][0].split('-')
-        full_wav_name = os.path.join(self.wav_base_path, parts[0], parts[1],
-                                     wav_names[0][0])
-        return full_wav_name
+        pts = wav_names[0][0].split('-')
+        full_wav_name = self.wav_base_path / pts[0] / pts[1] / wav_names[0][0]
+        return str(full_wav_name)
 
     def _full_nordic_database_filename(self, filename):
         """
@@ -399,18 +401,18 @@ class PSPicker():
         self.database_path_in/YEAR/month
         """
         # In local directory
-        if os.path.isfile(filename):
-            return os.path.join(filename)
+        if filename.is_file():
+            return filename
         # In database directory
-        fullname = os.path.join(self.database_path_in, filename)
-        if os.path.isfile(fullname):
+        fullname = self.database_path_in / filename
+        if fullname.is_file():
             return fullname
         # In database/year/month directory
         a = filename.split('.')[-1]
         year = a[1:5]
         month = a[5:]
-        fullname = os.path.join(self.database_path_in, year, month, filename)
-        if os.path.isfile(fullname):
+        fullname = self.database_path_in / year / month / filename
+        if fullname.is_file():
             return fullname
         else:
             raise NameError(f'database file "{filename}" not found')
@@ -727,7 +729,7 @@ class PSPicker():
         # By creating an associated arrival and setting it's time_weight
         # to the appropriate number (which makes no sense because
         # a weight of zero should have no importance!)
-        output_dbfile = os.path.join(filepath, filename)
+        output_dbfile = Path(filepath) / filename
         cat.write(output_dbfile, format='NORDIC', evtype=evtype,
                   wavefiles=wavefiles, high_accuracy=True)
 
@@ -741,7 +743,7 @@ class PSPicker():
         else:
             o_time = estimate_origin_time(picks)
         self.save_nordic_event(picks, o_time, self.database_path_out,
-                               os.path.basename(self.run.database_filename),
+                               self.run.database_filename.name,
                                amplitudes=amplitudes,
                                arrivals=arrivals,
                                wavefiles=[self.run.wavefile])
