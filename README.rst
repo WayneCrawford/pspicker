@@ -157,6 +157,36 @@ values:
 - set ``SNR:threshold_parameter`` to **0.2**
 - set ``SNR:max_threshold_crossings`` to **5**
 
+Event amplitudes 
+####################################
+
+Event amplitudes calculations need accurate instrument responses.  The
+instrument response filename(s) are input in the parameter file.  If you have
+as stationxml file, you can make a pspicker_compatible json_pz file like this:
+
+.. code:: python
+
+    paz = PAZ.read_stationxml(filename, channel=xxx[, station=xxxx])
+    paz.write_json_pz (ps_filename)
+
+If you have a response in another format that you can read in using obspy,
+you can output it to a pspicker-compatible json_pz file like this:
+
+.. code:: python
+
+    paz = PAZ.from_obspy_response(resp)
+    paz.write_json_pz(pz_filename)
+
+In both cases, you can look at the response using `paz.plot(min_freq=xxx)`, or
+you could compare it to the obspy_response using:
+
+.. code:: python
+
+    fig = resp.plot(min_freq=xxx, label='obspy', show=False)
+    paz = PAZ.from_obspy_response(resp)
+    paz.plot(min_freq=xxx, axes=fig.axes, label='PAZ', sym='g.')
+
+
 To Do
 ####################################
 
