@@ -1,0 +1,2157 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<FDSNStationXML xmlns="http://www.fdsn.org/xml/station/1" schemaVersion="1.0">
+  <Source>INSU-IPGP OBS Park</Source>
+  <Module>ObsPy 1.1.1.post0+685.g56fe9bda48.dirty</Module>
+  <ModuleURI>https://www.obspy.org</ModuleURI>
+  <Created>2019-05-09T08:49:21.978773Z</Created>
+  <Network code="1T" endDate="2019-12-01T00:00:00.000000Z" startDate="2018-12-01T00:00:00.000000Z">
+    <Description>Seismic monitoring of seismic sequence near Mayotte, on and offshore</Description>
+    <Comment>
+      <Value>Network name: Temporal seismoligical network Mayotte (SISMAYOTTE)</Value>
+    </Comment>
+    <Station code="MOSE" endDate="2019-05-10T00:01:00.000000Z" startDate="2019-02-24T23:59:00.000000Z">
+      <Comment>
+        <Value>{"clock_correction": {"linear_drift": {"time_base": "Seascan MCXO, ~1e-8 nominal drift", "reference": "GPS", "start_sync_instrument": 0, "start_sync_reference": "2019-02-24T15:15:00Z", "end_sync_reference": "2019-05-07T03:20:00.1454Z", "end_sync_instrument": "2019-05-07T03:20:00Z"}}}</Value>
+      </Comment>
+      <Comment>
+        <Value>Using location "00", localised using : "Acoustic survey"</Value>
+      </Comment>
+      <Latitude minusError="9e-05" plusError="9e-05" unit="DEGREES">-12.9625</Latitude>
+      <Longitude minusError="9.23e-05" plusError="9.23e-05" unit="DEGREES">45.8199</Longitude>
+      <Elevation minusError="20" plusError="20" unit="METERS">-3520.0</Elevation>
+      <Site>
+        <Name>Southeast</Name>
+      </Site>
+      <Vault>Sea floor</Vault>
+      <Geology>unknown</Geology>
+      <Equipment>
+        <Type>Short Period Ocean Bottom Seismometer</Type>
+        <Description>"LCHEAPO 2000 Short Period Ocean Bottom Seismometer, 4 channels, L-28 3C geophone"</Description>
+        <Manufacturer>Scripps Inst. Oceanography</Manufacturer>
+        <Model>SPOBS2</Model>
+        <SerialNumber>18</SerialNumber>
+      </Equipment>
+      <Operator>
+        <Agency>INSU-IPGP OBS facility</Agency>
+        <Contact>
+          <Email>obs@ipgp.fr</Email>
+        </Contact>
+        <WebSite>http://parc-obs.insu.cnrs.fr</WebSite>
+      </Operator>
+      <CreationDate>2019-02-24T23:59:00.000000Z</CreationDate>
+      <TerminationDate>2019-05-10T00:01:00.000000Z</TerminationDate>
+      <Channel code="HDH" endDate="2019-05-10T00:01:00.000000Z" locationCode="00" startDate="2019-02-24T23:59:00.000000Z">
+        <Comment>
+          <Value>Localised using : "Acoustic survey"</Value>
+        </Comment>
+        <Latitude minusError="9e-05" plusError="9e-05" unit="DEGREES">-12.9625</Latitude>
+        <Longitude minusError="9.23e-05" plusError="9.23e-05" unit="DEGREES">45.8199</Longitude>
+        <Elevation minusError="20" plusError="20" unit="METERS">-3520.0</Elevation>
+        <Depth unit="METERS">0.0</Depth>
+        <Azimuth minusError="0.0" plusError="0.0" unit="DEGREES">0.0</Azimuth>
+        <Dip unit="DEGREES">90.0</Dip>
+        <Type>CONTINUOUS</Type>
+        <Type>GEOPHYSICAL</Type>
+        <SampleRate>125.0</SampleRate>
+        <ClockDrift unit="SECONDS/SAMPLE">8e-11</ClockDrift>
+        <Sensor>
+          <Type>Hydrophone</Type>
+          <Description>HiTech HTI-90-U hydrophone with integrated preamp, 0.05-2500 Hz</Description>
+          <Manufacturer>HiTech, inc</Manufacturer>
+          <Model>HTI-90-U</Model>
+        </Sensor>
+        <PreAmplifier>
+          <Type>Analog gain/filter card</Type>
+          <Description>SIO gain/filter card, hydro channel (16x)</Description>
+          <Manufacturer>SIO or IPGP</Manufacturer>
+          <Model>HYDRO-GAIN_16X</Model>
+        </PreAmplifier>
+        <DataLogger>
+          <Type>delta-sigma A/D converter + digital filter</Type>
+          <Description>CS5321/22 delta-sigma A/D converter + FIR digital filter</Description>
+          <Manufacturer>Cirrus Logic</Manufacturer>
+          <Model>CS5321/22</Model>
+        </DataLogger>
+        <Response>
+          <InstrumentSensitivity>
+            <Value>10623.5896346</Value>
+            <Frequency>10.0</Frequency>
+            <InputUnits>
+              <Name>PASCALS</Name>
+              <Description>PRESSURE</Description>
+            </InputUnits>
+            <OutputUnits>
+              <Name>COUNTS</Name>
+              <Description>Digital Counts</Description>
+            </OutputUnits>
+          </InstrumentSensitivity>
+          <Stage number="1">
+            <PolesZeros>
+              <Description>SENSOR - HITECH HTI-90U LF HYDROPHONE</Description>
+              <InputUnits>
+                <Name>PASCALS</Name>
+                <Description>PRESSURE</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </OutputUnits>
+              <PzTransferFunctionType>LAPLACE (RADIANS/SECOND)</PzTransferFunctionType>
+              <NormalizationFactor>43867.95724746484</NormalizationFactor>
+              <NormalizationFrequency unit="HERTZ">10.0</NormalizationFrequency>
+              <Zero number="0">
+                <Real>0.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Zero>
+              <Pole number="0">
+                <Real>0.546</Real>
+                <Imaginary>0.191</Imaginary>
+              </Pole>
+              <Pole number="1">
+                <Real>44000.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Pole>
+            </PolesZeros>
+            <StageGain>
+              <Value>0.00057</Value>
+              <Frequency>10.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="2">
+            <PolesZeros>
+              <Description>PREAMPLIFIER: SPOBS hydrophone or L22 x16</Description>
+              <InputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </OutputUnits>
+              <PzTransferFunctionType>LAPLACE (RADIANS/SECOND)</PzTransferFunctionType>
+              <NormalizationFactor>1.0056137604034001</NormalizationFactor>
+              <NormalizationFrequency unit="HERTZ">10.0</NormalizationFrequency>
+              <Zero number="0">
+                <Real>0.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Zero>
+              <Pole number="0">
+                <Real>-6.667</Real>
+                <Imaginary>0.0</Imaginary>
+              </Pole>
+            </PolesZeros>
+            <StageGain>
+              <Value>16.0</Value>
+              <Frequency>10.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="3">
+            <Coefficients>
+              <Description>DIGITIZER - CS5321 Delta-Sigma A/D converter</Description>
+              <InputUnits>
+                <Name>V</Name>
+                <Description>Volts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <CfTransferFunctionType>DIGITAL</CfTransferFunctionType>
+              <Numerator>1.0</Numerator>
+            </Coefficients>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">32000.0</InputSampleRate>
+              <Factor>1</Factor>
+              <Offset>0</Offset>
+              <Delay>0.0</Delay>
+              <Correction>0.0</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1165084.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="4">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">32000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.0001875</Delay>
+              <Correction>0.0001875</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="5">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">16000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.000375</Delay>
+              <Correction>0.000375</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="6">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">8000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.00075</Delay>
+              <Correction>0.00075</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="7">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">4000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.0015</Delay>
+              <Correction>0.0015</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="8">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">2000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.003</Delay>
+              <Correction>0.003</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="9">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">1000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.006</Delay>
+              <Correction>0.006</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="10">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">500.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.012</Delay>
+              <Correction>0.012</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="11">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR3 (linear phase)</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>-3.09982e-06</NumeratorCoefficient>
+              <NumeratorCoefficient>-2.94483e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-9.8002e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000162383</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000100029</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000120655</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000261935</NumeratorCoefficient>
+              <NumeratorCoefficient>2.52755e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000410488</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000366852</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00037627</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000854597</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.05213e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00127677</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000911347</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00127725</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00215259</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000461754</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0033391</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00140994</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00377236</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00419596</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00264403</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00720434</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000644286</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00918799</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00608709</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00858197</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0127456</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00398398</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0186342</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00520746</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0209498</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0181708</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0166742</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0322588</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00346739</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0429715</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0193349</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0443283</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0498126</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0294292</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0826437</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00934572</NumeratorCoefficient>
+              <NumeratorCoefficient>0.107599</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0816959</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.103155</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.204297</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.12367e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.390602</NumeratorCoefficient>
+              <NumeratorCoefficient>0.590214</NumeratorCoefficient>
+              <NumeratorCoefficient>0.390602</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.12367e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.204297</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.103155</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0816959</NumeratorCoefficient>
+              <NumeratorCoefficient>0.107599</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00934572</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0826437</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0294292</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0498126</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0443283</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0193349</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0429715</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00346739</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0322588</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0166742</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0181708</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0209498</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00520746</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0186342</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00398398</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0127456</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00858197</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00608709</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00918799</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000644286</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00720434</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00264403</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00419596</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00377236</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00140994</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0033391</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000461754</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00215259</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00127725</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000911347</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00127677</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.05213e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000854597</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00037627</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000366852</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000410488</NumeratorCoefficient>
+              <NumeratorCoefficient>2.52755e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000261935</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000120655</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000100029</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000162383</NumeratorCoefficient>
+              <NumeratorCoefficient>-9.8002e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-2.94483e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.09982e-06</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">250.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>50</Offset>
+              <Delay>0.2</Delay>
+              <Correction>0.2</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+        </Response>
+      </Channel>
+      <Channel code="EH2" endDate="2019-05-10T00:01:00.000000Z" locationCode="00" startDate="2019-02-24T23:59:00.000000Z">
+        <Comment>
+          <Value>Localised using : "Acoustic survey"</Value>
+        </Comment>
+        <Latitude minusError="9e-05" plusError="9e-05" unit="DEGREES">-12.9625</Latitude>
+        <Longitude minusError="9.23e-05" plusError="9.23e-05" unit="DEGREES">45.8199</Longitude>
+        <Elevation minusError="20" plusError="20" unit="METERS">-3520.0</Elevation>
+        <Depth unit="METERS">0.0</Depth>
+        <Azimuth minusError="180.0" plusError="180.0" unit="DEGREES">90.0</Azimuth>
+        <Dip unit="DEGREES">0.0</Dip>
+        <Type>CONTINUOUS</Type>
+        <Type>GEOPHYSICAL</Type>
+        <SampleRate>125.0</SampleRate>
+        <ClockDrift unit="SECONDS/SAMPLE">8e-11</ClockDrift>
+        <Sensor>
+          <Type>Geophone</Type>
+          <Description>Sercel L-28LB 4.5 Hz 3C geophone</Description>
+          <Manufacturer>Sercel</Manufacturer>
+          <Model>L-28LB</Model>
+        </Sensor>
+        <PreAmplifier>
+          <Type>Analog gain/filter card</Type>
+          <Description>SIO gain/filter card, seismo channel (128x)</Description>
+          <Manufacturer>SIO or IPGP</Manufacturer>
+          <Model>GEOPHONE-GAIN_16X</Model>
+        </PreAmplifier>
+        <DataLogger>
+          <Type>delta-sigma A/D converter + digital filter</Type>
+          <Description>CS5321/22 delta-sigma A/D converter + FIR digital filter</Description>
+          <Manufacturer>Cirrus Logic</Manufacturer>
+          <Model>CS5321/22</Model>
+        </DataLogger>
+        <Response>
+          <InstrumentSensitivity>
+            <Value>3966140130.23</Value>
+            <Frequency>10.0</Frequency>
+            <InputUnits>
+              <Name>M/S</Name>
+              <Description>VELOCITY</Description>
+            </InputUnits>
+            <OutputUnits>
+              <Name>COUNTS</Name>
+              <Description>Digital Counts</Description>
+            </OutputUnits>
+          </InstrumentSensitivity>
+          <Stage number="1">
+            <PolesZeros>
+              <Description>SENSOR - L28LB GEOPHONE with 395 ohm coil and 2490 ohm shunt</Description>
+              <InputUnits>
+                <Name>M/S</Name>
+                <Description>VELOCITY</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </OutputUnits>
+              <PzTransferFunctionType>LAPLACE (RADIANS/SECOND)</PzTransferFunctionType>
+              <NormalizationFactor>1.0202851869629705</NormalizationFactor>
+              <NormalizationFrequency unit="HERTZ">10.0</NormalizationFrequency>
+              <Zero number="0">
+                <Real>0.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Zero>
+              <Zero number="1">
+                <Real>0.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Zero>
+              <Pole number="0">
+                <Real>19.99</Real>
+                <Imaginary>19.99</Imaginary>
+              </Pole>
+              <Pole number="1">
+                <Real>19.99</Real>
+                <Imaginary>-19.99</Imaginary>
+              </Pole>
+            </PolesZeros>
+            <StageGain>
+              <Value>26.6</Value>
+              <Frequency>10.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="2">
+            <PolesZeros>
+              <Description>PREAMPLIFIER: SPOBS hydrophone or L22 x128</Description>
+              <InputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </OutputUnits>
+              <PzTransferFunctionType>LAPLACE (RADIANS/SECOND)</PzTransferFunctionType>
+              <NormalizationFactor>1.0056137604034001</NormalizationFactor>
+              <NormalizationFrequency unit="HERTZ">10.0</NormalizationFrequency>
+              <Zero number="0">
+                <Real>0.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Zero>
+              <Pole number="0">
+                <Real>-6.667</Real>
+                <Imaginary>0.0</Imaginary>
+              </Pole>
+            </PolesZeros>
+            <StageGain>
+              <Value>128.0</Value>
+              <Frequency>10.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="3">
+            <Coefficients>
+              <Description>DIGITIZER - CS5321 Delta-Sigma A/D converter</Description>
+              <InputUnits>
+                <Name>V</Name>
+                <Description>Volts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <CfTransferFunctionType>DIGITAL</CfTransferFunctionType>
+              <Numerator>1.0</Numerator>
+            </Coefficients>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">32000.0</InputSampleRate>
+              <Factor>1</Factor>
+              <Offset>0</Offset>
+              <Delay>0.0</Delay>
+              <Correction>0.0</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1165084.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="4">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">32000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.0001875</Delay>
+              <Correction>0.0001875</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="5">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">16000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.000375</Delay>
+              <Correction>0.000375</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="6">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">8000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.00075</Delay>
+              <Correction>0.00075</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="7">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">4000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.0015</Delay>
+              <Correction>0.0015</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="8">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">2000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.003</Delay>
+              <Correction>0.003</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="9">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">1000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.006</Delay>
+              <Correction>0.006</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="10">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">500.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.012</Delay>
+              <Correction>0.012</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="11">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR3 (linear phase)</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>-3.09982e-06</NumeratorCoefficient>
+              <NumeratorCoefficient>-2.94483e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-9.8002e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000162383</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000100029</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000120655</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000261935</NumeratorCoefficient>
+              <NumeratorCoefficient>2.52755e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000410488</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000366852</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00037627</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000854597</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.05213e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00127677</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000911347</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00127725</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00215259</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000461754</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0033391</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00140994</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00377236</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00419596</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00264403</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00720434</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000644286</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00918799</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00608709</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00858197</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0127456</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00398398</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0186342</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00520746</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0209498</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0181708</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0166742</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0322588</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00346739</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0429715</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0193349</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0443283</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0498126</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0294292</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0826437</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00934572</NumeratorCoefficient>
+              <NumeratorCoefficient>0.107599</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0816959</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.103155</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.204297</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.12367e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.390602</NumeratorCoefficient>
+              <NumeratorCoefficient>0.590214</NumeratorCoefficient>
+              <NumeratorCoefficient>0.390602</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.12367e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.204297</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.103155</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0816959</NumeratorCoefficient>
+              <NumeratorCoefficient>0.107599</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00934572</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0826437</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0294292</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0498126</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0443283</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0193349</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0429715</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00346739</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0322588</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0166742</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0181708</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0209498</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00520746</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0186342</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00398398</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0127456</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00858197</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00608709</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00918799</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000644286</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00720434</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00264403</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00419596</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00377236</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00140994</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0033391</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000461754</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00215259</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00127725</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000911347</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00127677</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.05213e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000854597</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00037627</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000366852</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000410488</NumeratorCoefficient>
+              <NumeratorCoefficient>2.52755e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000261935</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000120655</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000100029</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000162383</NumeratorCoefficient>
+              <NumeratorCoefficient>-9.8002e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-2.94483e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.09982e-06</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">250.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>50</Offset>
+              <Delay>0.2</Delay>
+              <Correction>0.2</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+        </Response>
+      </Channel>
+      <Channel code="EH1" endDate="2019-05-10T00:01:00.000000Z" locationCode="00" startDate="2019-02-24T23:59:00.000000Z">
+        <Comment>
+          <Value>Localised using : "Acoustic survey"</Value>
+        </Comment>
+        <Latitude minusError="9e-05" plusError="9e-05" unit="DEGREES">-12.9625</Latitude>
+        <Longitude minusError="9.23e-05" plusError="9.23e-05" unit="DEGREES">45.8199</Longitude>
+        <Elevation minusError="20" plusError="20" unit="METERS">-3520.0</Elevation>
+        <Depth unit="METERS">0.0</Depth>
+        <Azimuth minusError="180.0" plusError="180.0" unit="DEGREES">0.0</Azimuth>
+        <Dip unit="DEGREES">0.0</Dip>
+        <Type>CONTINUOUS</Type>
+        <Type>GEOPHYSICAL</Type>
+        <SampleRate>125.0</SampleRate>
+        <ClockDrift unit="SECONDS/SAMPLE">8e-11</ClockDrift>
+        <Sensor>
+          <Type>Geophone</Type>
+          <Description>Sercel L-28LB 4.5 Hz 3C geophone</Description>
+          <Manufacturer>Sercel</Manufacturer>
+          <Model>L-28LB</Model>
+        </Sensor>
+        <PreAmplifier>
+          <Type>Analog gain/filter card</Type>
+          <Description>SIO gain/filter card, seismo channel (128x)</Description>
+          <Manufacturer>SIO or IPGP</Manufacturer>
+          <Model>GEOPHONE-GAIN_16X</Model>
+        </PreAmplifier>
+        <DataLogger>
+          <Type>delta-sigma A/D converter + digital filter</Type>
+          <Description>CS5321/22 delta-sigma A/D converter + FIR digital filter</Description>
+          <Manufacturer>Cirrus Logic</Manufacturer>
+          <Model>CS5321/22</Model>
+        </DataLogger>
+        <Response>
+          <InstrumentSensitivity>
+            <Value>3966140130.23</Value>
+            <Frequency>10.0</Frequency>
+            <InputUnits>
+              <Name>M/S</Name>
+              <Description>VELOCITY</Description>
+            </InputUnits>
+            <OutputUnits>
+              <Name>COUNTS</Name>
+              <Description>Digital Counts</Description>
+            </OutputUnits>
+          </InstrumentSensitivity>
+          <Stage number="1">
+            <PolesZeros>
+              <Description>SENSOR - L28LB GEOPHONE with 395 ohm coil and 2490 ohm shunt</Description>
+              <InputUnits>
+                <Name>M/S</Name>
+                <Description>VELOCITY</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </OutputUnits>
+              <PzTransferFunctionType>LAPLACE (RADIANS/SECOND)</PzTransferFunctionType>
+              <NormalizationFactor>1.0202851869629705</NormalizationFactor>
+              <NormalizationFrequency unit="HERTZ">10.0</NormalizationFrequency>
+              <Zero number="0">
+                <Real>0.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Zero>
+              <Zero number="1">
+                <Real>0.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Zero>
+              <Pole number="0">
+                <Real>19.99</Real>
+                <Imaginary>19.99</Imaginary>
+              </Pole>
+              <Pole number="1">
+                <Real>19.99</Real>
+                <Imaginary>-19.99</Imaginary>
+              </Pole>
+            </PolesZeros>
+            <StageGain>
+              <Value>26.6</Value>
+              <Frequency>10.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="2">
+            <PolesZeros>
+              <Description>PREAMPLIFIER: SPOBS hydrophone or L22 x128</Description>
+              <InputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </OutputUnits>
+              <PzTransferFunctionType>LAPLACE (RADIANS/SECOND)</PzTransferFunctionType>
+              <NormalizationFactor>1.0056137604034001</NormalizationFactor>
+              <NormalizationFrequency unit="HERTZ">10.0</NormalizationFrequency>
+              <Zero number="0">
+                <Real>0.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Zero>
+              <Pole number="0">
+                <Real>-6.667</Real>
+                <Imaginary>0.0</Imaginary>
+              </Pole>
+            </PolesZeros>
+            <StageGain>
+              <Value>128.0</Value>
+              <Frequency>10.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="3">
+            <Coefficients>
+              <Description>DIGITIZER - CS5321 Delta-Sigma A/D converter</Description>
+              <InputUnits>
+                <Name>V</Name>
+                <Description>Volts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <CfTransferFunctionType>DIGITAL</CfTransferFunctionType>
+              <Numerator>1.0</Numerator>
+            </Coefficients>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">32000.0</InputSampleRate>
+              <Factor>1</Factor>
+              <Offset>0</Offset>
+              <Delay>0.0</Delay>
+              <Correction>0.0</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1165084.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="4">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">32000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.0001875</Delay>
+              <Correction>0.0001875</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="5">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">16000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.000375</Delay>
+              <Correction>0.000375</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="6">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">8000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.00075</Delay>
+              <Correction>0.00075</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="7">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">4000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.0015</Delay>
+              <Correction>0.0015</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="8">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">2000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.003</Delay>
+              <Correction>0.003</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="9">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">1000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.006</Delay>
+              <Correction>0.006</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="10">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">500.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.012</Delay>
+              <Correction>0.012</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="11">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR3 (linear phase)</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>-3.09982e-06</NumeratorCoefficient>
+              <NumeratorCoefficient>-2.94483e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-9.8002e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000162383</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000100029</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000120655</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000261935</NumeratorCoefficient>
+              <NumeratorCoefficient>2.52755e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000410488</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000366852</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00037627</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000854597</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.05213e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00127677</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000911347</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00127725</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00215259</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000461754</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0033391</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00140994</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00377236</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00419596</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00264403</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00720434</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000644286</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00918799</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00608709</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00858197</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0127456</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00398398</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0186342</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00520746</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0209498</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0181708</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0166742</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0322588</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00346739</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0429715</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0193349</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0443283</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0498126</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0294292</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0826437</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00934572</NumeratorCoefficient>
+              <NumeratorCoefficient>0.107599</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0816959</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.103155</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.204297</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.12367e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.390602</NumeratorCoefficient>
+              <NumeratorCoefficient>0.590214</NumeratorCoefficient>
+              <NumeratorCoefficient>0.390602</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.12367e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.204297</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.103155</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0816959</NumeratorCoefficient>
+              <NumeratorCoefficient>0.107599</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00934572</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0826437</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0294292</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0498126</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0443283</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0193349</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0429715</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00346739</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0322588</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0166742</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0181708</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0209498</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00520746</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0186342</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00398398</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0127456</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00858197</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00608709</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00918799</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000644286</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00720434</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00264403</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00419596</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00377236</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00140994</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0033391</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000461754</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00215259</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00127725</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000911347</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00127677</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.05213e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000854597</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00037627</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000366852</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000410488</NumeratorCoefficient>
+              <NumeratorCoefficient>2.52755e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000261935</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000120655</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000100029</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000162383</NumeratorCoefficient>
+              <NumeratorCoefficient>-9.8002e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-2.94483e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.09982e-06</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">250.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>50</Offset>
+              <Delay>0.2</Delay>
+              <Correction>0.2</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+        </Response>
+      </Channel>
+      <Channel code="EH3" endDate="2019-05-10T00:01:00.000000Z" locationCode="00" startDate="2019-02-24T23:59:00.000000Z">
+        <Comment>
+          <Value>Localised using : "Acoustic survey"</Value>
+        </Comment>
+        <Latitude minusError="9e-05" plusError="9e-05" unit="DEGREES">-12.9625</Latitude>
+        <Longitude minusError="9.23e-05" plusError="9.23e-05" unit="DEGREES">45.8199</Longitude>
+        <Elevation minusError="20" plusError="20" unit="METERS">-3520.0</Elevation>
+        <Depth unit="METERS">0.0</Depth>
+        <Azimuth minusError="0.0" plusError="0.0" unit="DEGREES">0.0</Azimuth>
+        <Dip unit="DEGREES">90.0</Dip>
+        <Type>CONTINUOUS</Type>
+        <Type>GEOPHYSICAL</Type>
+        <SampleRate>125.0</SampleRate>
+        <ClockDrift unit="SECONDS/SAMPLE">8e-11</ClockDrift>
+        <Sensor>
+          <Type>Geophone</Type>
+          <Description>Sercel L-28LB 4.5 Hz 3C geophone</Description>
+          <Manufacturer>Sercel</Manufacturer>
+          <Model>L-28LB</Model>
+        </Sensor>
+        <PreAmplifier>
+          <Type>Analog gain/filter card</Type>
+          <Description>SIO gain/filter card, seismo channel (128x)</Description>
+          <Manufacturer>SIO or IPGP</Manufacturer>
+          <Model>GEOPHONE-GAIN_16X</Model>
+        </PreAmplifier>
+        <DataLogger>
+          <Type>delta-sigma A/D converter + digital filter</Type>
+          <Description>CS5321/22 delta-sigma A/D converter + FIR digital filter</Description>
+          <Manufacturer>Cirrus Logic</Manufacturer>
+          <Model>CS5321/22</Model>
+        </DataLogger>
+        <Response>
+          <InstrumentSensitivity>
+            <Value>3966140130.23</Value>
+            <Frequency>10.0</Frequency>
+            <InputUnits>
+              <Name>M/S</Name>
+              <Description>VELOCITY</Description>
+            </InputUnits>
+            <OutputUnits>
+              <Name>COUNTS</Name>
+              <Description>Digital Counts</Description>
+            </OutputUnits>
+          </InstrumentSensitivity>
+          <Stage number="1">
+            <PolesZeros>
+              <Description>SENSOR - L28LB GEOPHONE with 395 ohm coil and 2490 ohm shunt</Description>
+              <InputUnits>
+                <Name>M/S</Name>
+                <Description>VELOCITY</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </OutputUnits>
+              <PzTransferFunctionType>LAPLACE (RADIANS/SECOND)</PzTransferFunctionType>
+              <NormalizationFactor>1.0202851869629705</NormalizationFactor>
+              <NormalizationFrequency unit="HERTZ">10.0</NormalizationFrequency>
+              <Zero number="0">
+                <Real>0.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Zero>
+              <Zero number="1">
+                <Real>0.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Zero>
+              <Pole number="0">
+                <Real>19.99</Real>
+                <Imaginary>19.99</Imaginary>
+              </Pole>
+              <Pole number="1">
+                <Real>19.99</Real>
+                <Imaginary>-19.99</Imaginary>
+              </Pole>
+            </PolesZeros>
+            <StageGain>
+              <Value>26.6</Value>
+              <Frequency>10.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="2">
+            <PolesZeros>
+              <Description>PREAMPLIFIER: SPOBS hydrophone or L22 x128</Description>
+              <InputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>V</Name>
+                <Description>VOLTS</Description>
+              </OutputUnits>
+              <PzTransferFunctionType>LAPLACE (RADIANS/SECOND)</PzTransferFunctionType>
+              <NormalizationFactor>1.0056137604034001</NormalizationFactor>
+              <NormalizationFrequency unit="HERTZ">10.0</NormalizationFrequency>
+              <Zero number="0">
+                <Real>0.0</Real>
+                <Imaginary>0.0</Imaginary>
+              </Zero>
+              <Pole number="0">
+                <Real>-6.667</Real>
+                <Imaginary>0.0</Imaginary>
+              </Pole>
+            </PolesZeros>
+            <StageGain>
+              <Value>128.0</Value>
+              <Frequency>10.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="3">
+            <Coefficients>
+              <Description>DIGITIZER - CS5321 Delta-Sigma A/D converter</Description>
+              <InputUnits>
+                <Name>V</Name>
+                <Description>Volts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <CfTransferFunctionType>DIGITAL</CfTransferFunctionType>
+              <Numerator>1.0</Numerator>
+            </Coefficients>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">32000.0</InputSampleRate>
+              <Factor>1</Factor>
+              <Offset>0</Offset>
+              <Delay>0.0</Delay>
+              <Correction>0.0</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1165084.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="4">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">32000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.0001875</Delay>
+              <Correction>0.0001875</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="5">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">16000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.000375</Delay>
+              <Correction>0.000375</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="6">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">8000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.00075</Delay>
+              <Correction>0.00075</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="7">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">4000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.0015</Delay>
+              <Correction>0.0015</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="8">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">2000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.003</Delay>
+              <Correction>0.003</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="9">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">1000.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.006</Delay>
+              <Correction>0.006</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="10">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR2</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.225586</NumeratorCoefficient>
+              <NumeratorCoefficient>0.193359</NumeratorCoefficient>
+              <NumeratorCoefficient>0.12085</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0537109</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0161133</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00292969</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000244141</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">500.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>6</Offset>
+              <Delay>0.012</Delay>
+              <Correction>0.012</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+          <Stage number="11">
+            <FIR>
+              <Description>DECIMATION - CS5322 FIR3 (linear phase)</Description>
+              <InputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </InputUnits>
+              <OutputUnits>
+                <Name>COUNTS</Name>
+                <Description>Digital Counts</Description>
+              </OutputUnits>
+              <Symmetry>NONE</Symmetry>
+              <NumeratorCoefficient>-3.09982e-06</NumeratorCoefficient>
+              <NumeratorCoefficient>-2.94483e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-9.8002e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000162383</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000100029</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000120655</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000261935</NumeratorCoefficient>
+              <NumeratorCoefficient>2.52755e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000410488</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000366852</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00037627</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000854597</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.05213e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00127677</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000911347</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00127725</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00215259</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000461754</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0033391</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00140994</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00377236</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00419596</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00264403</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00720434</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000644286</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00918799</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00608709</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00858197</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0127456</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00398398</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0186342</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00520746</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0209498</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0181708</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0166742</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0322588</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00346739</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0429715</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0193349</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0443283</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0498126</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0294292</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0826437</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00934572</NumeratorCoefficient>
+              <NumeratorCoefficient>0.107599</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0816959</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.103155</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.204297</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.12367e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.390602</NumeratorCoefficient>
+              <NumeratorCoefficient>0.590214</NumeratorCoefficient>
+              <NumeratorCoefficient>0.390602</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.12367e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.204297</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.103155</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0816959</NumeratorCoefficient>
+              <NumeratorCoefficient>0.107599</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00934572</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0826437</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0294292</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0498126</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0443283</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0193349</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0429715</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00346739</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0322588</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0166742</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0181708</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0209498</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00520746</NumeratorCoefficient>
+              <NumeratorCoefficient>0.0186342</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00398398</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0127456</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00858197</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00608709</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00918799</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000644286</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00720434</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00264403</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00419596</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00377236</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00140994</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.0033391</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000461754</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00215259</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00127725</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000911347</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.00127677</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.05213e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000854597</NumeratorCoefficient>
+              <NumeratorCoefficient>0.00037627</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000366852</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000410488</NumeratorCoefficient>
+              <NumeratorCoefficient>2.52755e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000261935</NumeratorCoefficient>
+              <NumeratorCoefficient>0.000120655</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000100029</NumeratorCoefficient>
+              <NumeratorCoefficient>-0.000162383</NumeratorCoefficient>
+              <NumeratorCoefficient>-9.8002e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-2.94483e-05</NumeratorCoefficient>
+              <NumeratorCoefficient>-3.09982e-06</NumeratorCoefficient>
+            </FIR>
+            <Decimation>
+              <InputSampleRate unit="HERTZ">250.0</InputSampleRate>
+              <Factor>2</Factor>
+              <Offset>50</Offset>
+              <Delay>0.2</Delay>
+              <Correction>0.2</Correction>
+            </Decimation>
+            <StageGain>
+              <Value>1.0</Value>
+              <Frequency>0.0</Frequency>
+            </StageGain>
+          </Stage>
+        </Response>
+      </Channel>
+    </Station>
+  </Network>
+</FDSNStationXML>

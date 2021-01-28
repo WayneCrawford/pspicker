@@ -66,46 +66,12 @@ class TestADDONSMethods(unittest.TestCase):
 
             self.fail("Multi-line strings are unequal:\n" + message)
 
-    def test_paz(self):
-        """
-        Test calculating amplitudes
-        """
-        obj = PAZ(poles=[6.228 + 6.228j, 6.228 - 6.228j], zeros=[0, 0],
-                     input_units='m/s', output_units='counts',
-                     passband_gain=1500., ref_freq=1.)
-        obj_nm = PAZ(poles=[6.228 + 6.228j, 6.228 - 6.228j], zeros=[0, 0, 0],
-                     input_units='nm', output_units='counts',
-                     passband_gain=9.42e-6, ref_freq=1.)
-        self.assertNotEqual(obj, obj_nm)
-        self.assertAlmostEqual(obj.norm_factor, 2.205, places=3)
-        obj.input_units='nm'
-        self.assertAlmostEqual(obj.norm_factor, 0.3509, places=3)
-        self.assertEqual(obj, obj_nm)
-
-    def test_norm_factor(self):
-        """
-        Test calculating norm_factor and fixing norm_factor
-        """
-        obja = PAZ(poles=[6.228 + 6.228j, 6.228 - 6.228j], zeros=[0, 0],
-                     input_units='m/s', output_units='counts',
-                     passband_gain=1500., ref_freq=1.)
-        objb = obja.copy()
-        objb.norm_factor = obja.norm_factor
-        self.assertAlmostEqual(obja.norm_factor, 2.205, places=3)
-        self.assertAlmostEqual(objb.norm_factor, 2.205, places=3)
-        obja.input_units = 'nm'
-        objb.input_units = 'nm'
-        self.assertAlmostEqual(obja.norm_factor, 0.3509, places=3)
-        self.assertAlmostEqual(objb.norm_factor, 2.205, places=3)
-
     def test_resp_file_read(self):
         """
         Test reading response files
         """
         filea = os.path.join(self.testing_path, "SPOBS2_response.txt")
         paza = get_response(filea, '')
-        fileb = os.path.join(self.testing_path, "SPOBS2_response.json")
-        pazb = get_response(fileb, 'JSON_PZ')
         filec = os.path.join(self.testing_path, "SPOBS2_response.GSE")
         pazc = get_response(filec, 'GSE')
         filed = os.path.join(self.testing_path, "SPOBS2_response.SACPZ")
@@ -115,7 +81,7 @@ class TestADDONSMethods(unittest.TestCase):
         filee = os.path.join(self.testing_path, "1T.MOSE.STATION.xml")
         paze = get_response(filee, 'STATIONXML', component='3')
         paze.input_units = 'nm'
-        for paz in [pazb, pazc, pazd, paze]:
+        for paz in [pazc, pazd, paze]:
             self.assertEqual(paza, paz)
 
     def test_amplitude(self):
@@ -138,8 +104,8 @@ class TestADDONSMethods(unittest.TestCase):
         amp_wood_est, _ = obj.get_iaml(plot=False, method='wood_est')
         amp_raw, _ = obj.get_iaml(plot=False, method='raw_disp')
         self.assertAlmostEqual(amp_wood_calc.generic_amplitude,
-                               3.7848367595677965e-07)
-        self.assertAlmostEqual(amp_wood_calc.period, 0.12)
+                               1097.555091056036)
+        self.assertAlmostEqual(amp_wood_calc.period, 0.112)
 
 
     def test_nordic_write(self):

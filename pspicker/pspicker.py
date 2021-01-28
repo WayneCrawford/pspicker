@@ -234,9 +234,7 @@ class PSPicker():
         """Select and run events for one day"""
         log(f'Running {year}-{month}-{day}, {first_hour=}, {first_minute=}, {last_hour=}, {last_minute=}', 'debug')
         db_path_in = self.database_path_in / f'{year:04d}' / f'{month:02d}'
-        print(db_path_in)
         s_files = list(db_path_in.glob(f'{day:02d}-*.S*'))
-        print(len(s_files))
         if len(s_files) > 0:
             if first_hour is not None or first_minute is not None:
                 s_files = [f for f in s_files if self._nordic_fname_after(
@@ -244,7 +242,6 @@ class PSPicker():
             if last_hour is not None or last_minute is not None:
                 s_files = [f for f in s_files if self._nordic_fname_before(
                            f.name, last_hour, last_minute)]
-        print(len(s_files))
         if len(s_files) > 0:
             log('Running {:d} events on {:04d}-{:02d}-{:02d}'.format(
                 len(s_files), year, month, day))
