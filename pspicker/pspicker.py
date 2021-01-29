@@ -242,6 +242,7 @@ class PSPicker():
             if last_hour is not None or last_minute is not None:
                 s_files = [f for f in s_files if self._nordic_fname_before(
                            f.name, last_hour, last_minute)]
+        s_files.sort()
         if len(s_files) > 0:
             log('Running {:d} events on {:04d}-{:02d}-{:02d}'.format(
                 len(s_files), year, month, day))
@@ -258,9 +259,10 @@ class PSPicker():
                     if not ignore_fails:
                         raise Exception(err)
                     log('copying original s-file to dest', 'info')
-                    log(f'{db_path_in=}, {self.database_path_out=}')
-                    shutil.copyfile(db_path_in / s_file,
-                                    self.database_path_out / s_file)
+                    inf=db_path_in / s_file
+                    outf=self.database_path_out / s_file
+                    log(f'{inf} to {outf}')
+                    shutil.copyfile(inf, outf)
                 # elapsed_time = t.stop()
 
     @staticmethod
