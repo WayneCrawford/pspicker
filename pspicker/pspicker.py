@@ -259,8 +259,8 @@ class PSPicker():
                     if not ignore_fails:
                         raise Exception(err)
                     log('copying original s-file to dest', 'info')
-                    inf=db_path_in / s_file
-                    outf=self.database_path_out / s_file
+                    inf = s_file
+                    outf = self.database_path_out / Path(s_file).name
                     log(f'{inf} to {outf}')
                     shutil.copyfile(inf, outf)
                 # elapsed_time = t.stop()
