@@ -66,7 +66,7 @@ class PAZ():
 
         :param poles: poles (rad/s)
         :param zeros: zeros (rad/s)
-        :param ref_gain: gain at ref_freq (should be in the instrument passband)
+        :param ref_gain: gain at ref_freq (should be w/in instrument passband)
         :param ref_freq: reference frequency (Hz) for passband gain
         :param input_units: units (usually physical) at the sensor entry
         :param output_units: units as stored
@@ -109,23 +109,6 @@ class PAZ():
         self.gain *= self._norm_factor / value
         self._norm_factor = value
 
-    # @property
-    # def ref_freq(self):
-    #     """ reference frequency for gain and A0 """
-    #     return self._ref_freq
-# 
-    # @ref_freq.setter
-    # def ref_freq(self, value):
-    #     """ if ref_freq changes and norm_factor is variable, must adjust gain """
-    #     A0_pre = self.calc_norm_factor()
-    #     self._ref_freq = value
-    #     if self._norm_factor is not None:
-    #         A0_post = self.calc_norm_factor()
-    #         self.gain *= A0_pre / A0_post
-    #     if self._norm_factor is not None:
-    #         A0_post = self.calc_norm_factor()
-    #         self.gain *= A0_pre / A0_post
-
     @property
     def input_units(self):
         return self._input_units
@@ -162,9 +145,9 @@ class PAZ():
 
         :param places: decimal place precision used for gain
         """
-        err_msgs=[]
+        err_msgs = []
         diff = abs((self.gain*self.norm_factor)
-                   /(obj.gain*obj.norm_factor) - 1) * 10**places
+                   / (obj.gain*obj.norm_factor) - 1) * 10**places
         if diff > 1:
             err_msgs.append('different gain*A0 ()')
         if not len(self.zeros) == len(obj.zeros):
@@ -202,6 +185,7 @@ class PAZ():
 
     def copy(self):
         return copy.deepcopy(self)
+
     def get_response(self, freqs):
         """ return response for a given range of frequencies"""
         resp = self.gain * self.norm_factor * self._hp(freqs)
@@ -212,7 +196,7 @@ class PAZ():
         # for z in self.zeros:
         #     resp *= (s - z)
         return resp
-        
+
         s = 2 * np.pi * freqs * 1j
         hp = np.ones(s.shape, np.complex128)
         for p in self.poles:
@@ -221,12 +205,11 @@ class PAZ():
             hp *= (s - z)
         return hp
 
-
     def plot(self, min_freq, output='VEL', show=True, label='', axes=None,
              sampling_rate=None, sym='b-'):
         """
         Plot PAZ object's Response
-        
+
         :type min_freq: float
         :param min_freq: Lowest frequency to plot.
         :type output: str
@@ -258,14 +241,14 @@ class PAZ():
         """
         paz = self.copy()
         if output == 'DISP':
-            paz.input_units='m'
+            paz.input_units = 'm'
         elif output == 'VEL':
-            paz.input_units='m/s'
+            paz.input_units = 'm/s'
         elif output == 'ACC':
-            paz.input_units='m/s^2'
+            paz.input_units = 'm/s^2'
         else:
             print(f'Unknown output type: {output}, using VEL')
-            paz.input_units='m/s'
+            paz.input_units = 'm/s'
         if sampling_rate is None:
             sampling_rate = paz.sampling_rate
         if sampling_rate is None:
@@ -281,19 +264,21 @@ class PAZ():
             npts = 50
         else:
             fig, axs = plt.subplots(2, 1, sharex=True)
-            npts=100
+            npts = 100
         f = np.power(10., np.linspace(np.log10(min_freq),
                                       np.log10(sampling_rate/2), npts))
         resp = paz.get_response(f)
         axs[0].loglog(f, np.absolute(resp), sym, label=label)
-        axs[0].set_ylabel(f'Amplitude ({self.output_units.lower()}/{self.input_units.lower()})')
+        axs[0].set_ylabel('Amplitude ({}/{})'.format(self.output_units.lower(),
+                                                     self.input_units.lower()))
         axs[0].grid(True)
         axs[0].legend()
         axs[1].semilogx(f, np.angle(resp), sym)
         axs[1].grid(True)
         axs[1].set_ylabel('Phase')
         axs[1].yaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
-        axs[1].yaxis.set_major_formatter(plt.FuncFormatter(multiple_formatter()))
+        axs[1].yaxis.set_major_formatter(plt.FuncFormatter(
+            multiple_formatter()))
         axs[1].set_xlabel('Frequency (Hz)')
         if show is True:
             plt.show()
@@ -335,7 +320,7 @@ class PAZ():
         """
         igain, inz = self._ref_meter(self.input_units)
         ogain, onz = self._ref_meter(new_input_units)
-        
+
         # print(f'{self.input_units=}, {igain=}, {inz=}')
         # print(f'{new_input_units=}, {ogain=}, {onz=}')
 
@@ -371,7 +356,7 @@ class PAZ():
         """
         assert isinstance(stage, PolesZerosResponseStage)
         assert stage.stage_gain_frequency == stage.normalization_frequency
-        
+
         sampling_rate = None
         if stage.decimation_input_sample_rate is not None:
             sampling_rate = stage.decimation_input_sample_rate
@@ -384,7 +369,7 @@ class PAZ():
                   ref_freq=stage.stage_gain_frequency,
                   gain=stage.stage_gain,
                   norm_factor=stage.normalization_factor,
-                  sampling_rate = sampling_rate)
+                  sampling_rate=sampling_rate)
         return cls
 
     @classmethod
@@ -410,7 +395,7 @@ class PAZ():
                   f"{self.output_units}, not counts")
             return
         out_paz = self.copy()
-        out_paz.input_units='m/s'
+        out_paz.input_units = 'm/s'
         # out_paz.ref_freq=.1
         outdict = {'poles': [[x.real, x.imag] for x in out_paz.poles],
                    'zeros': [[x.real, x.imag] for x in out_paz.zeros],
@@ -447,7 +432,7 @@ class PAZ():
                   input_units=paz.get('input_units', 'm/s'),
                   output_units='counts',
                   norm_factor=paz.get('norm_const', None),
-                  sampling_rate = paz.get('sampling_rate', None))
+                  sampling_rate=paz.get('sampling_rate', None))
         return val
 
     @classmethod
@@ -460,35 +445,12 @@ class PAZ():
         nscs = [{'net': n.code, 'sta': s.code, 'chan': c}
                 for n in inv for s in n for c in s]
         if len(nscs) > 1:
-            nsc_strs = [f'{x["net"]}.{x["sta"]}.{x["chan"].code}' for x in nscs]
+            nsc_strs = [f'{x["net"]}.{x["sta"]}.{x["chan"].code}'
+                        for x in nscs]
             print('Multiple channels were selected, using {nsc_strs[0]}')
             print('Other channels were: ' + ','.join(nsc_strs[1:]))
         resp = nscs[0]["chan"].response
         return cls.from_obspy_response(resp)
-        
-        # s_pz = []
-        # s_others = []
-        # stages = resp.response_stages
-        # sens = resp.instrument_sensitivity
-        # for s in stages:
-        #     if isinstance(s, PolesZerosResponseStage):
-        #         s_pz.append(s)
-        #     else:
-        #         s_others.append(s)
-        # if len(s_pz) > 1:
-        #     paz_base = s_pz[0]
-        #     for s in s_pz[1:]:
-        #         paz_base.poles.extend(s.poles)
-        #         paz_base.zeros.extend(s.zeros)
-        #         paz_base.normalization_factor *= s.normalization_factor
-        #     resp.response_stages = [paz_base] + s_others
-        # paz = resp.get_paz()
-        # val = cls(poles=paz.poles, zeros=paz.zeros,
-        #           ref_gain=sens.value,
-        #           ref_freq=sens.frequency,
-        #           input_units=sens.input_units,
-        #           output_units=sens.output_units)
-        # return val
 
     @classmethod
     def read_sac_pz(cls, filename):
@@ -598,11 +560,7 @@ class PAZ():
                   input_units='nm',
                   output_units='counts',
                   norm_factor=info.get('norm_const', None),
-                  sampling_rate = info['sampling_rate'])
-        # if info['A0'] / val.norm_factor < 0.99\
-        #         or info['A0']/val.norm_factor > 1.01:
-        #     log('self.norm_factor is different from given: {:.3g} vs {:.3g}'
-        #         .format(val.norm_factor, info['A0']), 'warning')
+                  sampling_rate=info['sampling_rate'])
         return val
 
     @classmethod
@@ -644,10 +602,6 @@ class PAZ():
                   output_units='counts',
                   norm_factor=info['A0'],
                   sampling_rate=info['sampling_rate'])
-        # if info['A0'] / val.norm_factor < 0.99\
-        #         or info['A0'] / val.norm_factor > 1.01:
-        #     print('self.norm_factor is different from given: {:.3g} vs {:.3g}'
-        #         .format(val.norm_factor, info['A0']), 'warning')
         return val
 
     def known_units(self):
@@ -736,7 +690,8 @@ def _get_pzrs_all(resp):
             pz_out.output_units_description = stage.output_units_description
             pz_out.stage_gain *= stage.stage_gain
             pz_out.stage_sequence_number = stage.stage_sequence_number
-            pz_out.decimation_input_sample_rate = stage.decimation_input_sample_rate
+            pz_out.decimation_input_sample_rate =\
+                stage.decimation_input_sample_rate
             pz_out.decimation_factor = stage.decimation_factor
         else:
             print('Incompatible stages... quitting')
@@ -778,30 +733,32 @@ def _is_compatible(first_stage, next_stage, next_is_PAZ=True):
             return False
     return True
 
+
 def multiple_formatter(denominator=2, number=np.pi, latex='\pi'):
     def gcd(a, b):
         while b:
-            a, b = b, a%b
+            a, b = b, a % b
         return a
+
     def _multiple_formatter(x, pos):
         den = denominator
         num = np.int(np.rint(den*x/number))
-        com = gcd(num,den)
-        (num,den) = (int(num/com),int(den/com))
-        if den==1:
-            if num==0:
+        com = gcd(num, den)
+        (num, den) = (int(num/com), int(den/com))
+        if den == 1:
+            if num == 0:
                 return r'$0$'
-            if num==1:
-                return r'$%s$'%latex
-            elif num==-1:
-                return r'$-%s$'%latex
+            if num == 1:
+                return r'$%s$' % latex
+            elif num == -1:
+                return r'$-%s$' % latex
             else:
-                return r'$%s%s$'%(num,latex)
+                return r'$%s%s$' % (num, latex)
         else:
-            if num==1:
-                return r'$\frac{%s}{%s}$'%(latex,den)
-            elif num==-1:
-                return r'$\frac{-%s}{%s}$'%(latex,den)
+            if num == 1:
+                return r'$\frac{%s}{%s}$' % (latex, den)
+            elif num == -1:
+                return r'$\frac{-%s}{%s}$' % (latex, den)
             else:
-                return r'$\frac{%s%s}{%s}$'%(num,latex,den)
+                return r'$\frac{%s%s}{%s}$' % (num, latex, den)
     return _multiple_formatter

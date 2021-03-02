@@ -34,7 +34,8 @@ class EnergySNR():
             snr_dB = self.snr.copy()
             snr_dB.data = 20*np.log10(snr_dB.data)
             snr_dB.stats.channel = 'SDB'
-            Stream([stream[0], snr_dB, self.snr, self.nrg]).plot(equal_scale=False)
+            Stream([stream[0], snr_dB, self.snr, self.nrg]).plot(
+                equal_scale=False)
 
     def copy(self):
         return copy.copy(self)
@@ -48,13 +49,13 @@ class EnergySNR():
         for t in temp:
             t.data = np.power(t.data, 2)
         try:
-            energy = temp.stack(npts_tol=1, 
+            energy = temp.stack(npts_tol=1,
                                 time_tol=1/temp[0].stats.sampling_rate)[0]
             if energy.stats.starttime.timestamp == 0:
                 log('stacked traces are offset by more than one sample'
                     'setting starttime to stream[0].stats.starttime',
                     'error')
-                energy.stats.starttime = stream[0].stats.starttime  # 
+                energy.stats.starttime = stream[0].stats.starttime
         except ValueError as err:
             log(err, 'error')
             log('Slicing to same size', 'warning')
@@ -152,7 +153,7 @@ class EnergySNR():
         trustworthy = (crossings > 0 and crossings <= max_cross)
         if not trustworthy:
             s = 'not trustworthy: '
-            if crossings==0:
+            if crossings == 0:
                 s += f'never crossed the threshold ({self.snr_threshold})'
             else:
                 s += f'crossed the threshold ({self.snr_threshold}) '

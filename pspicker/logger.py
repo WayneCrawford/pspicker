@@ -1,11 +1,13 @@
-import logging, verboselogs
-import sys
+import logging
+import verboselogs
+# import sys
 import inspect
 from datetime import datetime
 
-from obspy.core import UTCDateTime
-
+# from obspy.core import UTCDateTime
+#
 logger_name = 'pspicker'
+
 
 # Set up Filter to not output logs from other programs to file handler
 # (because it requires the "caller" variable)
@@ -13,16 +15,17 @@ class NoParsingFilter(logging.Filter):
     def filter(self, record):
         return record.name == logger_name
 
+
 def setup_log(stream_log_level=logging.INFO,
               file_log_level=logging.VERBOSE):
     """
     Set console and log file logging levels
-    
+
     :param stream_log_level: log level for console output
     :kind stream_log_level: verboselogs level, str or None
-    :param file_log_level: log level for log file.  If higher than the 
+    :param file_log_level: log level for log file.  If higher than the
         stream_log_level, will be set to stream_log_level
-    
+
     For information, the log levels are:
         DEBUG: 10
         VERBOSE: 15
@@ -42,13 +45,14 @@ def setup_log(stream_log_level=logging.INFO,
     ts = datetime.today().strftime('%Y%m%dT%H%M')
 
     file_log_level = min(file_log_level, stream_log_level)
-    
+
     verboselogs.install()   # Sets VerboseLogger as the default Logger
 
     # Set up Formatters
-    lf = logging.Formatter('%(asctime)s %(levelname)-8s - %(message)s (in %(caller)s)')
+    lf = logging.Formatter('%(asctime)s %(levelname)-8s - '
+                           '%(message)s (in %(caller)s)')
     cf = logging.Formatter('%(levelname)-8s %(message)s')
-    
+
     # Set up Handlers
     lh = logging.FileHandler(f'run_{ts}.log', 'w')
     lh.setLevel(file_log_level)
@@ -57,7 +61,6 @@ def setup_log(stream_log_level=logging.INFO,
     ch = logging.StreamHandler()
     ch.setLevel(stream_log_level)
     ch.setFormatter(cf)
-
 
     global logger
     logger = logging.getLogger(logger_name)
@@ -68,6 +71,7 @@ def setup_log(stream_log_level=logging.INFO,
     print(f'{logger=}')
     print(f'{logger.handlers=}')
 
+
 def log(string, level="info"):
     """
     Prints a string and logs to file
@@ -77,8 +81,8 @@ def log(string, level="info"):
     caller = inspect.stack()[1]
     caller_str = caller[3] + '()'
     level = level.upper()
-    extra = {'caller':caller_str}
-    
+    extra = {'caller': caller_str}
+
     level = getattr(logging, level.upper())
 
     global logger

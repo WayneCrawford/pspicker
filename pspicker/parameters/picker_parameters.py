@@ -41,12 +41,13 @@ class PickerParameters():
         self.channel_mapping_rules = ChannelMappingRules(**channel_parameters)
         self.assoc = AssociatorParameters(**association)
         self.response_file_type = response_file_type
-        
+
         self.station_parameters = {}
         for station, values in stations.items():
-                temp = station_parameters[values['parameters']]
-                temp['resp_file'] = values['resp_file']
-                self.station_parameters[station] = StationParameters.from_dict(temp)
+            temp = station_parameters[values['parameters']]
+            temp['resp_file'] = values['resp_file']
+            self.station_parameters[station] = StationParameters.from_dict(
+                temp)
 
     @property
     def stations(self):

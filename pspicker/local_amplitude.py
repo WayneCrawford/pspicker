@@ -206,7 +206,7 @@ class LocalAmplitude():
         else:
             if not len(pick) == 1:
                 log('{:d} picks have phase[0] == "{}": {}, returning first one'
-                    .format(len(pick), pick[0].phase_hint[0], pick),'error')
+                    .format(len(pick), pick[0].phase_hint[0], pick), 'error')
             return pick[0]
 
     def plot(self, transformed, Amp, trans_units):
@@ -327,7 +327,7 @@ def pk2pk(stream, start_time, end_time):
         # print(f'window = {window}')
         i_mins, _ = find_peaks(-1. * window)
         i_maxs, _ = find_peaks(window)
-        
+
         if len(i_mins) == 0 or len(i_maxs) == 0:
             return(None)
 

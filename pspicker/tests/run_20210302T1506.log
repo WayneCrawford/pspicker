@@ -1,8 +1,0 @@
-2021-03-02 15:06:51,777 VERBOSE  - Event:	2019-05-19T06:09:48.000000Z | None, None
-
-	 resource_id: ResourceIdentifier(id="smi:local/ac2443c6-11ad-4efd-8d48-13c29ed48cab")
-	  event_type: 'earthquake'
-	        ---------
-	       picks: 3 Elements
-	  amplitudes: 1 Elements
-	     origins: 1 Elements (in save_nordic_event())

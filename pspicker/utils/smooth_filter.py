@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.signal import lfilter
-from ..logger import log
+# from ..logger import log
 
 from obspy.core.stream import Stream
 from obspy.core.stream import Trace

@@ -125,7 +125,8 @@ class Kurtosis():
 
         # Filter traces in different frequency bands
         B = []
-        log(f'Pre-filtering data for kurtosis in {self.params.frequency_bands} bands', 'debug')
+        log('Pre-filtering data for kurtosis in {} bands'.format(
+            self.params.frequency_bands), 'debug')
         for FB in self.params.frequency_bands:
             f = trace.copy()
             f.detrend('demean')
@@ -143,7 +144,7 @@ class Kurtosis():
         # 2-level lists: : 1st dim: window_lengths, 2nd dim: freq bands
         K, C = [], []  # all kurtoses and all cumulative, detrended kurtoses
         log('Calculating kurtosis of filtered data using {}-s windows'
-                .format(self.params.window_lengths), 'debug')
+            .format(self.params.window_lengths), 'debug')
         for win_len in self.params.window_lengths:
             corr_cums, kurtos = self.calc_cum_kurtoses(B, win_len)
             C.extend(corr_cums)
@@ -250,8 +251,8 @@ class Kurtosis():
         extrema, gradients = [], []
         # Put the strongest smoothing first
         self.params.extrema_smoothings.sort(reverse=True)
-        #sorted_smooth = sorted(self.params.extrema_smoothings, reverse=True)
-        #self.params.extrema_smoothings = sorted_smooth = sorted(
+        # sorted_smooth = sorted(self.params.extrema_smoothings, reverse=True)
+        # self.params.extrema_smoothings = sorted_smooth = sorted(
         for smoothing in self.params.extrema_smoothings:
             v_smooth = smooth_filter(self.mean_cumulative_kurtosis, smoothing)
             v_smooth = _cum2grad(v_smooth, normalize)
@@ -363,7 +364,7 @@ def _f_cumul(f):
         bare_trace = True
     g = f.copy()
     for t in g:
-        tdata = t.data.copy()    # Backup copy for info
+        # tdata = t.data.copy()    # Backup copy for info
         t.data[np.isnan(t.data)] = 0
         t.data = np.gradient(t.data)
         # t.data = np.diff(t.data, prepend=0)
@@ -456,7 +457,7 @@ def _cum2grad(f_in, normalize=False, debug=False):
     # function equal to the next peak
     for j in range(len(tikxs)-2, -1, -1):
         tycalpha[tikxs[j]:tikxs[j+1]+1] = f_in.data[tikxs[j+1]]
-    
+
     f_out = f_in.copy()
     f_out.data -= tycalpha          # input minus the next peak value
     f_out.data[f_out.data > 0] = 0  # Get rid of everything above zero

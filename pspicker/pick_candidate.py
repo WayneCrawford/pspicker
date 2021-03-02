@@ -170,7 +170,7 @@ class PickCandidate():
     def remove_duplicates(pick_list):
         """
         Remove duplicate PickCandidates from a list
-    
+
         Mostly a debugging routine
         """
         i_remove = []
@@ -181,6 +181,6 @@ class PickCandidate():
                         'warning')
                     i_remove.append(j)
         if len(i_remove) > 0:
-            pick_list = [p for p,i in zip(pick_list, range(len(pick_list)))
+            pick_list = [p for p, i in zip(pick_list, range(len(pick_list)))
                          if i not in i_remove]
         return pick_list

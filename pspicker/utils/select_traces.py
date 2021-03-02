@@ -8,8 +8,8 @@ from ..logger import log
 def select_traces(stream, map_rules, debug=False):
     """
     Map traces and phases
-    
-    selects traces corresponding to "Z", "N", "E" and "H", names the 
+
+    selects traces corresponding to "Z", "N", "E" and "H", names the
     components to write picks to and defines the phase names
     :param stream: obspy stream
     :param map_rules: ChannelMappingRules object
@@ -21,9 +21,9 @@ def select_traces(stream, map_rules, debug=False):
     mr = map_rules
     for station in sorted(stations):
         Z = findChannel(stream, station, mr.compZ, mr.band_order)
-        N = findChannel(stream, station, mr.compN, mr.band_order)
-        E = findChannel(stream, station, mr.compE, mr.band_order)
-        H = findChannel(stream, station, mr.compH, mr.band_order)
+        # N = findChannel(stream, station, mr.compN, mr.band_order)
+        # E = findChannel(stream, station, mr.compE, mr.band_order)
+        # H = findChannel(stream, station, mr.compH, mr.band_order)
         if Z is None:
             sta_st = stream.select(station=station)
             log('No Z channel found for station {}: {} not in "{}"'.format(

@@ -7,7 +7,7 @@ import shutil
 import warnings
 # import glob
 # import warnings
-from logging import info
+# from logging import info
 from datetime import datetime
 # import sys
 
@@ -107,7 +107,7 @@ class PSPicker():
                 start_date, end_date, datetime.today().strftime('%Y%m%d'))
         log('Running from {} to {}'.format(start_dt.strftime("%Y%m%d-%H%M"),
                                            end_dt.strftime("%Y%m%d-%H%M")))
-        
+
         # Print parameter information
         log(str(self.param), 'verbose')
 
@@ -232,7 +232,8 @@ class PSPicker():
                      ignore_fails, debug_fname, first_hour=None,
                      first_minute=None, last_hour=None, last_minute=None):
         """Select and run events for one day"""
-        log(f'Running {year}-{month}-{day}, {first_hour=}, {first_minute=}, {last_hour=}, {last_minute=}', 'debug')
+        log(f'Running {year}-{month}-{day}, {first_hour=}, '
+            f'{first_minute=}, {last_hour=}, {last_minute=}', 'debug')
         db_path_in = self.database_path_in / f'{year:04d}' / f'{month:02d}'
         s_files = list(db_path_in.glob(f'{day:02d}-*.S*'))
         if len(s_files) > 0:
@@ -398,6 +399,9 @@ class PSPicker():
 
         Looks in local directory, then self.database_path_in, then
         self.database_path_in/YEAR/month
+
+        :param filename: name of the file to look FormatControl
+        :type filename: str or pathlib.Path
         """
         # In local directory
         if Path(filename).is_file():
