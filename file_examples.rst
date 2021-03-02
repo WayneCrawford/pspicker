@@ -133,7 +133,7 @@ to change them, you don't have to include them in your parameter file.
         distri_min_values: 4   # minimum number of values (P picks, S picks, or PS-times) needed for distribution-based rejection
         distri_nstd_picks: 3.2 # reject picks outside of this number of standard deviations
         distri_nstd_delays: 4  # reject delays outside of this number of standard deviations
-    response_filetype: '' # 'GSE' or '': the latter means a Baillard PoleZeros-type format
+    response_file_type: ''  # 'GSE' or '': the latter means a Baillard PoleZeros-type format
     station_parameters:  # List of objects with key = station_type
         - station_type1
             P_comp:                  # components (one letter each, selected from 'ZNEH') to use for P-picks

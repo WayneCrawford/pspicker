@@ -400,7 +400,7 @@ class PSPicker():
         self.database_path_in/YEAR/month
         """
         # In local directory
-        if filename.is_file():
+        if Path(filename).is_file():
             return filename
         # In database directory
         fullname = self.database_path_in / filename
@@ -742,7 +742,7 @@ class PSPicker():
         else:
             o_time = estimate_origin_time(picks)
         self.save_nordic_event(picks, o_time, self.database_path_out,
-                               self.run.database_filename.name,
+                               Path(self.run.database_filename).name,
                                amplitudes=amplitudes,
                                arrivals=arrivals,
                                wavefiles=[self.run.wavefile])

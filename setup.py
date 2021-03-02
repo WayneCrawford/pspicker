@@ -24,12 +24,12 @@ setuptools.setup(
           'scipy>=1.5',
           'verboselogs>=1.7',
           'matplotlib>=3.2',
-          'pyyaml>=3.0,<4',
+          'pyyaml>=3.0',
           'jsonschema>=2.6',
           'jsonref>=0.2'
       ],
     entry_points={},
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     classifiers=(

@@ -74,81 +74,10 @@ class PickerParameters():
         """
         with Timer(text="Read picker parameter file: {:0.4f}s"):
             with open(filename, 'r') as fic:
-                params = yaml.load(fic)
+                params = yaml.safe_load(fic)
 
             return cls(**params)
 
 
 if __name__ == '__main__':
     pass
-
-#     def __init__(self,
-#                  global_window,
-#                  SNR,
-#                  assoc,
-#                  station_parameters,
-#                  channel_mapping_rules,
-#                  polarity,
-#                  response_file_type=''):
-#         """
-#         Initialize Picker Parameters
-# 
-#         :param gw: GlobalWindowParameters object (control inital selection
-#             of pick window)
-#         :param SNR: SNRParameters object
-#         :param polarity: PolarityParameters object
-#         :param assoc: AssociatorParameters object
-#         :param station_parameters: dict with key=station names,
-#             items=StationParameters object
-#         :param channel_mapping_rules: ChannelMappingRules object
-#         :param response_file_type: Format of the response file(s).  'GSE' or
-#             empty.  If empty use Baillardesque PoleZero format.
-#         """
-#         self.gw = gw
-#         self.SNR = SNR
-#         self.polarity = polarity
-#         self.assoc = assoc
-#         self.station_parameters = station_parameters
-#         self.channel_mapping_rules = channel_mapping_rules
-#         self.response_file_type = response_file_type
-#         print(self)
-
-#     @classmethod
-#     def from_yaml_file(cls, filename):
-#         """
-#         Read in parameters from a YAML file
-#         """
-#         with Timer(text="Read picker parameter file: {:0.4f}s"):
-#             with open(filename, 'r') as fic:
-#                 params = yaml.load(fic)
-# 
-#             return cls(**params)
-#             # Fill in station parameters
-#             # with Timer(text="    Station Parameters: {:0.4f}s"):
-#             sp = dict()
-#             for station, values in params['stations'].items():
-#                 temp = params['station_parameters'][values['parameters']]
-#                 temp['resp_file'] = values['resp_file']
-#                 sp[station] = StationParameters.from_dict(temp)
-#             cmr = ChannelMappingRules.from_dict(params.get(
-#                 'channel_parameters', {}))
-#             # with Timer(text="    Global Window Parameters: {:0.4f}s"):
-#             gw = GlobalWindowParameters.from_dict(params['global_window'])
-#             # with Timer(text="    SNR Parameters: {:0.4f}s"):
-#             SNR = SNRParameters.from_dict(params['SNR'])
-#             # with Timer(text="    Polarity Parameters: {:0.4f}s"):
-#             polarity = PolarityParameters.from_dict(params.get('polarity', {}))
-#             # with Timer(text="    Associator Parameters: {:0.4f}s"):
-#             assoc = AssociatorParameters.from_dict(params['association'])
-#             # with Timer(text="    Overall Parameters: {:0.4f}s"):
-#             val = cls(
-#                 gw=gw,
-#                 SNR=SNR,
-#                 assoc=assoc,
-#                 polarity=polarity,
-#                 station_parameters=sp,
-#                 channel_mapping_rules=cmr)
-#             if 'response_file_type' in params:
-#                 val.response_file_type = params['response_file_type']
-#         return val
-
