@@ -7,12 +7,11 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from future.builtins import *  # NOQA @UnusedWildImport
 
-import os
-# import glob
 import unittest
 import inspect
 import difflib
 import pprint
+from pathlib import Path
 
 from obspy import read as obspy_read
 from obspy.core import UTCDateTime
@@ -35,9 +34,11 @@ class TestADDONSMethods(unittest.TestCase):
     Test suite for obsinfo operations.
     """
     def setUp(self):
-        self.path = os.path.dirname(os.path.abspath(inspect.getfile(
-            inspect.currentframe())))
-        self.testing_path = os.path.join(self.path, "data")
+        self.path = Path("").resolve().parent
+        self.testing_path = Path(self.path) / "tests" / "data"
+#         self.path = os.path.dirname(os.path.abspath(inspect.getfile(
+#             inspect.currentframe())))
+#         self.testing_path = os.path.join(self.path, "data")
 
     def assertTextFilesEqual(self, first, second, ignore_lines = [],
                              msg=None):
@@ -70,15 +71,15 @@ class TestADDONSMethods(unittest.TestCase):
         """
         Test reading response files
         """
-        filea = os.path.join(self.testing_path, "SPOBS2_response.txt")
+        filea = str(self.testing_path / "SPOBS2_response.txt")
         paza = get_response(filea, '')
-        filec = os.path.join(self.testing_path, "SPOBS2_response.GSE")
+        filec = str(self.testing_path / "SPOBS2_response.GSE")
         pazc = get_response(filec, 'GSE')
-        filed = os.path.join(self.testing_path, "SPOBS2_response.SACPZ")
+        filed = str(self.testing_path / "SPOBS2_response.SACPZ")
         pazd = get_response(filed, 'SACPZ')
         pazd.ref_freq = 10.
         pazd.input_units = 'nm'
-        filee = os.path.join(self.testing_path, "1T.MOSE.STATION.xml")
+        filee = str(self.testing_path / "1T.MOSE.STATION.xml")
         paze = get_response(filee, 'STATIONXML', component='3')
         paze.input_units = 'nm'
         for paz in [pazc, pazd, paze]:
@@ -88,9 +89,8 @@ class TestADDONSMethods(unittest.TestCase):
         """
         Test calculating amplitudes
         """
-        datafile = os.path.join(self.testing_path,
-                                "20190519T060917_MONA.mseed")
-        respfile = os.path.join(self.testing_path, "SPOBS2_response.json")
+        datafile = str(self.testing_path / "20190519T060917_MONA.mseed")
+        respfile = str(self.testing_path / "SPOBS2_response.json")
         stream = obspy_read(datafile, 'MSEED')
         wid = WaveformStreamID(network_code=stream[0].stats.network,
                                station_code=stream[0].stats.station,
@@ -112,7 +112,7 @@ class TestADDONSMethods(unittest.TestCase):
         """
         Test calculating amplitudes
         """
-        compare_file = os.path.join(self.testing_path, "test.nordic")
+        compare_file = str(self.testing_path / "test.nordic")
         otime = UTCDateTime('2019-05-19T06:09:48')
         wid = WaveformStreamID(network_code='4G', station_code='STAT')
         wid.channel_code = 'SHZ'
@@ -139,7 +139,9 @@ class TestADDONSMethods(unittest.TestCase):
         PSPicker.save_nordic_event(picks, otime, '.', 'test.nordic',
                                    amps, arrivals=arrivals, debug=False)
         self.assertTextFilesEqual('test.nordic', compare_file, ignore_lines=[1])
-        os.remove('test.nordic')
+        Path("test.nordic").unlink()
+        for p in Path(".").glob('run_*.log'):
+            p.unlink()
 
 def suite():
     return unittest.makeSuite(TestADDONSMethods, 'test')

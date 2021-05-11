@@ -35,3 +35,12 @@
 ## v0.3.1:
 
 cleaned up parameter file reading, fixed log_level use in run_many()
+
+# v0.4
+
+- json_pz files now use m/s as default units
+- Improved PAZ class
+- Sorts input files by filename within each day
+
+## v0.4.1:
+ - Updated pyyaml and fixed some pathlib errors
