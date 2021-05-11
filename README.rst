@@ -45,6 +45,14 @@ Step 3: associate picks
 
 
 
+Database and waveform files
+####################################
+
+Are assumed to be in SEISAN structure:
+  - Database files: NORDIC format, in ``database_path_in``/``YEAR``/``MONTH``/ (except run_one, for which the file may be local)
+  - Waveform files: one miniseed file per event.  Filename is read from the database file and assumed to start with ``YEAR``-``MONTH``.  File is read from ``waveform_path_in``/``YEAR``/``MONTH``/
+  
+ 
 Example workflow
 ####################################
 
