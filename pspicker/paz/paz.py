@@ -58,7 +58,7 @@ class PAZ():
 
     def __init__(self, gain, poles=[], zeros=[], ref_freq=1.,
                  input_units='m/s', output_units='counts',
-                 norm_factor=None, sampling_rate=None):
+                 norm_factor=None):
         """
         Initialize using pole-zero gain (NOT passband gain)
 
@@ -71,7 +71,6 @@ class PAZ():
         :param input_units: units (usually physical) at the sensor entry
         :param output_units: units as stored
         :param norm_fact: A0 normalization factor
-        :param sampling_rate: channel sampling rate (used for response plot))
         """
         self.gain = gain
         self.poles = np.array(poles)
@@ -83,12 +82,11 @@ class PAZ():
             self._norm_factor = self.calc_norm_factor()
         else:
             self._norm_factor = norm_factor
-        self.sampling_rate = sampling_rate
 
     @classmethod
     def from_refgain(cls, ref_gain, poles=[], zeros=[], ref_freq=1.,
                      input_units='m/s', output_units='counts',
-                     norm_factor=None, sampling_rate=None):
+                     norm_factor=None):
         """
         Initialize using gain at ref_freq
 
@@ -101,13 +99,11 @@ class PAZ():
         :param input_units: units (usually physical) at the sensor entry
         :param output_units: units as stored
         :param norm_fact: A0 normalization factor
-        :param sampling_rate: channel sampling rate (used for response plot))
         """
         cls = PAZ(1, poles=poles, zeros=zeros, ref_freq=ref_freq,
                   input_units=input_units,
                   output_units=output_units,
-                  norm_factor=norm_factor,
-                  sampling_rate=sampling_rate)
+                  norm_factor=norm_factor)
         cls.gain = ref_gain * cls.calc_norm_factor() / cls.norm_factor
         return cls
 
@@ -272,8 +268,6 @@ class PAZ():
             print(f'Unknown output type: {output}, using VEL')
             paz.input_units = 'm/s'
         if sampling_rate is None:
-            sampling_rate = paz.sampling_rate
-        if sampling_rate is None:
             if min_freq < 1:
                 sampling_rate = 100.
             else:
@@ -380,18 +374,17 @@ class PAZ():
         assert isinstance(stage, PolesZerosResponseStage)
         assert stage.stage_gain_frequency == stage.normalization_frequency
 
-        sampling_rate = None
-        if stage.decimation_input_sample_rate is not None:
-            sampling_rate = stage.decimation_input_sample_rate
-            if stage.decimation_factor is not None:
-                sampling_rate /= stage.decimation_factor
+        # sampling_rate = None
+        # if stage.decimation_input_sample_rate is not None:
+        #     sampling_rate = stage.decimation_input_sample_rate
+        #     if stage.decimation_factor is not None:
+        #         sampling_rate /= stage.decimation_factor
 
         cls = PAZ(stage.stage_gain, poles=stage.poles, zeros=stage.zeros,
                   ref_freq=stage.stage_gain_frequency,
                   input_units=stage.input_units,
                   output_units=stage.output_units,  
-                  norm_factor=stage.normalization_factor,
-                  sampling_rate=sampling_rate)
+                  norm_factor=stage.normalization_factor)
         return cls
 
     @classmethod
@@ -425,8 +418,8 @@ class PAZ():
                    'input_units': out_paz.input_units,
                    'norm_const': out_paz.norm_factor,
                    'f_ref': out_paz.ref_freq}
-        if out_paz.sampling_rate is not None:
-            outdict['sampling_rate'] = out_paz.sampling_rate
+        # if out_paz.sampling_rate is not None:
+        #     outdict['sampling_rate'] = out_paz.sampling_rate
         with open(filename, 'w') as f:
             try:
                 json.dump(outdict, f, indent=2)
@@ -453,8 +446,7 @@ class PAZ():
                                ref_freq=float(paz['f_ref']),
                                input_units=paz.get('input_units', 'm/s'),
                                output_units='counts',
-                               norm_factor=paz.get('norm_const', None),
-                               sampling_rate=paz.get('sampling_rate', None))
+                               norm_factor=paz.get('norm_const', None))
         return val
 
     @classmethod
@@ -584,8 +576,7 @@ class PAZ():
                                ref_freq=info['f_ref'],
                                input_units='nm',
                                output_units='counts',
-                               norm_factor=info.get('norm_const', None),
-                               sampling_rate=info['sampling_rate'])
+                               norm_factor=info.get('norm_const', None))
         return val
 
     @classmethod
@@ -625,8 +616,7 @@ class PAZ():
                                ref_freq=info['f_ref'],
                                input_units='nm',
                                output_units='counts',
-                               norm_factor=info['A0'],
-                               sampling_rate=info['sampling_rate'])
+                               norm_factor=info['A0'])
         return val
 
     def known_units(self):

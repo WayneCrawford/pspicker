@@ -56,11 +56,15 @@ class TestADDONSMethods(unittest.TestCase):
             str_b = ''.join(lines)
         
         if str_a != str_b:
+            # print(str_a)
+            # print(str_b)
             first_lines = str_a.splitlines(True)
             second_lines = str_b.splitlines(True)
             delta = difflib.unified_diff(
                 first_lines, second_lines,
-                fromfile=first, tofile=second)
+                fromfile=str(first), tofile=str(second))
+            # result = list(delta)
+            # print(result)
             message = ''.join(delta)
 
             if msg:

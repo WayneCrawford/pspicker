@@ -42,6 +42,5 @@
   "sensitivity": 3.1250128977722126e-09,
   "input_units": "m/s",
   "norm_const": 1.212790553246e+16,
-  "f_ref": 1.0,
-  "sampling_rate": 100.0
+  "f_ref": 1.0
 }
