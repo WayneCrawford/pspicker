@@ -7,10 +7,12 @@ import numpy as np
 from scipy.signal import lfilter
 from obspy.core.stream import Stream
 from obspy.core.trace import Trace
+# from scipy.stats import kurtosis as scipy_kurtosis
+# from obspy.realtime.signal import kurtosis as obspy_kurtosis
 
 from .utils import smooth_filter
 from .pick_candidate import PickCandidate
-# from .logger import log
+from .logger import log
 
 
 class Kurtosis_pick():
@@ -43,25 +45,17 @@ class Kurtosis():
     5) identify where the slope of the resulting function changes from positive
        to negative
     """
-    def __init__(self, freq_bands, wind_lengths, n_smooth, extrem_smooths=None,
-                 plot=False):
+    def __init__(self, params, plot=False):
         """
-        :param FBs: list of [min, max] frequency bands
-        :param window_lengths: list of window lengths (seconds)
-        :param n_smooth: smoothings to apply in calculating Kurtosis (samples)
-        :param extrem_smooth: smoothing sequence to use when calculating times
-            of extrema
+        :param params: KurtosisParameters object
         :param plot: make a plot of Kurtosis parameters
         """
-        assert isinstance(freq_bands, list), "freq_bands is not a list"
-        assert isinstance(wind_lengths, list), "wind_lengths is not a list"
-        assert isinstance(n_smooth, int), "n_smooth is not an int"
-
-        self.freq_bands = freq_bands
-        self.wind_lengths = wind_lengths
-        self.n_smooth = n_smooth
+        self.params = params
+        # self.freq_bands = k_params.frequency_bands
+        # self.wind_lengths = k_params.window_lengths
+        # self.extrem_smooths = k_params.extrema_smoothings
+        # self.n_smooth = n_smooth
         self.plot = plot
-        self.extrem_smooths = None  # smoothings for extrema following
 
         # Mean trace over freq_bands, wind_lengths & smoothing
         self.mean_kurtosis = None
@@ -72,18 +66,15 @@ class Kurtosis():
 
     def __str__(self):
         s = "Kurtosis:\n"
-        s += f"   freq bands = {self.freq_bands}\n"
-        s += f"   window_lengths = {self.wind_lengths}\n"
-        s += f"   n_smooth = {self.n_smooth}\n"
-        s += f"   extrem_smooths = {self.extrem_smooths}\n"
+        s += f"   params = {self.params}\n"
         s += f"   mean_kurtosis = {self.mean_kurtosis}\n"
         s += f"   mean_cumulative kurtosis = {self.mean_cumulative_kurtosis}\n"
         s += f"   len{self.kurto_gradients} kurto_gradients"
         return s
 
     def pick_trace(self, trace, n_candidates, starttime=None, endtime=None,
-                   extrem_type='mini', extrem_smooths=[1, 5, 10],
-                   extrem_normalize=False, extrem_which='max'):
+                   extrem_type='mini', extrem_normalize=False,
+                   extrem_which='max'):
         """
         Pick a trace using the Kurtosis
 
@@ -93,21 +84,19 @@ class Kurtosis():
         :param endtime: last time of interest
         :param extrem_type: 'mini' or 'maxi', depending on wheter you want to
             follow minima or maxima
-        :param extrem_smooths: smoothing to apply when following extrema
         :param extrem_normalize: normalize the cumulative Kurtosis gradient
         :param extrem_which:
-            'first': select first 'n_extrema' extrema > 0.1, order right to
+            'first': select first 'max_cadidates' extrema > 0.1, order right to
                      left
-            'max': select the 'n_extrema' biggest extrema, order biggest
+            'max': select the 'max_candidates' biggest extrema, order biggest
                        to smallest
         :returns:  list of PickCandidates
         """
-        self.extrem_smooths = extrem_smooths
         self.calc_kurtocum(trace, starttime, endtime)
-        candidates = self.follow_extrem(type_=extrem_type,
-                                        n_extrema=n_candidates,
+        candidates = self.follow_extrem(ext_type=extrem_type,
+                                        max_candidates=n_candidates,
                                         normalize=extrem_normalize,
-                                        sense=extrem_which)
+                                        order=extrem_which)
         return candidates
 
     def calc_kurtocum(self, trace, starttime=None, endtime=None, debug=False):
@@ -136,22 +125,30 @@ class Kurtosis():
 
         # Filter traces in different frequency bands
         B = []
-        for FB in self.freq_bands:
+        log('Pre-filtering data for kurtosis in {} bands'.format(
+            self.params.frequency_bands), 'debug')
+        for FB in self.params.frequency_bands:
             f = trace.copy()
-            if debug:
-                print(f'trace2FWkurto: filtering from {FB[0]} to {FB[1]} Hz')
             f.detrend('demean')
+            # RAMP UP SIGNAL BEFORE FILTERING
+            # ramp_time = 2 / FB[0]
+            # ramp_pts = int(max(ramp_time * f.stats.sampling_rate, 50))
+            # ramp = np.arange(0, ramp_pts) / ramp_pts
+            # f.data[:ramp_pts] *= ramp
             f.filter(type='bandpass', freqmin=FB[0], freqmax=FB[1], corners=3)
             f = f.slice(starttime, endtime)
-            f.data[np.arange(0, 50)] = 0
+            # RAMP UP SIGNAL AFTER FILTERING
+            # f.data[:ramp_pts] *= ramp
             B.append(f)
 
         # 2-level lists: : 1st dim: window_lengths, 2nd dim: freq bands
         K, C = [], []  # all kurtoses and all cumulative, detrended kurtoses
-        for win_len in self.wind_lengths:
+        log('Calculating kurtosis of filtered data using {}-s windows'
+            .format(self.params.window_lengths), 'debug')
+        for win_len in self.params.window_lengths:
             corr_cums, kurtos = self.calc_cum_kurtoses(B, win_len)
-            C.append(corr_cums)
-            K.append(kurtos)
+            C.extend(corr_cums)
+            K.extend(kurtos)
         self.mean_kurtosis = _mean_trace(K)
         self.mean_cumulative_kurtosis = _mean_trace(C)
 
@@ -159,60 +156,55 @@ class Kurtosis():
         """
         Calculate kurtoses and cumulative kurtoses for given window length
 
-        :param B: list of data, filtered in different bands
+        :param B: list of traces, filtered in different bands
         :win_len: window length in seconds
         """
         corr_cums, kurtos = [], []
-        sr = B[0].stats.sampling_rate
-        data_length = B[0].stats.endtime - B[0].stats.starttime
-        if win_len > data_length:
-            warnings.warn('Kurtosis window > data window ('
-                          f'{win_len:.3g}s > {data_length:.3g}s), skipping!')
-            return [], []
-        else:
-            win_samps = int(np.floor(win_len * sr)) + 1
-            win_samps = min(win_samps, len(B[0].data))
-            for tr, fb in zip(B, self.freq_bands):
-                k = _fast_kurtosis(tr, win_samps)
-                filt = smooth_filter(k, self.n_smooth)
-                corr_cum, _ = _f_cumul(filt)
-                corr_cum.detrend('simple')
-                # corr_cum = kurto_cum.copy()
-                # line = _f_segment(corr_cum)
-                # corr_cum.data -= line.data
-                if self.plot:
-                    self._plot_kurtosis(win_len, fb, tr, k, corr_cum)
-                kurtos.append(k)
-                corr_cums.append(corr_cum)
+        for tr, fb in zip(B, self.params.frequency_bands):
+            sr = tr.stats.sampling_rate
+            dl = tr.stats.endtime - tr.stats.starttime
+            if win_len > dl:
+                warnings.warn('Kurtosis window > data window ('
+                              f'{win_len:.3g}s > {dl:.3g}s), skipping!')
+                continue
+            win_samps = min(int(np.floor(win_len * sr)) + 1, len(tr.data))
+            k = _fast_kurtosis(tr, win_samps)
+            filt = smooth_filter(k, self.params.n_smooth)
+            corr_cum, _ = _f_cumul(filt.copy())
+            corr_cum.detrend('simple')
+            if self.plot:
+                self._plot_kurtosis(win_len, fb, tr, filt, corr_cum)
+            kurtos.append(k)
+            corr_cums.append(corr_cum)
         return corr_cums, kurtos
 
     @staticmethod
     def _plot_kurtosis(wl, fb, trace, kurtosis, corr_cum):
-        print(f'Plot kurtosis for win_len={wl}, f_band={fb}', 'debug')
+        log(f'Plot kurtosis for win_len={wl}, f_band={fb}', 'debug')
         cor = corr_cum.copy()
         cor.stats.channel = 'COR'
         kurtosis.stats.channel = 'KUR'
         Stream([trace, kurtosis, cor]).plot(
             size=(600, 600), equal_scale=False)
 
-    def follow_extrem(self, type_='mini', n_extrema=2,
-                      normalize=False, sense=None, debug=False):
+    def follow_extrem(self, ext_type='mini', max_candidates=2,
+                      normalize=False, order=None, debug=False):
         """
         Return extrema of the cumulative kurtosis
 
         Steps:
           1) Smooth the cumulative kurtosis (self.mean_cumulative_kurtosis)
-             using the windows specified in self.extrem_smooths
+             using the windows specified in self.params.extrema_smoothings
           2) locate the first 'n' first extremas of the smoothest function
           3) refine these extrema step by step through less and less smooth
              functions
 
         Uses self.mean_cumulative kurtosis
-        :param type: 'mini' or 'maxi':  follow minima or maxima
-        :param n_extrema: number of extrema to follow
+        :param ext_type: 'mini' or 'maxi':  follow minima or maxima
+        :param max_candidates: max number of candidates to return
         :param normalize: normalize the gradient?
-        :param sense:
-            'first': select first 'n_extrema' extrema > 0.1, ordered right
+        :param order:
+            'first': select first 'max_candidates' extrema > 0.1, ordered right
                      to left
             'max': select from biggest to smallest
         :returns:  list of PickCandidates
@@ -224,12 +216,11 @@ class Kurtosis():
         st = self.mean_cumulative_kurtosis.stats.starttime
         sr = self.mean_cumulative_kurtosis.stats.sampling_rate
 
-        all_extrema, self.kurto_gradients, _ =\
-            _get_extrema(self.extrem_smooths, self.mean_cumulative_kurtosis,
-                         type_, normalize)
+        all_extrema = self._get_extrema(ext_type, normalize)
 
         selected_extrema = _select_extrema(all_extrema[0],
-                                           n_extrema, sense)
+                                           max_candidates,
+                                           order)
 
         # Sharpen the indices/values using the smaller smoothing values
         sharp_extrema = []
@@ -248,6 +239,30 @@ class Kurtosis():
                               sampling_rate=sr)
                 for x in sharp_extrema]
 
+    def _get_extrema(self, ext_type, normalize, debug=False):
+        """
+        Reverse sorts extrema_smoothings and returns corresponding extrema
+
+        :param ext_type: 'maxi' or 'mini', passed on to ext_indices
+        :param normalize: passed on to _cum2grad()
+        :returns: list of lists of {indices: value, trace: value} from
+            smoothest to roughest.  value is approx height of the kurtosis jump
+        """
+        extrema, gradients = [], []
+        # Put the strongest smoothing first
+        self.params.extrema_smoothings.sort(reverse=True)
+        # sorted_smooth = sorted(self.params.extrema_smoothings, reverse=True)
+        # self.params.extrema_smoothings = sorted_smooth = sorted(
+        for smoothing in self.params.extrema_smoothings:
+            v_smooth = smooth_filter(self.mean_cumulative_kurtosis, smoothing)
+            v_smooth = _cum2grad(v_smooth, normalize)
+            ext_indices = _loca_ext(v_smooth, ext_type)
+            extrema.append([{'index': i, 'value': -v_smooth.data[i]}
+                            for i in ext_indices])
+            gradients.append(v_smooth)
+        self.kurto_gradients = gradients
+        return extrema
+
 
 def _find_close_extrema(best_extrem, finer_extrema, max_diff=40):
     if len(finer_extrema) == 0:
@@ -260,43 +275,15 @@ def _find_close_extrema(best_extrem, finer_extrema, max_diff=40):
     return None
 
 
-def _get_extrema(smoothing_list, cumul_k, sense, normalize, debug=False):
-    """
-    Returns a list of extrema, from smoothest to roughest
-
-    :param smoothing list: list of smoothings in number of samples
-    :param cumul_k: cumulative kurtosis Trace
-    :param sens: 'maxi' or 'mini', passed on to ext_indices
-    :param normalize: passed on to _cum2grad()
-    :returns: list of {indices: value, trace: value} from smoothest to
-        roughest.  value is the approximate height of the kurtosis jump
-    """
-    extrema, gradients = [], []
-    # Put the strongest smoothing first
-    sorted_smooth = sorted(smoothing_list, reverse=True)
-    for smoothing in sorted_smooth:
-        v_smooth = smooth_filter(cumul_k, smoothing)
-        v_smooth = _cum2grad(v_smooth, normalize)
-        ext_indices, _ = _loca_ext(v_smooth, None, None, sense)
-        extrema.append([{'index': i, 'value': -v_smooth.data[i]}
-                        for i in ext_indices])
-        gradients.append(v_smooth)
-    # create a list of {index:  value:} dictionaries with all of the
-    # detected extrema in the smoothest trace
-    # extrema = [{'index': i, 'value': extrema[0]['trace'].data[i]}
-    #            for i in extrema[0]['indices']]
-    return extrema, gradients, sorted_smooth
-
-
-def _select_extrema(extrema, N, sense='max', threshold=0.1):
+def _select_extrema(extrema, N, order='max', threshold=0.1):
     """
     Return N extrema, ordered by size or time
     :param extrema: list of {'value': val, 'index': i}
-    :param sense: 'max' return from largest to smallest
+    :param order: 'max' return from largest to smallest
                   'first': return from first to last
-    :param threshold: minimum value to accept for sense=='first'
+    :param threshold: minimum value to accept for ex=='first'
     """
-    if sense == 'first':
+    if order == 'first':
         big_extrema = [x for x in extrema if x['value'] >= threshold]
         if len(big_extrema) > 1:
             ext = sorted(big_extrema, key=lambda k: k['index'])
@@ -306,20 +293,20 @@ def _select_extrema(extrema, N, sense='max', threshold=0.1):
             selected = [x for x in ext[:N:-1]]
         except Exception:
             selected = [x for x in ext[::-1]]
-    elif sense == 'max':
+    elif order == 'max':
         ext = sorted(extrema, key=lambda k: np.abs(k['value']), reverse=True)
         try:
             selected = [x for x in ext[:N]]
         except Exception:
             selected = [x for x in ext]
     else:
-        raise NameError("sense not 'max' or 'first'")
+        raise NameError("order not 'max' or 'first'")
     return selected
 
 
 def _fast_kurtosis(trace, win_samps):
     """
-    Compute kurtosis really quickly using "filter" function
+    Compute kurtosis quickly using "filter" function
 
     could I just use obspy kurtosis?
 
@@ -328,23 +315,20 @@ def _fast_kurtosis(trace, win_samps):
     :returns: Kurtosis trace
     """
     assert isinstance(trace, Trace), "trace is not an obspy Trace"
+    out = trace.copy()
     win_samps = int(round(win_samps))
-    # log(win_samps, 'debug')
-    # fast_kurtosis.m:11
+    # log(f'{win_samps=}', 'debug')
     if win_samps == 1:
         win_samps = 2
-
-    # Set NaNs to 0 for computational stability
-    f = trace.copy()
-    f.detrend(type='demean')
-    # f.data[np.isnan(f.data)] = 0
-
-    # Compute kurtosis
     a = np.divide(np.ones(win_samps), float(win_samps))
     b = 1.
+
+    f = trace.copy()
+    f.detrend(type='demean')
+
+    # Compute kurtosis
     m_2 = lfilter(a, b, f.data**2)
     m_4 = lfilter(a, b, f.data**4)
-    out = trace.copy()
     out.data = np.divide(m_4, (m_2 ** 2))
     # Protect against edge effect
     out.data[:win_samps] = out.data[win_samps]
@@ -352,9 +336,9 @@ def _fast_kurtosis(trace, win_samps):
     # Set any kurtosis value to nan for any indices within win_samples of
     # an NaN in the original data.
     # I think this is outdated, should just trim
-    for i in np.nonzero(trace.data == np.nan)[0]:
-        if i:
-            out.data[i: i + win_samps] = np.nan
+    # for i in np.nonzero(trace.data == np.nan)[0]:
+    #     if i:
+    #         out.data[i: i + win_samps] = np.nan
     return out
 
 
@@ -380,12 +364,14 @@ def _f_cumul(f):
         bare_trace = True
     g = f.copy()
     for t in g:
-        tdata = t.data.copy()    # Backup copy for info
+        # tdata = t.data.copy()    # Backup copy for info
         t.data[np.isnan(t.data)] = 0
-        t.differentiate(method='gradient')
+        t.data = np.gradient(t.data)
+        # t.data = np.diff(t.data, prepend=0)
+        # t.differentiate(method='gradient')
         t.data[t.data < 0] = 0
         t.data = np.cumsum(t.data)
-        t.data[np.isnan(tdata)] = np.nan
+        # t.data[np.isnan(tdata)] = np.nan
 
     p = g.copy()
 
@@ -420,8 +406,6 @@ def _f_segment(f):
     segments = []
     # for i in arange(1,n).reshape(-1):
     for trace in f:
-        # print(type(trace), trace)
-        # clear('a','b','ya','yb','lin')
         a = np.nonzero(np.isfinite(trace.data))[0][0]
         b = np.nonzero(np.isfinite(trace.data))[0][-1]
         ya = trace.data[a]
@@ -457,20 +441,22 @@ def _cum2grad(f_in, normalize=False, debug=False):
     assert not len(f_in) == 0, 'f_in is empty!'
 
     tycalpha = np.zeros(len(f_in.data))
-    tikxs, _ = _loca_ext(f_in, None, None, 'maxi')
-    a = int(np.nonzero(np.isfinite(f_in.data))[0][0])
-    b = int(np.nonzero(np.isfinite(f_in.data))[0][-1])
+    tikxs = _loca_ext(f_in, 'maxi')
+    # a = int(np.nonzero(np.isfinite(f_in.data))[0][0])
+    # b = int(np.nonzero(np.isfinite(f_in.data))[0][-1])
+    a = 0
+    b = len(f_in.data) - 1
+    # print(f'{f_in.data.shape=}, {tycalpha.shape=}, {b=}')
+    # print(f'{tikxs=}')
     # tikxs = tikxs.to_list()
     if len(tikxs) == 0:
         tikxs = np.array([a, b])
     else:
         tikxs = np.array([a] + tikxs.tolist() + [b])
 
-    tikys = f_in.data[tikxs]
     # function equal to the next peak
-    for ilo, ihi, y in zip(tikxs[:-2], tikxs[1:], tikys[1:]):
-        tycalpha[ilo:ihi] = y
-        # tycalpha[np.arange(tikx(j), tikx(j + 1))] = tiky(j + 1)
+    for j in range(len(tikxs)-2, -1, -1):
+        tycalpha[tikxs[j]:tikxs[j+1]+1] = f_in.data[tikxs[j+1]]
 
     f_out = f_in.copy()
     f_out.data -= tycalpha          # input minus the next peak value
@@ -482,30 +468,32 @@ def _cum2grad(f_in, normalize=False, debug=False):
     return f_out
 
 
-def _loca_ext(trace, starttime, endtime, type_, debug=False):
+def _loca_ext(trace, ext_type, starttime=None, endtime=None, debug=False):
     """
     Returns local extrema
 
     Actually just returns where the trace slope changes from positive to
-    negative (type_=='maxi'), or vice versa (type='mini')
+    negative (ext_type=='maxi'), or vice versa (type='mini')
     :param trace: waveform trace
+    :param ext_type: 'maxi' or 'mini'
     :param start_time: start of window to look at
     :param end_time: end of window to look at
-    :param type_: 'maxi' or 'mini'
-    :returns: indice, trace_value, diff_value
+    :returns: indices
     """
+    assert ext_type in ('mini', 'maxi')
     diff = trace.copy()
-    diff.data = np.diff(np.sign(np.diff(trace.data)))
-    diff = diff.slice(starttime, endtime)
+    diff.data = np.diff(np.sign(np.diff(trace.data)), prepend=0)
+    if starttime is not None or endtime is not None:
+        diff.trim(starttime, endtime)
     if debug:
         diff.plot()
-    if type_ == 'maxi':
+    if ext_type == 'maxi':
         loc = (diff.data < 0)
     else:
         loc = (diff.data > 0)
 
     i_extremes = np.nonzero(loc)[0] + 1
-    return i_extremes, trace.data[i_extremes]
+    return i_extremes
 
 
 def _mean_trace(traces):
@@ -517,23 +505,27 @@ def _mean_trace(traces):
     """
     if isinstance(traces, Trace):
         return traces.copy()
-    if isinstance(traces[0], Trace):
+    elif isinstance(traces[0], Trace):
         if len(traces) == 1:
             return traces[0].copy()
     else:
-        assert isinstance(traces[0][0], Trace),\
-            "traces not a Trace, list of Traces, or list of lists of Traces"
-        traces = [t for x in traces for t in x]
+        ValueError("traces is not a Trace or a list of Traces")
 
-    data_len = len(traces[0].data)
-    for tr in traces[1:]:
-        assert len(tr.data) == data_len, 'traces are not the same length'
-
-    mean_tr = traces[0].copy()
-    for tr in traces[1:]:
-        mean_tr.data += tr.data
-    mean_tr.data /= len(traces)
-    return mean_tr
+    s = Stream(traces).copy()
+    s = s.stack(npts_tol=1, time_tol=1./traces[0].stats.sampling_rate)
+    if s[0].stats.starttime.timestamp == 0:
+        ValueError('input traces did not start at same time')
+    return s[0]
+    # data_len = len(traces[0].data)
+    # for tr in traces[1:]:
+    #     assert len(tr.data) == data_len, 'traces are not the same length'
+    #
+    # log(f'Calculating mean of {len(traces):d} traces', 'debug')
+    # mean_tr = traces[0].copy()
+    # for tr in traces[1:]:
+    #     mean_tr.data += tr.data
+    # mean_tr.data /= len(traces)
+    # return mean_tr
 
 
 if __name__ == '__main__':

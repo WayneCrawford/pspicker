@@ -44,3 +44,17 @@ cleaned up parameter file reading, fixed log_level use in run_many()
 
 ## v0.4.1:
  - Updated pyyaml and fixed some pathlib errors
+ 
+# v0.5:
+
+Updated PAZ to have separate initialization routines for pole-zero gain and
+bandpass gain.  This changes the class initialization function and so requires
+a major version change.
+
+Also got rid of sampling_rate attribute, a relic of C Baillard's code but 
+which doesn't belong in a Pole-Zero
+
+Also changed behavior of setting input_unit to an unknown value: previously
+accepted the name, now keeps the old name if it can't convert units (was
+a problem when saving unknown units to json_pz files, which forced units to 
+m/s, even if they were Pascals)

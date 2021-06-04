@@ -99,12 +99,18 @@ class TestADDONSMethods(unittest.TestCase):
         """
         Test calculating amplitudes
         """
-        obj = PAZ(poles=[6.228 + 6.228j, 6.228 - 6.228j], zeros=[0, 0],
-                     input_units='m/s', output_units='counts',
-                     ref_gain=1500., ref_freq=1.)
-        obj_nm = PAZ(poles=[6.228 + 6.228j, 6.228 - 6.228j], zeros=[0, 0, 0],
-                     input_units='nm', output_units='counts',
-                     ref_gain=9.42e-6, ref_freq=1.)
+        obj = PAZ.from_refgain(1500., 
+                               poles=[6.228 + 6.228j, 6.228 - 6.228j],
+                               zeros=[0, 0],
+                               ref_freq=1.,
+                               input_units='m/s',
+                               output_units='counts')
+        obj_nm = PAZ.from_refgain(9.42e-6,
+                                  poles=[6.228 + 6.228j, 6.228 - 6.228j],
+                                  zeros=[0, 0, 0],
+                                  ref_freq=1.,
+                                  input_units='nm',
+                                  output_units='counts')
         self.assertNotEqual(obj, obj_nm)
         self.assertAlmostEqual(obj.norm_factor, 2.205, places=3)
         obj.input_units='nm'
@@ -115,9 +121,12 @@ class TestADDONSMethods(unittest.TestCase):
         """
         Test calculating norm_factor
         """
-        obja = PAZ(poles=[6.228 + 6.228j, 6.228 - 6.228j], zeros=[0, 0],
-                     input_units='m/s', output_units='counts',
-                     ref_gain=1500., ref_freq=1.)
+        obja = PAZ.from_refgain(1500.,
+                                poles=[6.228 + 6.228j, 6.228 - 6.228j],
+                                zeros=[0, 0],
+                                ref_freq=1.,
+                                input_units='m/s',
+                                output_units='counts')
         self.assertAlmostEqual(obja.norm_factor, 2.205, places=3)
         obja.input_units = 'nm'
         self.assertAlmostEqual(obja.calc_norm_factor(), 0.3509, places=3)

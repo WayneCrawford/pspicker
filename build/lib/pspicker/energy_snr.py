@@ -34,7 +34,8 @@ class EnergySNR():
             snr_dB = self.snr.copy()
             snr_dB.data = 20*np.log10(snr_dB.data)
             snr_dB.stats.channel = 'SDB'
-            Stream([snr_dB, self.snr, self.nrg]).plot(equal_scale=False)
+            Stream([stream[0], snr_dB, self.snr, self.nrg]).plot(
+                equal_scale=False)
 
     def copy(self):
         return copy.copy(self)
@@ -48,13 +49,13 @@ class EnergySNR():
         for t in temp:
             t.data = np.power(t.data, 2)
         try:
-            energy = temp.stack(npts_tol=1, 
+            energy = temp.stack(npts_tol=1,
                                 time_tol=1/temp[0].stats.sampling_rate)[0]
             if energy.stats.starttime.timestamp == 0:
                 log('stacked traces are offset by more than one sample'
                     'setting starttime to stream[0].stats.starttime',
                     'error')
-                energy.stats.starttime = stream[0].stats.starttime  # 
+                energy.stats.starttime = stream[0].stats.starttime
         except ValueError as err:
             log(err, 'error')
             log('Slicing to same size', 'warning')
@@ -131,24 +132,36 @@ class EnergySNR():
         SNR_threshold_crossings times
         :param n_smooth: length of moving average filter to apply before
             analysis
+        :returns: is_trustworthy, info_text
         """
         # Pick_Function.m:380
         if self.snr.stats.npts == 0:
             log(f'station {self.station} self.snr has zero length', 'error')
-            return False
+            return False, 'error'
         snr_smooth = smooth_filter(self.snr, n_smooth)
         if snr_smooth is None:
             log('Could not smooth_filter self.snr for station "{}"'
                 .format(self.station), 'error')
             log(self.snr, 'error')
-            return False
+            return False, 'error'
         self._set_snr_threshold(snr_smooth)
         sign_change = np.diff(np.sign(snr_smooth.data - self.snr_threshold))
         crossings = len(sign_change[sign_change == 2])
         if debug:
             snr_smooth.plot()
+        max_cross = self.params.max_threshold_crossings
+        trustworthy = (crossings > 0 and crossings <= max_cross)
+        if not trustworthy:
+            s = 'not trustworthy: '
+            if crossings == 0:
+                s += f'never crossed the threshold ({self.snr_threshold})'
+            else:
+                s += f'crossed the threshold ({self.snr_threshold}) '
+                s += f'{crossings:d} times (> {max_cross:d})'
+        else:
+            s = "trustworthy"
         return (crossings > 0
-                and crossings <= self.params.max_threshold_crossings)
+                and crossings <= self.params.max_threshold_crossings), s
 
     def _set_snr_threshold(self, snr_smooth):
         """

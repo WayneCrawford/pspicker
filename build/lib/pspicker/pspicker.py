@@ -2,12 +2,12 @@
 # from smop.libsmop import *
 
 # Standard libraries
-import os.path
+from pathlib import Path
 import shutil
 import warnings
-import glob
-import warnings
-import logging
+# import glob
+# import warnings
+# from logging import info
 from datetime import datetime
 # import sys
 
@@ -34,10 +34,13 @@ from .associator import Associator
 from .plotter import Plotter
 from .local_amplitude import LocalAmplitude
 from .utils import (select_traces, smooth_filter, picks_ps_times)
-from .logger import log, setup_log
+from .logger import setup_log, log
 from .timer import Timer
 
-warnings.filterwarnings("ignore", message="Lines of type I have not been implemented yet, please submit a development request")
+warnings.filterwarnings("ignore",
+                        message="Lines of type I have not been implemented "
+                                "yet, please submit a development request")
+
 
 class PSPicker():
     """
@@ -46,8 +49,7 @@ class PSPicker():
     """
     def __init__(self, parm_file, wav_base_path, database_path_in,
                  database_path_out='./Sfile_directory',
-                 database_format='NORDIC',
-                 verbose=True, debug_plots=False):
+                 database_format='NORDIC'):
         """
         :param parm_file: path/name of the parameter file
         :param wav_base_path: absolute basepath to the waveform files
@@ -59,20 +61,20 @@ class PSPicker():
             'NORDIC': assume waveform files and database files are named using
                 SEISAN conventions and located in YEAR/MONTH subdirectories
                 under wav_base_path and database_path_in, respectively
-        :param verbose: output "verbose" and "debug" logs to console
-                        (will be flagged "DEBUG" because logging module has
-                        no "VERBOSE" level)
-        :param debug_plots: plot some "debugging" plots
         """
         self.parm_file = parm_file
-        self.wav_base_path = wav_base_path
-        self.database_path_in =database_path_in
-        self.database_path_out = database_path_out
+        self.wav_base_path = Path(wav_base_path)
+        self.database_path_in = Path(database_path_in)
+        self.database_path_out = Path(database_path_out)
+        if not self.database_path_out.is_dir():
+            assert not self.database_path_out.exists()
+            self.database_path_out.mkdir()
         # self.database_filename = None
         self.param = PickerParameters.from_yaml_file(parm_file)
-        self.verbose = verbose
-        self.debug_plots = debug_plots
+        self.debug_plots = False
         self.run = None
+        self.assoc = None
+        # self.log_level = None
 
     def __str__(self):
         """
@@ -84,28 +86,33 @@ class PSPicker():
         return str
 
     def run_many(self, start_date, end_date, plot_global=False,
-                 plot_stations=False, verbose=False, ignore_fails=False):
+                 plot_stations=False, ignore_fails=True, log_level='info'):
         """
         Loops over events in a date range
 
-        :param start_date: "YYYYMMDD" or "YYYYMMDDHHMM" of first data to process
-        :param end_date: "YYYYMMDD" of last data to process
+        :param start_date: first data to process
+        :param end_date: last data to process
+        :type start_date, end_date: str of format "YYYYMMDD" or "YYYYMMDDHHMM"
         :param plot_global: show global and overall pick plots
         :param plot_stations: show individual station plots
         :param ignore_fails: keep going if one run fails
+        :param log_level: console log level (choices = 'debug', 'verbose',
+            'info', 'warning', 'error', 'critical'), default='info'
         """
-        if verbose:
-            setup_log(logging.DEBUG)
-        else:
-            setup_log(logging.INFO)
+        setup_log(log_level)
+        # self.log_level = log_level
         start_dt = self._split_date(start_date)
         end_dt = self._split_date(end_date)
         debug_fname = 'ps_picker_debug_{}-{}_run{}.txt'.format(
                 start_date, end_date, datetime.today().strftime('%Y%m%d'))
-        print('Running from {} to {}'.format(start_dt.strftime("%Y%m%d-%H%M"),
-                                             end_dt.strftime("%Y%m%d-%H%M")))
+        log('Running from {} to {}'.format(start_dt.strftime("%Y%m%d-%H%M"),
+                                           end_dt.strftime("%Y%m%d-%H%M")))
+
+        # Print parameter information
+        log(str(self.param), 'verbose')
+
         def _date_match(y, m, d, ref):
-            return y == ref.year and m == ref.month and d==ref.day
+            return y == ref.year and m == ref.month and d == ref.day
 
         for year in range(start_dt.year, end_dt.year + 1):
             first_month = 1
@@ -119,24 +126,24 @@ class PSPicker():
                 last_day = 31
                 if year == start_dt.year and month == start_dt.month:
                     first_day = start_dt.day
-                    first_hour = start_dt.hour
-                    first_minute = start_dt.minute
+                    # first_hour = start_dt.hour
+                    # first_minute = start_dt.minute
                 if year == end_dt.year and month == end_dt.month:
                     last_day = end_dt.day
                 for day in range(first_day, last_day + 1):
                     kwargs = {}
                     if _date_match(year, month, day, start_dt):
-                            kwargs['first_hour'] = start_dt.hour
-                            kwargs['first_minute'] = start_dt.minute
+                        kwargs['first_hour'] = start_dt.hour
+                        kwargs['first_minute'] = start_dt.minute
                     if _date_match(year, month, day, end_dt):
-                            kwargs['last_hour'] = end_dt.hour
-                            kwargs['last_minute'] = end_dt.minute
+                        kwargs['last_hour'] = end_dt.hour
+                        kwargs['last_minute'] = end_dt.minute
                     self._run_one_day(year, month, day, plot_global,
                                       plot_stations, ignore_fails,
-                                      debug_fname, verbose, **kwargs)
+                                      debug_fname, **kwargs)
 
     def run_one(self, database_filename, plot_global=True, plot_stations=False,
-                assoc=None, verbose=False, debug_plots=None):
+                assoc=None, log_level='verbose', debug_plots=None):
         """
         Picks P and S arrivals on one waveform, using the Kurtosis
 
@@ -144,19 +151,22 @@ class PSPicker():
         :param database_filename: database file to read
         :param plot_global: show global and overall pick plots
         :param plot_stations: show individual station plots
-        :param assoc: Associator object (useful for multiple runs with same
+        :param assoc: Associator object (used for multiple runs with same
             Associator)
-        :param verbose: same as in creator
-        :param debug_plots: same as in creator
+        :param log_level: console log level (choices = 'debug', 'verbose',
+            'info', 'warning', 'error', 'critical').  If None, do not setup log
+        :param debug_plots: plot some "debugging" plots
         """
-        if verbose is not None:
-            self.verbose = verbose
+        # if not self.log_level:
+        #     setup_log(log_level)
+        #     self.log_level = log_level
+        if log_level is not None:
+            setup_log(log_level)
+        if self.assoc is None:
+            self.assoc = Associator(self.param.assoc)
         if debug_plots is not None:
             self.debug_plots = debug_plots
-        if self.verbose:
-            setup_log(logging.DEBUG)
-        else:
-            setup_log(logging.INFO)
+        log(f'running {database_filename}', 'debug')
         timer = Timer(logger=None)
         timer.start()
         # Run basic Kurtosis and assoc to find most likely window for picks
@@ -168,7 +178,7 @@ class PSPicker():
         st, wavefile = self._read_waveforms(
             self._full_nordic_database_filename(database_filename))
         # print(st.__str__(extended=True))
-        if len(st)==0:
+        if len(st) == 0:
             log('No data found in {wavefile}, referred by {database_filename}',
                 'error')
             return
@@ -189,8 +199,7 @@ class PSPicker():
         for sta, chan_map in self.run.channel_maps.items():
             # Reject stations not listed in parameter file
             if sta not in self.param.stations:
-                log(f'{sta} not in self.param.stations, ignored',
-                        'warning')
+                log(f'{sta} not in self.param.stations, ignored', 'warning')
                 continue
             # with Timer(text="Pick one station: {:0.4f}s"):
             p, c = self._pick_one_station(sta, chan_map, plotter)
@@ -198,13 +207,8 @@ class PSPicker():
             candidates.extend(c)
 
         # with Timer(text="Associate: {:0.4f}s"):
-        log(f'{len(picks):d} picks before association', 'verbose')
-        if assoc is None:
-            assoc = Associator(self.param.assoc, verbose=self.verbose)
-        picks = assoc.run(picks, candidates)
-        log(f'{len(picks):d} picks after association', 'verbose')
-        plotter.pw.plot_picks(picks, self.loop.t_begin, assoc.p_cluster,
-                              assoc.s_cluster, assoc.o_cluster)
+        picks = self.assoc.run(picks, candidates)
+        plotter.pw.plot_picks(picks, self.loop.t_begin, self.assoc)
         # with Timer(text="Save picks: {:0.4f}s"):
         # log(f'picks = {picks}', 'debug')
         picks = PickCandidate.remove_duplicates(picks)
@@ -218,57 +222,59 @@ class PSPicker():
         obspy_picks.extend(amp_picks)
         self._save_event(obspy_picks, amplitudes, obspy_arrivals)
         elapsed_time = timer.stop()
-        log('    {}: {:2d} Picks and {:2d} Amplitudes on {:2d} stations in {:0.2f} seconds'
-            .format(database_filename, len(obspy_picks) - len(amplitudes),
-                    len(amplitudes), len(cmaps), elapsed_time))
+        log('    {}: {:2d} Picks and {:2d} Amplitudes on {:2d} stations in '
+            '{:0.2f} seconds'.format(database_filename,
+                                     len(obspy_picks) - len(amplitudes),
+                                     len(amplitudes), len(cmaps),
+                                     elapsed_time))
 
     def _run_one_day(self, year, month, day, plot_global, plot_stations,
-                     ignore_fails, debug_fname, verbose, first_hour=None,
+                     ignore_fails, debug_fname, first_hour=None,
                      first_minute=None, last_hour=None, last_minute=None):
         """Select and run events for one day"""
-        db_path = os.path.join(self.database_path_in, f'{year:04d}',
-                                         f'{month:02d}')
-        s_paths = glob.glob(os.path.join(db_path, f'{day:02d}-*.S*'))
-        if len(s_paths) > 0:
+        log(f'Running {year}-{month}-{day}, {first_hour=}, '
+            f'{first_minute=}, {last_hour=}, {last_minute=}', 'debug')
+        db_path_in = self.database_path_in / f'{year:04d}' / f'{month:02d}'
+        s_files = list(db_path_in.glob(f'{day:02d}-*.S*'))
+        if len(s_files) > 0:
             if first_hour is not None or first_minute is not None:
-                s_paths = [p for p in s_paths if self._nordic_fname_after(
-                    p, first_hour, first_minute)]
+                s_files = [f for f in s_files if self._nordic_fname_after(
+                           f.name, first_hour, first_minute)]
             if last_hour is not None or last_minute is not None:
-                s_paths = [p for p in s_paths if self._nordic_fname_before(
-                    p, last_hour, last_minute)]
-        if len(s_paths) > 0:
+                s_files = [f for f in s_files if self._nordic_fname_before(
+                           f.name, last_hour, last_minute)]
+        s_files.sort()
+        if len(s_files) > 0:
             log('Running {:d} events on {:04d}-{:02d}-{:02d}'.format(
-                len(s_paths), year, month, day))
-            for s_path in s_paths:
-                s_file = os.path.basename(s_path)
+                len(s_files), year, month, day))
+            for s_file in s_files:
                 log("   Running {}...".format(s_file), 'verbose')
                 t = Timer(logger=None)
                 t.start()
                 try:
                     self.run_one(s_file, plot_global=plot_global,
-                                 plot_stations=plot_stations, verbose=verbose)
+                                 plot_stations=plot_stations, log_level=None)
                 except Exception as err:
                     log(f'run_one() failed for {s_file}', 'critical')
                     log(err, 'error')
                     if not ignore_fails:
                         raise Exception(err)
-                    log(f'copying original to dest', 'info')
-                    shutil.copyfile(s_path,
-                                    os.path.join(self.database_path_out,
-                                                 s_file))
-                elapsed_time = t.stop()
+                    log('copying original s-file to dest', 'info')
+                    inf = s_file
+                    outf = self.database_path_out / Path(s_file).name
+                    log(f'{inf} to {outf}')
+                    shutil.copyfile(inf, outf)
+                # elapsed_time = t.stop()
 
     @staticmethod
-    def _nordic_fname_after(p, hour, minute):
+    def _nordic_fname_after(f, hour, minute):
         """
         Returns True if the event is on or after the given hour-minute
-        :param p: file pathname
+        :param f: filename (str)
         :param first_hour:
         :param first_minute:
         """
-        f = os.path.basename(p)
-        ev_hour = int(f[3:5])
-        ev_minute = int(f[5:7])
+        ev_hour, ev_minute = int(f[3:5]), int(f[5:7])
         if ev_hour > hour:
             return True
         elif ev_hour == hour and ev_minute >= minute:
@@ -276,16 +282,14 @@ class PSPicker():
         return False
 
     @staticmethod
-    def _nordic_fname_before(p, hour, minute):
+    def _nordic_fname_before(f, hour, minute):
         """
         Returns True if the event is on or before the given hour-minute
-        :param p: file pathname
+        :param f: filename (str)
         :param hour:
         :param minutes:
         """
-        f = os.path.basename(p)
-        ev_hour = int(f[3:5])
-        ev_minute = int(f[5:7])
+        ev_hour, ev_minute = int(f[3:5]), int(f[5:7])
         if ev_hour < hour:
             return True
         elif ev_hour == hour and ev_minute <= minute:
@@ -306,7 +310,7 @@ class PSPicker():
             return datetime(int(d[:4]), int(d[4:6]), int(d[6:]))
         if len(d) == 12:
             return datetime(int(d[:4]), int(d[4:6]), int(d[6:8]), int(d[8:10]),
-                    int(d[10:]))
+                            int(d[10:]))
 
     def _pick_one_station(self, station_name, chan_map, plotter):
         """
@@ -333,19 +337,19 @@ class PSPicker():
             freqmin=station_params.energy_frequency_band[0],
             freqmax=station_params.energy_frequency_band[1])
         energy = EnergySNR(datS_filt, self.param.SNR, plot=self.debug_plots)
-        if not energy.slice(self.run.first_time,
-                        self.run.last_time).is_trustworthy():
-            log(f"{station_name}: snr untrustworthy, not picking", 'verbose')
-        else:
+        trust, message = energy.slice(self.run.first_time,
+                                      self.run.last_time).is_trustworthy()
+        log(f"{station_name}: SNR {message}", 'verbose')
+        if trust:
             # with Timer(text="  pick_one_station(): Kurtosis {:0.4f}s"):
-            log(f"{station_name}: snr trustworthy", level='verbose')
             c_P, c_S, kurt, candidates = self._run_Kurtosis(energy, plotter)
             for c in candidates:
                 c.station = station_name
 
             # Verify phases using Polarity analysis
             DR = None
-            # with Timer(text="  pick_one_station(): Polarity analysis {:0.4f}s"):
+            # with Timer(text="  pick_one_station(): Polarity analysis
+            #      {:0.4f}s"):
             if station_params.use_polarity and (len(datS_filt) == 3):
                 c_P, c_S, DR, candidates = self._polarity_analysis(
                         c_P, c_S, candidates, datS_filt)
@@ -353,8 +357,7 @@ class PSPicker():
                                  self.param.SNR.quality_thresholds,
                                  self.loop.datP[0],
                                  energy,
-                                 kurt.mean_kurtosis,
-                                 kurt.kurto_gradients,
+                                 kurt,
                                  DR,
                                  self.param.polarity.DR_threshold_P,
                                  self.param.polarity.DR_threshold_S)
@@ -364,7 +367,7 @@ class PSPicker():
                                       self.param.polarity.DR_threshold_S)
 
         plotter.pw.plot_traces_candidates(self.loop.datP, c_P, c_S,
-                                          candidates, station_name)
+                                          candidates, station_name, self.assoc)
         plotter.sw.onsets(c_P, c_S, self.loop.data_limits)
 
         new_picks = self._make_picks(c_P, c_S)
@@ -383,34 +386,36 @@ class PSPicker():
         return stream, full_wavefile
 
     def _get_nordic_wavefile_name(self, database_filename):
-        log(f'database filename = {database_filename}', level='verbose')
+        log(f'database filename = {database_filename}', 'verbose')
         cat, wav_names = read_nordic(database_filename, return_wavnames=True)
         assert len(wav_names) == 1, 'More than one wav_name in database file'
-        parts = wav_names[0][0].split('-')
-        full_wav_name = os.path.join(self.wav_base_path, parts[0], parts[1],
-                                     wav_names[0][0])
-        return full_wav_name
+        pts = wav_names[0][0].split('-')
+        full_wav_name = self.wav_base_path / pts[0] / pts[1] / wav_names[0][0]
+        return str(full_wav_name)
 
     def _full_nordic_database_filename(self, filename):
         """
         Look for a NORDIC database file and return its path
-        
+
         Looks in local directory, then self.database_path_in, then
         self.database_path_in/YEAR/month
+
+        :param filename: name of the file to look FormatControl
+        :type filename: str or pathlib.Path
         """
         # In local directory
-        if os.path.isfile(filename):
-            return os.path.join(filename)
+        if Path(filename).is_file():
+            return filename
         # In database directory
-        fullname = os.path.join(self.database_path_in, filename)
-        if os.path.isfile(fullname):
+        fullname = self.database_path_in / filename
+        if fullname.is_file():
             return fullname
         # In database/year/month directory
         a = filename.split('.')[-1]
         year = a[1:5]
         month = a[5:]
-        fullname = os.path.join(self.database_path_in, year, month, filename)
-        if os.path.isfile(fullname):
+        fullname = self.database_path_in / year / month / filename
+        if fullname.is_file():
             return fullname
         else:
             raise NameError(f'database file "{filename}" not found')
@@ -426,10 +431,10 @@ class PSPicker():
         t_end = max([t.stats.endtime for t in stream])
         chan_maps = select_traces(stream, self.param.channel_mapping_rules)
         plotter.gw.setup(t_begin, t_end, [s for s in chan_maps.keys()])
-        log(self._channel_maps_str(chan_maps), level='verbose')
+        log(self._channel_maps_str(chan_maps), 'verbose')
         distri, chan_maps = self._gw_get_distri(stream, chan_maps, plotter)
         ft, lt, distri = self._gw_set_window(t_begin, t_end, distri)
-        log(f'Global window bounds: {ft} to {lt}', level='verbose')
+        log(f'Global window bounds: {ft} to {lt}', 'verbose')
         return chan_maps, ft, lt
 
     def _channel_maps_str(self, channel_maps):
@@ -452,7 +457,7 @@ class PSPicker():
         :param stream: all traces
         :param channel_maps: mapping of channel names to components
         :param plotter: the plotter object
-        :n_smooth: how many samples to smooth over for calculating Kurtosis
+        :n_smooth: samples to smooth kurtosis over
         :returns: overall_distribution of extrema, channel_maps, plotter
         """
         # Pick_Function.m:134
@@ -468,11 +473,9 @@ class PSPicker():
                 log(f'Station {station} flat-lined, ignoring', 'warning')
                 rm_stations.append(station)
                 continue
-            k = Kurtosis([p.gw.kurt_frequency_band], [p.gw.kurt_window_length],
-                         n_smooth)
-            candidates = k.pick_trace(trace, p.gw.n_extrema,
-                                      extrem_smooths=[p.gw.
-                                                      kurt_extrema_smoothing])
+            p.gw.kurtosis.n_smooth = n_smooth
+            k = Kurtosis(p.gw.kurtosis)
+            candidates = k.pick_trace(trace, p.gw.max_candidates)
             for x in candidates:
                 x.station = station
             overall_distri.extend([x.time for x in candidates])
@@ -523,14 +526,10 @@ class PSPicker():
         first_time, last_time = self._refine_pick_window(energy.nrg)
         if len(self.loop.datP) > 1:
             warnings.warn('Only working on first trace in datP')
-        k = Kurtosis(self.loop.station_params.kurt_frequency_bands,
-                     self.loop.station_params.kurt_window_lengths,
-                     1)
+        k = Kurtosis(self.loop.station_params.kurtosis)
         candidates = k.pick_trace(self.loop.datP[0],
-                                  self.loop.station_params.n_extrema,
-                                  first_time, last_time,
-                                  extrem_smooths=self.loop.station_params.
-                                  kurt_extrema_smoothings)
+                                  self.loop.station_params.max_candidates,
+                                  first_time, last_time)
         #  Trace.times('utcdatetime') takes 0.3s per call!
         times = energy.snr.times('timestamp')
         imax = energy.snr.stats.npts - 1
@@ -564,7 +563,8 @@ class PSPicker():
         # print(energy_smooth, type(energy_smooth), energy_smooth.data)
         ind_max = np.nanargmax(energy_smooth.data)
         last_sample = ind_max.copy()
-        max_kurto_wind = np.max(self.loop.station_params.kurt_window_lengths)
+        max_kurto_wind = np.max(self.loop.station_params.kurtosis
+                                                        .window_lengths)
         max_precursor = np.floor(
             sr * (self.loop.station_params.energy_window + max_kurto_wind))
         first_sample = ind_max - max_precursor
@@ -594,8 +594,7 @@ class PSPicker():
         pol = Polarity(datS_filtered, params=self.param.polarity,
                        zcomponents=self.param.channel_mapping_rules.compZ,
                        ncomponents=self.param.channel_mapping_rules.compN,
-                       ecomponents=self.param.channel_mapping_rules.compE,
-                       verbose=self.verbose)
+                       ecomponents=self.param.channel_mapping_rules.compE)
         DR = pol.calc_dip_rect([c.time for c in candidates])
         if DR is None:
             log("DR not returned, keeping input picks", "debug")
@@ -638,11 +637,11 @@ class PSPicker():
         """
         # Pick_Function.m:507
         # eliminate extrema whose snr is less than SNR.thresh
-        n_extrema = self.loop.station_params.n_extrema
-        # assert n_extrema in (1, 2), 'n_extrema is not 1 or 2'
+        max_candidates = self.loop.station_params.max_candidates
+        # assert max_candidates in (1, 2), 'max_candidates is not 1 or 2'
         if len(candidates) == 0:
             return None, None
-        if n_extrema == 1:
+        if max_candidates == 1:
             return candidates[0], None
         else:
             # log(extrema, level='debug')
@@ -727,13 +726,13 @@ class PSPicker():
             picks=picks,
             origins=[origin],
             amplitudes=amplitudes)
-        log(event, level='verbose')
+        log(event, 'verbose')
         cat = obspy_Catalog(events=[event])
         # How to change uncertainties to "0", "1", "2", "3"?
         # By creating an associated arrival and setting it's time_weight
         # to the appropriate number (which makes no sense because
         # a weight of zero should have no importance!)
-        output_dbfile = os.path.join(filepath, filename)
+        output_dbfile = Path(filepath) / filename
         cat.write(output_dbfile, format='NORDIC', evtype=evtype,
                   wavefiles=wavefiles, high_accuracy=True)
 
@@ -747,7 +746,7 @@ class PSPicker():
         else:
             o_time = estimate_origin_time(picks)
         self.save_nordic_event(picks, o_time, self.database_path_out,
-                               os.path.basename(self.run.database_filename),
+                               Path(self.run.database_filename).name,
                                amplitudes=amplitudes,
                                arrivals=arrivals,
                                wavefiles=[self.run.wavefile])
@@ -776,7 +775,7 @@ def _check_timelimits(st, ft, lt):
         stream.traces = bad_traces
         log('some traces are outside of the pick window:', 'error')
         log(stream, 'error')
-        
+
 
 def center_distri(v, win_size, n_steps=1000):
     """
@@ -832,7 +831,7 @@ def _average_ps_o_time(picks, vp_vs):
     if ps_delays is None:
         return None
     for ps, p in zip(ps_delays, p_times):
-        o_times.append(Associator.estimate_origin_time(p, p+ps, vpvs=vp_vs))
+        o_times.append(Associator.calc_origin_time(p, p+ps, vpvs=vp_vs))
     # Throw out nans
     o_ts = [o.timestamp for o in o_times]
     # log(o_ts, 'debug')
@@ -849,7 +848,8 @@ def _average_ps_o_time(picks, vp_vs):
         zs = np.abs(stats.zscore([x for x in o_ts]))
         # log(zs, 'debug')
         if np.any(np.isnan(zs)):
-            log(f"can't use z-values because they have NaNs ({len(o_ts)} origin_time(s))", 'warning')
+            log("can't use z-values because they have NaNs "
+                f"({len(o_ts)} origin_time(s))", 'warning')
             mean_timestamp = np.mean(o_ts)
         else:
             mean_timestamp = np.mean([o for o, z in zip(o_ts, zs) if z < 3])

@@ -11,7 +11,7 @@ class SNRParameters():
                  signal_window,
                  noise_window,
                  quality_thresholds,
-                 max_threshold_crossings=2,
+                 max_threshold_crossings=5,
                  threshold_parameter=0.2):
         """
         Initialize signal-to-noise ratio parameters
@@ -44,7 +44,7 @@ class SNRParameters():
         str += f"    signal_window = {self.signal_window}\n"
         str += f"    noise_window = {self.noise_window}\n"
         str += f"    quality_thresholds = {self.quality_thresholds}\n"
-        str += f"    max_threshold_crossings = "
+        str += "    max_threshold_crossings = "
         str += f"{self.max_threshold_crossings}\n"
         str += f"    threshold_parameter = {self.threshold_parameter}\n"
         return str

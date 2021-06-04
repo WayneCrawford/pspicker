@@ -56,60 +56,42 @@ class PAZ():
                  "mgal":    [1.e-5, 0],
                  "ugal":    [1.e-8, 0]}
 
-    def __init__(self, gain, poles=[], zeros=[], ref_freq=1.,
-                 input_units='m/s', output_units='counts',
-                 norm_factor=None, sampling_rate=None):
+    def __init__(self, poles=[], zeros=[], ref_gain=None,
+                 input_units='m/s', output_units='counts', ref_freq=1.,
+                 gain=None, norm_factor=None, sampling_rate=None):
         """
-        Initialize using pole-zero gain (NOT passband gain)
+        Can either specify gain or ref_gain, not both
 
-        Pole and zero Frequency units are radians, ref_freq is Hertz
+        Frequency units are radians
 
-        :param gain: pole-zero gain (NOT passband gain)
         :param poles: poles (rad/s)
         :param zeros: zeros (rad/s)
+        :param ref_gain: gain at ref_freq (should be w/in instrument passband)
         :param ref_freq: reference frequency (Hz) for passband gain
         :param input_units: units (usually physical) at the sensor entry
         :param output_units: units as stored
+        :param gain: pole-zero gain (NOT passband gain)
         :param norm_fact: A0 normalization factor
         :param sampling_rate: channel sampling rate (used for response plot))
         """
-        self.gain = gain
+        assert gain is None or ref_gain is None,\
+            "both gain and ref_gain cannot be declared"
+        if gain is None and ref_gain is None:
+            ref_gain = 1.
         self.poles = np.array(poles)
         self.zeros = np.array(zeros)
-        self.ref_freq = ref_freq
         self._input_units = input_units
         self.output_units = output_units
+        self.ref_freq = ref_freq
         if norm_factor is None:
             self._norm_factor = self.calc_norm_factor()
         else:
             self._norm_factor = norm_factor
         self.sampling_rate = sampling_rate
-
-    @classmethod
-    def from_refgain(cls, ref_gain, poles=[], zeros=[], ref_freq=1.,
-                     input_units='m/s', output_units='counts',
-                     norm_factor=None, sampling_rate=None):
-        """
-        Initialize using gain at ref_freq
-
-        Pole and zero Frequency units are radians, ref_freq is Hertz
-
-        :param ref_gain: gain at ref_freq (should be w/in instrument passband)
-        :param poles: poles (rad/s)
-        :param zeros: zeros (rad/s)
-        :param ref_freq: reference frequency (Hz) for passband gain
-        :param input_units: units (usually physical) at the sensor entry
-        :param output_units: units as stored
-        :param norm_fact: A0 normalization factor
-        :param sampling_rate: channel sampling rate (used for response plot))
-        """
-        cls = PAZ(1, poles=poles, zeros=zeros, ref_freq=ref_freq,
-                  input_units=input_units,
-                  output_units=output_units,
-                  norm_factor=norm_factor,
-                  sampling_rate=sampling_rate)
-        cls.gain = ref_gain * cls.calc_norm_factor() / cls.norm_factor
-        return cls
+        if gain is not None:
+            self.gain = gain
+        else:
+            self.gain = ref_gain * self.calc_norm_factor() / self.norm_factor
 
     @property
     def ref_gain(self):
@@ -140,12 +122,8 @@ class PAZ():
         DEFINED UNITS (see _ref_meter()), changes gain, poles and zeros.
         """
         assert isinstance(value, str), 'value is not a character string'
-        try:
-            self._unit_conversion(value)
-            self._input_units = value
-        except Exception:
-            print('Could not convert input_units to "{}", keeping "{}"'
-                  .format(value, self._input_units))
+        self._unit_conversion(value)
+        self._input_units = value
 
     def _hp(self, freqs):
         """
@@ -347,9 +325,8 @@ class PAZ():
         # print(f'{new_input_units=}, {ogain=}, {onz=}')
 
         if igain is None or ogain is None:
-            raise ValueError('Could not convert')
-            # warnings.warn('Did not convert')
-            # return
+            warnings.warn('Did not convert')
+            return
 
         self.gain *= ogain / igain
         # if self._norm_factor is not None:
@@ -386,10 +363,11 @@ class PAZ():
             if stage.decimation_factor is not None:
                 sampling_rate /= stage.decimation_factor
 
-        cls = PAZ(stage.stage_gain, poles=stage.poles, zeros=stage.zeros,
-                  ref_freq=stage.stage_gain_frequency,
+        cls = PAZ(poles=stage.poles, zeros=stage.zeros,
                   input_units=stage.input_units,
-                  output_units=stage.output_units,  
+                  output_units=stage.output_units,
+                  ref_freq=stage.stage_gain_frequency,
+                  gain=stage.stage_gain,
                   norm_factor=stage.normalization_factor,
                   sampling_rate=sampling_rate)
         return cls
@@ -448,13 +426,13 @@ class PAZ():
             poles.append(float(p[0]) + float(p[1])*1.j)
         for z in paz['zeros']:
             zeros.append(float(z[0]) + float(z[1])*1.j)
-        val = cls.from_refgain(1./float(paz['sensitivity']),
-                               poles=poles, zeros=zeros,
-                               ref_freq=float(paz['f_ref']),
-                               input_units=paz.get('input_units', 'm/s'),
-                               output_units='counts',
-                               norm_factor=paz.get('norm_const', None),
-                               sampling_rate=paz.get('sampling_rate', None))
+        val = cls(poles=poles, zeros=zeros,
+                  ref_gain=1./float(paz['sensitivity']),
+                  ref_freq=float(paz['f_ref']),
+                  input_units=paz.get('input_units', 'm/s'),
+                  output_units='counts',
+                  norm_factor=paz.get('norm_const', None),
+                  sampling_rate=paz.get('sampling_rate', None))
         return val
 
     @classmethod
@@ -471,8 +449,6 @@ class PAZ():
                         for x in nscs]
             print('Multiple channels were selected, using {nsc_strs[0]}')
             print('Other channels were: ' + ','.join(nsc_strs[1:]))
-        elif len(nscs) == 0:
-            raise NameError(f'Did not find {station}, {channel} in {filename}')
         resp = nscs[0]["chan"].response
         return cls.from_obspy_response(resp)
 
@@ -528,9 +504,9 @@ class PAZ():
                     constant = float(a[1])
         # constant is norm_factor * gain, so if I set one to constant, I have
         # to set the other to 1.
-        val = cls(constant,
-                  poles=poles,
+        val = cls(poles=poles,
                   zeros=zeros,
+                  gain=constant,
                   norm_factor=1,
                   input_units='m',
                   output_units='counts')
@@ -578,14 +554,13 @@ class PAZ():
                 else:
                     continue
         info['f_ref'] = info.get('f_ref', 1.)
-        val = cls.from_refgain(1./info['sensitivity'],
-                               poles=info['poles'],
-                               zeros=info['zeros'],
-                               ref_freq=info['f_ref'],
-                               input_units='nm',
-                               output_units='counts',
-                               norm_factor=info.get('norm_const', None),
-                               sampling_rate=info['sampling_rate'])
+        val = cls(poles=info['poles'], zeros=info['zeros'],
+                  ref_gain=1./info['sensitivity'],
+                  ref_freq=info['f_ref'],
+                  input_units='nm',
+                  output_units='counts',
+                  norm_factor=info.get('norm_const', None),
+                  sampling_rate=info['sampling_rate'])
         return val
 
     @classmethod
@@ -619,14 +594,14 @@ class PAZ():
         info['f_ref'] = 1 / a[1]
         info['sampling_rate'] = a[2]
         info['A0'] = a[3]
-        val = cls.from_refgain(1/info['sensitivity'],
-                               poles=info['poles'],
-                               zeros=info['zeros'],
-                               ref_freq=info['f_ref'],
-                               input_units='nm',
-                               output_units='counts',
-                               norm_factor=info['A0'],
-                               sampling_rate=info['sampling_rate'])
+        val = cls(poles=info['poles'],
+                  zeros=info['zeros'],
+                  ref_gain=1/info['sensitivity'],
+                  ref_freq=info['f_ref'],
+                  input_units='nm',
+                  output_units='counts',
+                  norm_factor=info['A0'],
+                  sampling_rate=info['sampling_rate'])
         return val
 
     def known_units(self):

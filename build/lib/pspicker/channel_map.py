@@ -93,10 +93,6 @@ class ChannelMap():
             s += f'S_write_phase: {self.S_write_phase}\n'
             return s
 
-    # def _write_cmp_str(self, write_cmp):
-    #     return getattr(self, write_cmp).split('.')[-1]
-        # return write_cmp + '(' + getattr(self, write_cmp).split('.')[-1] + ')'
-
     def _shortChName(self, write_to):
         """Shortened channel name of the given seed_id"""
         seed_id = self[write_to]     # Dict acces to class parameter

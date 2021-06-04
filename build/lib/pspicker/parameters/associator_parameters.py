@@ -11,6 +11,7 @@ class AssociatorParameters():
                  cluster_window_otime,
                  cluster_window_P,
                  cluster_window_S,
+                 method='origin_time',
                  otime_vp_vs=1.75,
                  distri_min_values=4,
                  distri_nstd_picks=3.2,
@@ -32,6 +33,8 @@ class AssociatorParameters():
             standard distribution to accept for P picks, and for S picks
         :param distri_nstd_delays: same as above, for P-S delays
         """
+        assert method in ['origin_time', 'arrival_time']
+        self.method = method
         self.cluster_window_otime = otime_vp_vs
         self.otime_vp_vs = otime_vp_vs
         self.cluster_window_P = cluster_window_P
@@ -42,6 +45,7 @@ class AssociatorParameters():
 
     def __str__(self):
         str = "AssociatorParameters:\n"
+        str += f"    method = '{self.method}\n"
         str += f"    cluster_window_orig = {self.cluster_window_otime}\n"
         str += f"    otime_vp_vs = {self.otime_vp_vs}\n"
         str += f"    cluster_window_P = {self.cluster_window_P}\n"

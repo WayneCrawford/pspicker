@@ -1,4 +1,4 @@
-import warnings
+# import warnings
 import itertools
 
 import numpy as np
@@ -52,6 +52,7 @@ class Associator():
         33     7.8   4.4
         410    8.9   4.7
         """
+        self.method = params.method
         self.distri_min_values = params.distri_min_values
         self.cluster_window_P = params.cluster_window_P
         self.cluster_window_S = params.cluster_window_S
@@ -87,13 +88,56 @@ class Associator():
         Future upgrade: associate by position (requires velocity model and
         station positions)
         """
-        picks, associated = self.find_same_origin_time(picks, candidates)
-        if not associated:
-            log('Could not associate by origin time, trying pick clustering',
-                'verbose')
+        picks = PickCandidate.remove_duplicates(picks)
+        input_picks = picks.copy()
+        method = self.method
+        assert method in ['origin_time', 'arrival_time']
+        if method == 'origin_time':
+            assoc_str = 'origin times'
+            picks, associated = self.find_same_origin_time(picks, candidates)
+            if not associated:
+                log('Could not associate by origin time', 'verbose')
+                method = 'pick_time'
+        if method == 'arrival_time':
+            assoc_str = 'pick clustering'
             picks = self.remove_nonclustered(picks)
         picks = PickCandidate.remove_duplicates(picks)
+        self._assoc_stats(assoc_str, input_picks, picks)
         return picks
+
+    @staticmethod
+    def _assoc_stats(assoc_type, input_picks, output_picks):
+        """
+        Print information about accepted, rejected, added and changed picks
+        """
+        ops = output_picks.copy()
+        stats = {'accepted': [], 'rejected': [], 'modified': [], 'added': []}
+        # n_changes = 0
+        for p in input_picks:
+            if p in ops:
+                stats['accepted'].append(p.shortname)
+                ops.remove(p)
+            else:
+                op_remove = None
+                for op in ops:
+                    if (p.station == op.station
+                            and p.phase_guess == op.phase_guess):
+                        stats['modified'].append(p.shortname)
+                        op_remove = op
+                if op_remove is not None:
+                    ops.remove(op_remove)
+                else:
+                    stats['rejected'].append(p.shortname)
+        for p in ops:
+            stats['added'].append(p.shortname)
+
+        s = f'Associated by {assoc_type}: '
+        for key in stats:
+            s += f'{len(stats[key]):d} {key}, '
+        log(s, 'verbose')
+        for key in ['rejected', 'modified', 'added']:
+            if len(stats[key]) > 1:
+                log(f"{key.upper()}: {stats[key]}", 'debug')
 
     def remove_nonclustered(self, picks):
         """
@@ -135,14 +179,14 @@ class Associator():
             ots.append(self._ps_to_otime(p_pick[0].time, s_pick[0].time))
         if len(ots) < self.min_clust:
             log(f'less than {self.min_clust} P-S calculated origin times'
-                    ', cannot associate by this criteria', 'verbose')
+                ', cannot associate by this criteria', 'verbose')
             for p in picks:
                 log(f' {p}', 'verbose')
             return picks, False
         good_ots = self._cluster_clean_otimes([t for t in ots])
         if len(good_ots) < self.min_clust:
             log('less than {} P-S origin times agree, cannot associate'
-                    .format(self.min_clust), 'verbose')
+                .format(self.min_clust), 'verbose')
             for p in picks:
                 log(f' {p}', 'debug')
             return picks, False
@@ -197,7 +241,7 @@ class Associator():
                         new_picks.extend([p_existing, s_candidate])
                         self.o_cluster[station] = otimes[np.argmin(offsets)]
                         continue
-                # Otherwise, an S cand that matches with another cand, keep them
+            # Otherwise, an S cand that matches with another cand, keep them
             if s_existing is not None:
                 # log(f'{station}: s_existing top', 'debug')
                 cands = [x for x in sta_candidates if not x == s_existing]
@@ -321,12 +365,12 @@ class Associator():
         return good_picks
 
     def _get_origtime_delays(self, vel_mod, target_depth, max_dist=1.,
-                              num_vals=20):
+                             num_vals=20):
         """
         :param max_dist: maximum distance (degrees) at which to calculate
         :param num_vals: number of distances (from 0 to max_distance) at
             which to calculate delats
-        :returns: dict with keys 'op' and 'ps' corresponding to sorted lists 
+        :returns: dict with keys 'op' and 'ps' corresponding to sorted lists
             of delay times from origin-to-p and p-to-s
         """
         try:
@@ -358,11 +402,11 @@ class Associator():
         :param p_time: p arrival time
         :param s_time: s arrival time
         """
-        return self.estimate_origin_time(p_time, s_time, self.vp_over_vs,
-                                           self.delays)
+        return self.calc_origin_time(p_time, s_time, self.vp_over_vs,
+                                     self.delays)
 
     @staticmethod
-    def estimate_origin_time(p_time, s_time, vpvs=1.7, delays_model=None):
+    def calc_origin_time(p_time, s_time, vpvs=1.65, delays_model=None):
         """
         Calculate origin time given P and S arrival times
 
@@ -378,11 +422,11 @@ class Associator():
         origin_time = p_time
         if delays_model is not None:
             origin_time -= np.interp(s_time-p_time,
-                                     self.delays['ps'], self.delays['op'])
+                                     delays_model['ps'],
+                                     delays_model['op'])
         else:
             origin_time -= (s_time - p_time) / (vpvs - 1)
         return origin_time
-
 
     def _cluster_clean_otimes(self, times=None):
         """
@@ -392,8 +436,7 @@ class Associator():
                                         self.cluster_window_otime,  times)
         return [times[i] for i in indices]
 
-
-    def _cluster_clean_picks(self, window_sec=None, picks=None):
+    def _cluster_clean_picks(self, phase=None, picks=None):
         """
         Return picks fitting in the largest cluster
 
@@ -436,10 +479,11 @@ def cluster_clean_indices(min_clust=None, window_sec=None, times=None):
 
         if len(max_keys) > 1 and max_length >= min_clust:
             log('{:d} clusters of max_length ({:d}), returning first one'
-                          .format(len(max_keys), max_length), 'warning')
+                .format(len(max_keys), max_length), 'warning')
             log(np.nonzero(cluster_data == max_keys[0])[0], 'debug')
         indices = np.nonzero(cluster_data == max_keys[0])[0]
         return indices
+
 
 def clean_distri(values, n_std=3, mode='median', min_vals=3):
     """
@@ -473,7 +517,6 @@ def clean_distri(values, n_std=3, mode='median', min_vals=3):
     in_rm = np.nonzero(np.abs(dev) <= n_std * std)[0]
 
     return x[in_rm], in_rm
-
 
 
 def _pick_stations(picks):

@@ -55,6 +55,7 @@ class LocalAmplitude():
             self._set_ampl_window()
         # Should take advantage of obspy to read all standard formats
         self.paz = get_response(response_file, response_file_type)
+        self.paz.input_units = 'nm'
         self.traces = traces
 
     def __str__(self):
@@ -137,7 +138,7 @@ class LocalAmplitude():
                 paz_simulate = PAZ(
                     poles=[(-5.49779 - 5.60886j), (-5.49779 + 5.60886j)],
                     zeros=[(0+0j), (0+0j)],
-                    passband_gain=1, ref_freq=4.0,
+                    ref_gain=1, ref_freq=4.0,
                     input_units='nm', output_units='counts')
                 plot_units = 'Wood-And (nm)'
                 paz_simulate_obspy = paz_simulate.to_obspy()
@@ -205,7 +206,7 @@ class LocalAmplitude():
         else:
             if not len(pick) == 1:
                 log('{:d} picks have phase[0] == "{}": {}, returning first one'
-                    .format(len(pick), pick[0].phase_hint[0], pick),'error')
+                    .format(len(pick), pick[0].phase_hint[0], pick), 'error')
             return pick[0]
 
     def plot(self, transformed, Amp, trans_units):
@@ -326,7 +327,7 @@ def pk2pk(stream, start_time, end_time):
         # print(f'window = {window}')
         i_mins, _ = find_peaks(-1. * window)
         i_maxs, _ = find_peaks(window)
-        
+
         if len(i_mins) == 0 or len(i_maxs) == 0:
             return(None)
 
@@ -354,17 +355,17 @@ def get_response(filename, format=None, component=None):
     :param format: 'GSE', 'JSON_PZ, 'SACPZ', 'STATIONXML' or None
     :param component: component to read, if STATIONXML
     """
-    if format == 'GSE':
-        paz = PAZ.read_GSE(filename)
-    elif format == 'JSON_PZ':
-        paz = PAZ.read_JSON_PZ(filename)
-    elif format == 'SACPZ':
-        paz = PAZ.read_SACPZ(filename)
-    elif format == 'STATIONXML':
+    if format.upper() == 'GSE':
+        paz = PAZ.read_gse_response(filename)
+    elif format.upper() in ['JSON', 'JSON_PZ']:
+        paz = PAZ.read_json_pz(filename)
+    elif format.upper() == 'SACPZ':
+        paz = PAZ.read_sac_pz(filename)
+    elif format.upper() == 'STATIONXML':
         assert component is not None
-        paz = PAZ.read_STATIONXML(filename, component)
+        paz = PAZ.read_stationxml(filename, '*' + component)
     else:
-        paz = PAZ.read_Baillard_PZ(filename)
+        paz = PAZ.read_baillard_pz(filename)
     return paz
 
 
