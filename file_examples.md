@@ -10,7 +10,7 @@ If the program can't read your's, try using an online YAML validator, like
 Example file
 -------------------------------
 
-.. code:: yaml
+``yaml
 
     ---
     global_window:
@@ -80,6 +80,7 @@ Example file
         IF7B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
         IF8B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
         KNKL: {parameters: 'BBLAND', resp_file: 'KNKL_BBOBS1_1.response.txt'}
+``
 
 A description of every line
 -------------------------------
@@ -87,7 +88,7 @@ A description of every line
 The values provided on some lines are defaults.  If you don't want
 to change them, you don't have to include them in your parameter file.
 
-.. code:: yaml
+``yaml
 
     ---
     global_window: # Parameters affecting the initial selection of a global pick window across all stations using the distribution of kurtosis extrema)
@@ -160,7 +161,7 @@ to change them, you don't have to include them in your parameter file.
         station2_name: {parameters: "station_typeM", response: "responsefilename"}
         station2_name: {parameters: "station_typeM", response: "responsefilename"}
         ...    
-
+``
 
 Response files
 ========================================
