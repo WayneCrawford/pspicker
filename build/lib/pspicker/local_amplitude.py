@@ -135,10 +135,11 @@ class LocalAmplitude():
             plot_units = 'Original (counts)'
         else:
             if method == 'wood_calc':
-                paz_simulate = PAZ(
+                paz_simulate = PAZ.from_refgain(
+                    1,
                     poles=[(-5.49779 - 5.60886j), (-5.49779 + 5.60886j)],
                     zeros=[(0+0j), (0+0j)],
-                    ref_gain=1, ref_freq=4.0,
+                    ref_freq=4.0,
                     input_units='nm', output_units='counts')
                 plot_units = 'Wood-And (nm)'
                 paz_simulate_obspy = paz_simulate.to_obspy()
