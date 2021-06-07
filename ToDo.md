@@ -50,19 +50,16 @@ Code cleanup
    
    - get rid of nan testing everywhere and stop using np.nanmax() and np.nanargmax())
 
-ChannelMapping
-++++++++++++++++
+### ChannelMapping
 
 - Integrate "ChannelMappingRules" into "ChannelMapping"?
 - Make select_traces() part of ChannelMapping?
     
-Parameter file
-++++++++++++++++
+### Parameter file
 
 Replace:
 
-.. code:: yaml
-
+```yaml
   channel_parameters:
     compZ: 'Z3'
     compN: 'N1Y'
@@ -72,11 +69,11 @@ Replace:
     P_write_cmp: 'Z'
     P_write_phase: 'Pg'
     S_write_phase: 'Sg'
+```
 
 by:
 
-.. code:: yaml
-
+```yaml
   channel_parameters:
     component_orientation_codes:
         Z: 'Z3'
@@ -86,10 +83,11 @@ by:
     write_components_phases:
         S: ['N', 'Sg']
         P: ['Z', 'Pg']
+```
 
 Replace:
 
-.. code:: yaml
+```yaml
 
     station_parameters:
         SPOBS:
@@ -97,10 +95,11 @@ Replace:
             S_comp: 'ZNE'
             energy_frequency_band: [3, 30]
             energy_window: 20  # What does this really do?
+```
 
 by:
 
-.. code:: yaml
+```yaml
 
     station_parameters:
         SPOBS:
@@ -110,3 +109,4 @@ by:
             SNR_energy:
                 frequency_band: [3, 30]
                 window: 20  # What does this really do?
+```
