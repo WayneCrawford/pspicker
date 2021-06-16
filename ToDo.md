@@ -9,6 +9,8 @@ Critical
 Non-critical
 ------------------------
 
+- Allow read from SDS (or other client) rather than SEISAN structure
+
 - Read responses before running (instead of each time and at the end)
 
 - Make converter to different PAZ formats
