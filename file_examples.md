@@ -37,20 +37,24 @@ Example file
         cluster_window_otime: 1.
     station_parameters:
         SPOBS:
-            P_comp: 'Z'
-            S_comp: 'ZNE'
-            energy_frequency_band: [3, 30]
-            energy_window: 20
+            picking_components:
+                P: 'Z'
+                S: 'ZNE'
+            SNR_energy:
+                frequency_band: [3, 30]
+                window: 20
             kurtosis:
                 frequency_bands: [[3, 15], [8, 30]]
                 window_lengths: [0.3, 0.5, 1, 2, 4, 8]
                 extrema_smoothings: [2, 4, 6, 8, 10, 20, 30, 40, 50]
             use_polarity: true
         BBLAND:
-            P_comp: 'Z'
-            S_comp: 'ZNE'
-            energy_frequency_band: [3, 30]
-            energy_window: 20
+            picking_components:
+                P: 'Z'
+                S: 'ZNE'
+            SNR_energy:
+                frequency_band: [3, 30]
+                window: 20
             kurtosis:
                 frequency_bands: [[3, 15], [8, 30]]
                 window_lengths: [0.3, 0.5, 1, 2, 4, 8]
@@ -109,14 +113,15 @@ to change them, you don't have to include them in your parameter file.
                                    # if < 0:  SNR_threshold = -threshold_parameter
         max_threshold_crossings: 5 # Maximum allowed crossings of SNR threshold within global window
     channel_parameters: # Parameters affecting the choice of channels to pick on and save to
-        compZ: 'Z3'               # Component names that will be interpreted as 'Z'
-        compN: 'N1Y'              # Component names that will be interpreted as 'N'
-        compE: 'E2X'              # Component names that will be interpreted as 'E'
-        compH: 'HF'               # Component names that will be interpreted as 'H'
-        S_write_cmp: 'N'          # Assign S picks to this component (or equivalent as defined above)
-        P_write_cmp: 'Z'          # Assign P picks to this component (or equivalent as defined above)
-        P_write_phase: 'Pg'       # Give this phase hint to P picks
-        S_write_phase: 'Sg'       # Give this phase hint to S picks
+        component orientation codes: # Component names to map to Z, N, E and H
+            Z: 'Z3'
+            N: 'N1Y'
+            E: 'E2X'
+            H: 'HF'
+        write_components_phases:  # Channel to write to ('Z', 'N', 'E' or 'H', mapped as above)
+                                  # and phase name to give for picks
+            S: ['N', 'Sg']  # S-wave picks
+            S: ['Z', 'Pg']  # P-wave picks
         band_order: 'GFDCEHSBMLV' # If multiple traces have the same component, chose the one with the earliest listed band code
                                   # 'GFDCEHSBMLV' prioritizes high sampling rates over low, and short period over broadband
     polarity: # polarity analyses parameters (mostly related to dip_rect, or DR, see Baillard et al 2014)
@@ -137,10 +142,12 @@ to change them, you don't have to include them in your parameter file.
     response_file_type: ''  # 'GSE', 'SACPZ', 'JSON_PZ', 'STATIONXML' or '': the latter means Baillard PoleZero format
     station_parameters:  # List of objects with key = station_type
         - station_type1
-            P_comp:                  # components (one letter each, selected from 'ZNEH') to use for P-picks
-            S_comp:                  # components (one letter each, selected from 'ZNEH') to use for S-picks
-            energy_frequency_band:   # frequency band [low, high] used for SNR and energy calculations
-            energy_window:           # only look at data from t-nrg_win to t when evaluating energy, where t is the time of the peak waveform energy.
+            picking_components:  # components to use for picks (selected from 'ZNEH')
+                P: 'Z'           # P-picks
+                S: 'ZNE'         # S-picks
+            SNR_energy:
+                frequency_band:   # frequency band [low, high] for SNR and energy calculations
+                window:           # only look at data from t-nrg_win to t when evaluating energy, where t is the time of the peak waveform energy.
                                      # If == 0, don't use energy criteria.
             kurtosis:                # Kurtosis calculation parameters
                 frequency_bands:         # list of frequency bands [low, high] to use

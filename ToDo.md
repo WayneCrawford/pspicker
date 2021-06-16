@@ -5,7 +5,7 @@ Critical
 
   - Even if I increase cluster_window_otime to 5 seconds, doesn't increase
     number of events selected!
-
+    
 Non-critical
 ------------------------
 
@@ -56,59 +56,3 @@ Code cleanup
 
 - Integrate "ChannelMappingRules" into "ChannelMapping"?
 - Make select_traces() part of ChannelMapping?
-    
-### Parameter file
-
-Replace:
-
-```yaml
-  channel_parameters:
-    compZ: 'Z3'
-    compN: 'N1Y'
-    compE: 'E2X'
-    compH: 'HF'
-    S_write_cmp: 'N'
-    P_write_cmp: 'Z'
-    P_write_phase: 'Pg'
-    S_write_phase: 'Sg'
-```
-
-by:
-
-```yaml
-  channel_parameters:
-    component_orientation_codes:
-        Z: 'Z3'
-        N: 'N1Y'
-        E: 'E2X'
-        H: 'HF'
-    write_components_phases:
-        S: ['N', 'Sg']
-        P: ['Z', 'Pg']
-```
-
-Replace:
-
-```yaml
-
-    station_parameters:
-        SPOBS:
-            P_comp: 'Z'
-            S_comp: 'ZNE'
-            energy_frequency_band: [3, 30]
-            energy_window: 20  # What does this really do?
-```
-
-by:
-
-```yaml
-
-    station_parameters:
-        SPOBS:
-            picking_components
-                P: 'Z'
-                S: 'ZNE'
-            SNR_energy:
-                frequency_band: [3, 30]
-                window: 20  # What does this really do?
-```

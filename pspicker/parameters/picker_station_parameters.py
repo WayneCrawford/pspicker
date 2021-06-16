@@ -25,8 +25,8 @@ class PickerStationParameters():
         self.station = station
         self.station_params = station_params
         self.channel_map = channel_map
-        self.datP = self._get_traces(stream, station_params.P_comp)
-        self.datS = self._get_traces(stream, station_params.S_comp)
+        self.datP = self._get_traces(stream, station_params.picking_components.P)
+        self.datS = self._get_traces(stream, station_params.picking_components.S)
         # print(self.datP)
         # print(self.datS)
         self.dat_noH = self._get_noH_traces(stream)

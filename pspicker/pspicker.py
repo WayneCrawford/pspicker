@@ -71,7 +71,7 @@ class PSPicker():
             self.database_path_out.mkdir()
         # self.database_filename = None
         self.param = PickerParameters.from_yaml_file(parm_file)
-        self.debug_plots = False
+        self.plot_debug = False
         self.run = None
         self.assoc = None
         # self.log_level = None
@@ -143,7 +143,7 @@ class PSPicker():
                                       debug_fname, **kwargs)
 
     def run_one(self, database_filename, plot_global=True, plot_stations=False,
-                assoc=None, log_level='verbose', debug_plots=None):
+                assoc=None, log_level='verbose', plot_debug=None):
         """
         Picks P and S arrivals on one waveform, using the Kurtosis
 
@@ -155,7 +155,7 @@ class PSPicker():
             Associator)
         :param log_level: console log level (choices = 'debug', 'verbose',
             'info', 'warning', 'error', 'critical').  If None, do not setup log
-        :param debug_plots: plot some "debugging" plots
+        :param plot_debug: plot some "debugging" plots
         """
         # if not self.log_level:
         #     setup_log(log_level)
@@ -164,8 +164,8 @@ class PSPicker():
             setup_log(log_level)
         if self.assoc is None:
             self.assoc = Associator(self.param.assoc)
-        if debug_plots is not None:
-            self.debug_plots = debug_plots
+        if plot_debug is not None:
+            self.plot_debug = plot_debug
         log(f'running {database_filename}', 'debug')
         timer = Timer(logger=None)
         timer.start()
@@ -334,9 +334,9 @@ class PSPicker():
         # with Timer(text="  pick_one_station(): SNR {:0.4f}s"):
         datS_filt = self.loop.datS.copy().filter(
             'bandpass', corners=3,
-            freqmin=station_params.energy_frequency_band[0],
-            freqmax=station_params.energy_frequency_band[1])
-        energy = EnergySNR(datS_filt, self.param.SNR, plot=self.debug_plots)
+            freqmin=station_params.SNR_energy.frequency_band[0],
+            freqmax=station_params.SNR_energy.frequency_band[1])
+        energy = EnergySNR(datS_filt, self.param.SNR, plot=self.plot_debug)
         trust, message = energy.slice(self.run.first_time,
                                       self.run.last_time).is_trustworthy()
         log(f"{station_name}: SNR {message}", 'verbose')
@@ -484,6 +484,7 @@ class PSPicker():
         # REMOVE PROBLEM STATIONS (if necessary)
         channel_maps = {s: v for s, v in channel_maps.items()
                         if s not in rm_stations}
+        log(f'all global picks: {overall_distri}', 'debug')
         return overall_distri, channel_maps
 
     def _gw_set_window(self, t_begin, t_end, overall_distri):
@@ -552,7 +553,7 @@ class PSPicker():
         I mean, why are we even smoothing the energy window?
         :param energy: energy trace
         """
-        if self.loop.station_params.energy_window == 0:
+        if self.loop.station_params.SNR_energy.window == 0:
             return (self.run.first_time,
                     self.run.last_time)
 
@@ -566,7 +567,7 @@ class PSPicker():
         max_kurto_wind = np.max(self.loop.station_params.kurtosis
                                                         .window_lengths)
         max_precursor = np.floor(
-            sr * (self.loop.station_params.energy_window + max_kurto_wind))
+            sr * (self.loop.station_params.SNR_energy.window + max_kurto_wind))
         first_sample = ind_max - max_precursor
         if first_sample < 0:
             first_sample = 0
@@ -592,9 +593,9 @@ class PSPicker():
         if len(candidates) == 0:
             return None, None, None, candidates
         pol = Polarity(datS_filtered, params=self.param.polarity,
-                       zcomponents=self.param.channel_mapping_rules.compZ,
-                       ncomponents=self.param.channel_mapping_rules.compN,
-                       ecomponents=self.param.channel_mapping_rules.compE)
+                       zcomponents=self.param.channel_mapping_rules.component_orientation_codes.Z,
+                       ncomponents=self.param.channel_mapping_rules.component_orientation_codes.N,
+                       ecomponents=self.param.channel_mapping_rules.component_orientation_codes.E)
         DR = pol.calc_dip_rect([c.time for c in candidates])
         if DR is None:
             log("DR not returned, keeping input picks", "debug")

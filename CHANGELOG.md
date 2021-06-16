@@ -47,14 +47,70 @@ cleaned up parameter file reading, fixed log_level use in run_many()
  
 # v0.5:
 
-Updated PAZ to have separate initialization routines for pole-zero gain and
-bandpass gain.  This changes the class initialization function and so requires
-a major version change.
+- Updated PAZ to have separate initialization routines for pole-zero gain and
+bandpass gain.
 
-Also got rid of sampling_rate attribute, a relic of C Baillard's code 
-which doesn't belong in a Pole-Zero
+- Updated parameter file format:
 
-Also changed behavior of setting input_unit to an unknown value: previously
-accepted the name, now keeps the old name if it can't convert units (was
-a problem when saving unknown units to json_pz files, which forced units to 
-m/s, even if they were Pascals)
+```yaml
+  channel_parameters:
+    compZ: 'Z3'
+    compN: 'N1Y'
+    compE: 'E2X'
+    compH: 'HF'
+    S_write_cmp: 'N'
+    P_write_cmp: 'Z'
+    P_write_phase: 'Pg'
+    S_write_phase: 'Sg'
+```
+
+becomes:
+
+```yaml
+  channel_parameters:
+    component_orientation_codes:
+        Z: 'Z3'
+        N: 'N1Y'
+        E: 'E2X'
+        H: 'HF'
+    write_components_phases:
+        S: ['N', 'Sg']
+        P: ['Z', 'Pg']
+```
+
+```yaml
+
+    station_parameters:
+        SPOBS:
+            P_comp: 'Z'
+            S_comp: 'ZNE'
+            energy_frequency_band: [3, 30]
+            energy_window: 20  # What does this really do?
+```
+
+becomes
+
+```yaml
+
+    station_parameters:
+        SPOBS:
+            picking_components
+                P: 'Z'
+                S: 'ZNE'
+            SNR_energy:
+                frequency_band: [3, 30]
+                window: 20  # What does this really do?
+```
+
+
+- Got rid of sampling_rate attribute, a relic of C Baillard's code 
+  which doesn't belong in a Pole-Zero
+
+- Changed behavior of setting input_unit to an unknown value: previously
+  accepted the name, now keeps the old name if it can't convert units (was
+  a problem when saving unknown units to json_pz files, which forced units to 
+  m/s, even if they were Pascals)
+  
+- Changed fast_kurtosis to reduce edge effect without throwing away first
+  win_samples points, by calculating using a win_secs length buffer of repeating
+  first second of data_

@@ -115,7 +115,7 @@ The three main methods:
 ```python
 
     def run_one(self, database_filename, plot_global=True, plot_stations=False,
-                assoc=None, log_level="verbose", debug_plots=None):
+                assoc=None, log_level="verbose", plot_debug=None):
         """
         Picks P and S arrivals on one waveform, using the Kurtosis
     
@@ -126,7 +126,7 @@ The three main methods:
         :param assoc: Associator object (used by run_many())
         :param log_level: console log level (choices = 'debug', 'verbose',
             'info', 'warning', 'error', 'critical'), default='info'
-        :param debug_plots: same as in creator
+        :param plot_debug: show some debugging plots
         """
 ```
 ```python
@@ -158,6 +158,7 @@ values:
 - set ``station_parameters:{type}:max_candidates`` to **2**
 - set ``SNR:threshold_parameter`` to **0.2**
 - set ``SNR:max_threshold_crossings`` to **5**
+- set ``global_window:max_candidates`` to **2**
 
 Event amplitudes 
 -----------------
