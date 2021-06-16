@@ -51,7 +51,7 @@ Updated PAZ to have separate initialization routines for pole-zero gain and
 bandpass gain.  This changes the class initialization function and so requires
 a major version change.
 
-Also got rid of sampling_rate attribute, a relic of C Baillard's code but 
+Also got rid of sampling_rate attribute, a relic of C Baillard's code 
 which doesn't belong in a Pole-Zero
 
 Also changed behavior of setting input_unit to an unknown value: previously
