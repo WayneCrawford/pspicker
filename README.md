@@ -46,8 +46,11 @@ Database and waveform files
 ---------------------------
 
 Are assumed to be in SEISAN structure:
-  - Database files: NORDIC format, in ``database_path_in``/``YEAR``/``MONTH``/ (except run_one, for which the file may be local)
-  - Waveform files: one miniseed file per event.  Filename is read from the database file and assumed to start with ``YEAR``-``MONTH``.  File is read from ``waveform_path_in``/``YEAR``/``MONTH``/
+  - Database files: NORDIC format, in ``database_path_in``/``YEAR``/``MONTH``/
+    (except run_one, for which the file may be local)
+  - Waveform files: one miniseed file per event.  Filename is read from the
+    database file and assumed to start with ``YEAR``-``MONTH``.  File is read
+    from ``waveform_path_in``/``YEAR``/``MONTH``/
   
  
 Example workflow
@@ -55,12 +58,12 @@ Example workflow
 
 ### Start by autopicking a few events, with all bells and whistles on:
 
-To pick one event from a database in `/SEISAN/MAYOBS`:
+To pick one event from a database in ``/SEISAN/MAYOBS``:
 
 ```python
-    from pspicker import PSPicker
-    picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
-    picker.run_one('19-0607-59L.S201905', plot_global=True, plot_stations=True, log_level='verbose')
+from pspicker import PSPicker
+picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
+picker.run_one('19-0607-59L.S201905', plot_global=True, plot_stations=True, log_level='verbose')
 ```
 
 Look at all of the plots and verify that the picks and association are as
@@ -74,10 +77,9 @@ run_{DATETIME}.log
 To pick events from May 5th to 25th in the same database:
 
 ```python
-
-    from pspicker import PSPicker
-    picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
-    picker.run_many('20190505', '20190525', plot_global=True)
+from pspicker import PSPicker
+picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB',  '/SEISAN/MAYOBS/REA/MAYOB')
+picker.run_many('20190505', '20190525', plot_global=True)
 ```
 
 ### Finally, run the whole database without plots
@@ -87,63 +89,59 @@ To pick events from May 5th to 25th in the same database:
 To pick events from May 26th 2019 May 1st 2020:
 
 ```python
-
-    from pspicker import PSPicker
-    picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB', '/SEISAN/MAYOBS/REA/MAYOB')
-    picker.run_many('20190526', '20200501')
+from pspicker import PSPicker
+picker = PSPicker('parameters_C.yaml', '/SEISAN/MAYOBS/WAV/MAYOB', '/SEISAN/MAYOBS/REA/MAYOB')
+picker.run_many('20190526', '20200501')
 ```
 
 The three main methods:
 -----------------------
 
 ```python
-
-    def __init__(self, parm_file, wav_base_path, database_path_in,
-                 database_path_out='Sfile_directory', database_format='NORDIC'):
-        """
-        :param parm_file: path/name of the parameter file
-        :param wav_base_path: absolute basepath to the waveform files (just before
-                              the YEAR/MONTH subdirectories)
-        :param database_path_in: absolute basepath to the database/catalog file(s)
-                                 (just before the YEAR/MONTH subdirectories)
-        :param database_path_out: path to output database files
-        :param database_format: 'NORDIC' is the only choice for now
-            'NORDIC': Use SEISAN conventions for waveform  and database files
-                      (naming, and location in YEAR/MONTH subdirectories)
-        """
+def __init__(self, parm_file, wav_base_path, database_path_in,
+             database_path_out='Sfile_directory', database_format='NORDIC'):
+    """
+    :param parm_file: path/name of the parameter file
+    :param wav_base_path: absolute basepath to the waveform files (just before
+                          the YEAR/MONTH subdirectories)
+    :param database_path_in: absolute basepath to the database/catalog file(s)
+                             (just before the YEAR/MONTH subdirectories)
+    :param database_path_out: path to output database files
+    :param database_format: 'NORDIC' is the only choice for now
+        'NORDIC': Use SEISAN conventions for waveform  and database files
+                  (naming, and location in YEAR/MONTH subdirectories)
+    """
 ```
 ```python
+def run_one(self, database_filename, plot_global=True, plot_stations=False,
+            assoc=None, log_level="verbose", plot_debug=None):
+    """
+    Picks P and S arrivals on one waveform, using the Kurtosis
 
-    def run_one(self, database_filename, plot_global=True, plot_stations=False,
-                assoc=None, log_level="verbose", plot_debug=None):
-        """
-        Picks P and S arrivals on one waveform, using the Kurtosis
-    
-        Information in the database file will be appended with the picks.
-        :param database_filename: database file to read
-        :param plot_global: show global and overall pick plots
-        :param plot_stations: show individual station plots
-        :param assoc: Associator object (used by run_many())
-        :param log_level: console log level (choices = 'debug', 'verbose',
-            'info', 'warning', 'error', 'critical'), default='info'
-        :param plot_debug: show some debugging plots
-        """
+    Information in the database file will be appended with the picks.
+    :param database_filename: database file to read
+    :param plot_global: show global and overall pick plots
+    :param plot_stations: show individual station plots
+    :param assoc: Associator object (used by run_many())
+    :param log_level: console log level (choices = 'debug', 'verbose',
+        'info', 'warning', 'error', 'critical'), default='info'
+    :param plot_debug: show some debugging plots
+    """
 ```
 ```python
+def run_many(self, start_date, end_date, plot_global=False,
+    plot_stations=False, ignore_fails=False, log_level='info'):
+    """
+    Loops over events in a date range
 
-    def run_many(self, start_date, end_date, plot_global=False,
-        plot_stations=False, ignore_fails=False, log_level='info'):
-        """
-        Loops over events in a date range
-    
-        :param start_date: "YYYYMMDD" or "YYYYMMDDHHMM" of first data to process
-        :param end_date: "YYYYMMDD" of last data to process
-        :param plot_global: show global and overall pick plots
-        :param plot_stations: show individual station plots
-        :param ignore_fails: keep going if one run fails
-        :param log_level: console log level (choices = 'debug', 'verbose',
-                          'info', 'warning', 'error', 'critical'), default='info'        
-        """
+    :param start_date: "YYYYMMDD" or "YYYYMMDDHHMM" of first data to process
+    :param end_date: "YYYYMMDD" of last data to process
+    :param plot_global: show global and overall pick plots
+    :param plot_stations: show individual station plots
+    :param ignore_fails: keep going if one run fails
+    :param log_level: console log level (choices = 'debug', 'verbose',
+                      'info', 'warning', 'error', 'critical'), default='info'        
+    """
 ```
 
 Parameter and response files 
@@ -168,28 +166,25 @@ instrument response filename(s) are input in the parameter file.  If you have
 as stationxml file, you can make a pspicker_compatible json_pz file like this:
 
 ```python
-
-    paz = PAZ.read_stationxml(filename, channel=xxx[, station=xxxx])
-    paz.write_json_pz (ps_filename)
+paz = PAZ.read_stationxml(filename, channel=xxx[, station=xxxx])
+paz.write_json_pz (ps_filename)
 ```
 
 If you have a response in another format that you can read in using obspy,
 you can output it to a pspicker-compatible json_pz file like this:
 
 ```python
-
-    paz = PAZ.from_obspy_response(resp)
-    paz.write_json_pz(pz_filename)
+paz = PAZ.from_obspy_response(resp)
+paz.write_json_pz(pz_filename)
 ```
 
 In both cases, you can look at the response using `paz.plot(min_freq=xxx)`, or
 you could compare it to the obspy_response using:
 
 ```python
-
-    fig = resp.plot(min_freq=xxx, label='obspy', show=False)
-    paz = PAZ.from_obspy_response(resp)
-    paz.plot(min_freq=xxx, axes=fig.axes, label='PAZ', sym='g.')
+fig = resp.plot(min_freq=xxx, label='obspy', show=False)
+paz = PAZ.from_obspy_response(resp)
+paz.plot(min_freq=xxx, axes=fig.axes, label='PAZ', sym='g.')
 ```
 
 To Do

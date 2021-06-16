@@ -1,6 +1,4 @@
 # from readMSEEDTraces.m  ?
-import re
-
 from ..channel_map import ChannelMap
 from ..logger import log
 
@@ -20,25 +18,22 @@ def select_traces(stream, map_rules, debug=False):
     stations = list(set([t.stats.station for t in stream]))
     mr = map_rules
     for station in sorted(stations):
-        Z = findChannel(stream, station, mr.compZ, mr.band_order)
-        # N = findChannel(stream, station, mr.compN, mr.band_order)
-        # E = findChannel(stream, station, mr.compE, mr.band_order)
-        # H = findChannel(stream, station, mr.compH, mr.band_order)
+        Z = mr.seed_id('Z',stream, station)
         if Z is None:
             sta_st = stream.select(station=station)
             log('No Z channel found for station {}: {} not in "{}"'.format(
-                station, [t.stats.channel[-1] for t in sta_st], mr.compZ),
+                station, [t.stats.channel[-1] for t in sta_st], mr.component_orientation_codes.Z),
                 'error')
         else:
             channel_map[station] = ChannelMap(
-                Z=findChannel(stream, station, mr.compZ, mr.band_order),
-                N=findChannel(stream, station, mr.compN, mr.band_order),
-                E=findChannel(stream, station, mr.compE, mr.band_order),
-                H=findChannel(stream, station, mr.compH, mr.band_order),
-                P_write_cmp=mr.P_write_cmp,
-                S_write_cmp=mr.S_write_cmp,
-                P_write_phase=mr.P_write_phase,
-                S_write_phase=mr.S_write_phase)
+                Z=mr.seed_id('Z',stream, station),
+                N=mr.seed_id('N',stream, station),
+                E=mr.seed_id('E',stream, station),
+                H=mr.seed_id('H',stream, station),
+                P_write_cmp=mr.write_components_phases.P[0],
+                S_write_cmp=mr.write_components_phases.S[0],
+                P_write_phase=mr.write_components_phases.P[1],
+                S_write_phase=mr.write_components_phases.S[1])
 
     if debug:
         print('Channel Map:')
@@ -48,32 +43,6 @@ def select_traces(stream, map_rules, debug=False):
             print(f'{station:8s}|'
                   + channel_map[station].__str__(format='table_row'))
     return channel_map
-
-
-def findChannel(stream, station, cmp_chars, band_order):
-    """
-    Return the seed ID matching the given station and channel regex
-
-    :param station: station name
-    :param cmp_chars: possible characters for component code
-    :band order: string listing band codes in order of preference (used only
-        if there is more than one trace with valid component code)
-    :returns: None if none found, error if more than one found
-    """
-    id_match = [tr.get_id() for tr in stream.select(station=station)
-                if re.search(f'[{cmp_chars}]', tr.stats.channel[-1])
-                is not None]
-    if len(id_match) > 1:
-        for band_code in band_order:
-            if band_code in [id.split('.')[-1][0] for id in id_match]:
-                id_match = [id for id in id_match
-                            if id.split['.'][0] == band_code]
-    if len(id_match) == 0:
-        return None
-    assert len(id_match) == 1,\
-        'more than one match found for station = {}, cmp = {}'.format(
-            station, cmp_chars)
-    return id_match[0]
 
 
 if __name__ == '__main__':

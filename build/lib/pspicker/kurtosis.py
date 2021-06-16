@@ -51,10 +51,6 @@ class Kurtosis():
         :param plot: make a plot of Kurtosis parameters
         """
         self.params = params
-        # self.freq_bands = k_params.frequency_bands
-        # self.wind_lengths = k_params.window_lengths
-        # self.extrem_smooths = k_params.extrema_smoothings
-        # self.n_smooth = n_smooth
         self.plot = plot
 
         # Mean trace over freq_bands, wind_lengths & smoothing
@@ -105,6 +101,7 @@ class Kurtosis():
 
         Puts mean kurtosis over all windows and freq_bands in
         self.mean_cumulative_kurtosis
+        
         :param trace: the raw trace (works one trace, not a stream)
         :param starttime: is the first time of interest
         :param endtime: is the last time of interest
@@ -180,6 +177,13 @@ class Kurtosis():
 
     @staticmethod
     def _plot_kurtosis(wl, fb, trace, kurtosis, corr_cum):
+        """
+        :param wl: window length (s)
+        :param fb: frequency band
+        :param trace: data trace
+        :param kurtosis: filtered Kurtosis
+        :param corr_cum: corrected cumulative Kurtosis
+        """
         log(f'Plot kurtosis for win_len={wl}, f_band={fb}', 'debug')
         cor = corr_cum.copy()
         cor.stats.channel = 'COR'
@@ -325,13 +329,20 @@ def _fast_kurtosis(trace, win_samps):
 
     f = trace.copy()
     f.detrend(type='demean')
+    # Make buffer using first second of data
+    one_sec = int(trace.stats.sampling_rate)
+    buffer = np.tile(f.data[:one_sec], int(np.ceil(win_samps/one_sec)))
+    data = np.concatenate((buffer[:win_samps], f.data))
+    # data = np.concatenate((np.ones(win_samps)*f.data[0], f.data))
 
     # Compute kurtosis
-    m_2 = lfilter(a, b, f.data**2)
-    m_4 = lfilter(a, b, f.data**4)
+    m_2 = lfilter(a, b, data**2)
+    m_4 = lfilter(a, b, data**4)
     out.data = np.divide(m_4, (m_2 ** 2))
+    # Cut off buffer
+    out.data = out.data[win_samps:]
     # Protect against edge effect
-    out.data[:win_samps] = out.data[win_samps]
+    # out.data[:win_samps] = out.data[win_samps]
 
     # Set any kurtosis value to nan for any indices within win_samples of
     # an NaN in the original data.

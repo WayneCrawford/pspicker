@@ -424,6 +424,8 @@ class Station_Window():
         Add pick candidates to all axes
 
         :param candidates: list of PickCandidate
+        :DR_thresh_P: Dip-Rect threshold for P arrivals
+        :DR_thresh_S: Dip-Rect threshold for S arrivals
         """
         if not self.plot:
             return
@@ -447,9 +449,11 @@ class Station_Window():
         log('Candidates:', 'debug')
         for x in candidates:
             log(f'  {x}', 'debug')
-        axb.stem([x.time.matplotlib_date for x in candidates],
-                 [x.DR for x in candidates], markerfmt='bx',
-                 linefmt='b-', basefmt='b:', use_line_collection=True)
+        DR_cands = [x for x in candidates if x.DR is not None]
+        if len(DR_cands) > 0:
+            axb.stem([x.time.matplotlib_date for x in DR_cands],
+                     [x.DR for x in DR_cands], markerfmt='bx',
+                     linefmt='b-', basefmt='b:', use_line_collection=True)
         axb.axhline(DR_thresh_P, color='b', ls='--')
         axb.axhline(DR_thresh_S, color='b', ls='--')
         axb.set_ylabel('dip-rect', color='b')
