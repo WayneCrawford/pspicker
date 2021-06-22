@@ -309,6 +309,7 @@ class PAZ():
         """
         hp = self._hp([self.ref_freq])
         val = 1./abs(hp[0])
+        # print(f'{val=}')
         # s = 2 * np.pi * self.ref_freq * 1j
         # val = 1
         # for p in self.poles:
@@ -323,13 +324,23 @@ class PAZ():
         Return obspy paz dict
 
         obspy is not clear about what is in the "gain" and "sensitivity"
-        keys.  I tried self.norm_factor and self.gain, respectively, but
-        this makes their product depend on f_ref.  Switched to:
-            self.norm_factor, self.ref_gain
+        keys.  Trace.simulate() indicates that "gain" is the A0 normalization
+        factor.
+        
+        
+        Tried:
+            self.norm_factor, self.gain: product depends on f_ref
+            self.norm_factor, self.ref_gain: "gain" varies depending on whether
+                                             the norm_factor is recalculated or not
+            so...calculate the norm_factor, then use self.norm_factor, self.ref_gain
         """
-        return {'poles': list(self.poles), 'zeros': list(self.zeros),
-                'f_ref': self.ref_freq, 'gain': self.norm_factor,
-                'sensitivity': self.ref_gain}
+        # print(self)
+        tmp = self.copy()
+        tmp.norm_factor = tmp.calc_norm_factor()
+        # print(tmp)
+        return {'poles': list(tmp.poles), 'zeros': list(tmp.zeros),
+                'f_ref': tmp.ref_freq, 'gain': tmp.norm_factor,
+                'sensitivity': tmp.ref_gain}
 
     def _unit_conversion(self, new_input_units):
         """

@@ -56,7 +56,9 @@ class LocalAmplitude():
         self.win_start, self.win_end, self.ref_pick, self.station =\
             self._set_ampl_window()
         self.paz = get_response(response_file, response_file_type)
-        self.paz.input_units = 'nm'
+        # print(f'{str(self.paz)=}')
+        self.paz.input_units = 'nm' # Make all responses the same units
+        # print(f'{str(self.paz)=}')
         self.traces = traces
 
     def __str__(self):
@@ -79,7 +81,8 @@ class LocalAmplitude():
         s += "S_pick_window = {}".format(self.S_pick_window)
         return s
 
-    def get_iaml(self, plot=False, method='wood_calc'):
+    def get_iaml(self, plot=False, method='wood_calc', 
+                 pre_filt=(0.005, 0.006, 30.0, 35.), verbose=False):
         """
         get IAML amplitude and associated pick
         From IAPEI CoSOI 2013 Working Group recommentations:
@@ -123,6 +126,8 @@ class LocalAmplitude():
                             estimate_wood_anderson_amplitude(). Can be
                             trouble if the original signal was not proportional
                             to displacement
+            pre_filt (tuple): pre_filter to apply to trace.simulate() to
+                              prevent amplifying noise.
 
         Returns:
             tuple containing:
@@ -138,10 +143,16 @@ class LocalAmplitude():
         # do all work in nm
         paz_simulate, paz_simulate_obspy = None, None
         paz_remove = self.paz.copy()
+        # define a filter band to prevent amplifying noise during the deconvolution
+        # print(f'{str(self.paz)=}')
+        # print(f'{str(paz_remove)=}')
         if method == 'wood_est':
             paz_remove.input_units = 'm/s'
             plot_units = 'Original (counts)'
         else:
+            # obspy PAZ has no units information, make displacement
+            # paz_remove.input_units = 'nm'
+            paz_remove_obspy = paz_remove.to_obspy()
             if method == 'wood_calc':
                 # From Bormann & Dewey 2014, WA is flat w.r.t. displacement
                 paz_simulate = PAZ.from_refgain(
@@ -153,15 +164,17 @@ class LocalAmplitude():
                 plot_units = 'WA (nm)'
                 paz_simulate_obspy = paz_simulate.to_obspy()
             elif method == 'raw_disp':
-                paz_simulate = None
-                paz_remove.input_units = 'nm'
+                paz_simulate_obspy = None
                 plot_units = 'Disp (nm)'
             for tr in signal:
-                tr.simulate(paz_remove=paz_remove.to_obspy(),
+                tr.simulate(paz_remove=paz_remove_obspy,
                             paz_simulate=paz_simulate_obspy,
-                            water_level=60.0)
+                            pre_filt=pre_filt, water_level=60.0)
         amp = pk2pk(signal, self.win_start, self.win_end)
         amp.value /= 2  # Convert to zero-to-peak
+        # print(f'{str(self.paz)=}')
+        # print(f'{paz_remove_obspy=}')
+        # print(f'{str(paz_remove)=}')
         if amp is None:
             return None, None
         if method == 'wood_est':
@@ -172,7 +185,7 @@ class LocalAmplitude():
             # amp.value /= 2080./1e6
             # Divide by 2080 then remove seismometer gain?
             amp.value /= 2080.  # Remove obspy's WA seismometer sensitivity
-            amp.value *= 1e6   # convert mm to nm
+            amp.value *= 1e6   # convert nm
         # print(f'{plot=}')
         if plot:
             # print(amp)
@@ -194,6 +207,9 @@ class LocalAmplitude():
                               category='period',
                               pick_id=pick.resource_id,
                               waveform_id=pick.waveform_id)
+        if verbose:
+            print('{} IAML = {:.4g} nm at {}s'.format(
+                  waveform_id.get_seed_string(), amp.value, amp.period))
         return obspy_amp, pick
 
     def _set_ampl_window(self):
