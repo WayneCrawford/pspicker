@@ -28,6 +28,7 @@ import numpy as np
 import json
 import copy
 import warnings
+from pathlib import Path
 
 from obspy.core.inventory import read_inventory
 from obspy.core.inventory.response import PolesZerosResponseStage
@@ -285,8 +286,8 @@ class PAZ():
                                       np.log10(sampling_rate/2), npts))
         resp = paz.get_response(f)
         axs[0].loglog(f, np.absolute(resp), sym, label=label)
-        axs[0].set_ylabel('Amplitude ({}/{})'.format(self.output_units.lower(),
-                                                     self.input_units.lower()))
+        axs[0].set_ylabel('Amplitude ({}/{})'.format(paz.output_units.lower(),
+                                                     paz.input_units.lower()))
         axs[0].grid(True)
         axs[0].legend()
         axs[1].semilogx(f, np.angle(resp), sym)
@@ -308,6 +309,7 @@ class PAZ():
         """
         hp = self._hp([self.ref_freq])
         val = 1./abs(hp[0])
+        # print(f'{val=}')
         # s = 2 * np.pi * self.ref_freq * 1j
         # val = 1
         # for p in self.poles:
@@ -322,13 +324,23 @@ class PAZ():
         Return obspy paz dict
 
         obspy is not clear about what is in the "gain" and "sensitivity"
-        keys.  I tried self.norm_factor and self.gain, respectively, but
-        this makes their product depend on f_ref.  Switched to:
-            self.norm_factor, self.ref_gain
+        keys.  Trace.simulate() indicates that "gain" is the A0 normalization
+        factor.
+        
+        
+        Tried:
+            self.norm_factor, self.gain: product depends on f_ref
+            self.norm_factor, self.ref_gain: "gain" varies depending on whether
+                                             the norm_factor is recalculated or not
+            so...calculate the norm_factor, then use self.norm_factor, self.ref_gain
         """
-        return {'poles': list(self.poles), 'zeros': list(self.zeros),
-                'f_ref': self.ref_freq, 'gain': self.norm_factor,
-                'sensitivity': self.ref_gain}
+        # print(self)
+        tmp = self.copy()
+        tmp.norm_factor = tmp.calc_norm_factor()
+        # print(tmp)
+        return {'poles': list(tmp.poles), 'zeros': list(tmp.zeros),
+                'f_ref': tmp.ref_freq, 'gain': tmp.norm_factor,
+                'sensitivity': tmp.ref_gain}
 
     def _unit_conversion(self, new_input_units):
         """
@@ -383,7 +395,7 @@ class PAZ():
         cls = PAZ(stage.stage_gain, poles=stage.poles, zeros=stage.zeros,
                   ref_freq=stage.stage_gain_frequency,
                   input_units=stage.input_units,
-                  output_units=stage.output_units,  
+                  output_units=stage.output_units,
                   norm_factor=stage.normalization_factor)
         return cls
 
@@ -430,6 +442,8 @@ class PAZ():
     def read_json_pz(cls, filename):
         """
         read JSON paz format
+        
+        default input units = 'm/s'
         """
         with open(filename) as f:
             try:
@@ -452,7 +466,7 @@ class PAZ():
     @classmethod
     def read_stationxml(cls, filename, channel, station='*'):
         """
-        read JSON paz format
+        read StationXML (returns first valid response)
         """
         inv = read_inventory(filename, 'STATIONXML')
         inv = inv.select(channel=channel, station=station)
@@ -473,7 +487,7 @@ class PAZ():
         """
         read SAC PZ format
 
-        input units are assumed to be meters (does not look at comments)
+        input units = 'm' (does not look at comments)
         The file-reading code is copied from obspy.io.sac.sacpz.attach_paz()
         """
         with open(filename) as f:
@@ -526,14 +540,37 @@ class PAZ():
                   norm_factor=1,
                   input_units='m',
                   output_units='counts')
+                  
         return val
+
+    def write_sac_pz(self, filename):
+        """
+        write a SAC PZ file
+        """
+        tmp = copy.deepcopy(self)
+        tmp.input_units = 'm'
+        if Path(filename).exists():
+            raise NameError(f'{filename} exists already! Not writing')
+        with open(filename, 'w') as f:
+            f.write('* {:20s}: {}\n'.format("INPUT UNIT", tmp.input_units.upper()))
+            f.write('* {:20s}: {}\n'.format("OUPUT UNIT", tmp.output_units.upper()))
+            if len(tmp.zeros) > 0:
+                f.write(f'ZEROS {len(tmp.zeros):d}\n')
+                for x in tmp.zeros:
+                    f.write(f' {np.real(x):+12.6e} {np.imag(x):+12.6e}\n')
+            if len(tmp.poles) > 0:
+                f.write(f'POLES {len(tmp.poles):d}\n')
+                for x in tmp.poles:
+                    f.write(f' {np.real(x):+12.6e} {np.imag(x):+12.6e}\n')
+            f.write(f'CONSTANT {tmp.norm_factor * tmp.gain:11.6e}')
 
     @classmethod
     def read_gse_response(cls, filename):
         """
         read a GSE response file
 
-       From specification in GSE_2.0.pdf (Group of Scientific Expernts, 1995)
+        input units = 'nm'
+        From specification in GSE_2.0.pdf (Group of Scientific Expernts, 1995)
         :param name:    Name of GSE2 response file
         :returns: Structure with all parameters
         """
@@ -557,12 +594,12 @@ class PAZ():
                     info['zeros'] = []
                     for p in np.arange(num_poles):
                         A = next(fic).split()
-                        info['poles'].append(np.complex(float(A[0]),
-                                                        float(A[1])))
+                        info['poles'].append(complex(float(A[0]),
+                                                     float(A[1])))
                     for z in np.arange(num_zeros):
                         A = next(fic).split()
-                        info['zeros'].append(np.complex(float(A[0]),
-                                                        float(A[1])))
+                        info['zeros'].append(complex(float(A[0]),
+                                                     float(A[1])))
                 # DIG2 line is specified in Table 17, page 72
                 elif line[:4] == 'DIG2':
                     info['amplifier_gain'] = float(line[8:23])
@@ -584,6 +621,7 @@ class PAZ():
         """
         read Baillard PZ format
 
+        input units = 'nm'
         A numbers-only version of the GSE format
         """
         info = {}
@@ -599,10 +637,10 @@ class PAZ():
                     n_zeros = float(tline)
                 elif i >= 6 and i < (6 + n_poles):
                     A = tline.split()
-                    info['poles'].append(np.complex(float(A[0]), float(A[1])))
+                    info['poles'].append(complex(float(A[0]), float(A[1])))
                 elif i >= 6 + n_poles and i < 6 + n_poles + n_zeros:
                     A = tline.split()
-                    info['zeros'].append(np.complex(float(A[0]), float(A[1])))
+                    info['zeros'].append(complex(float(A[0]), float(A[1])))
                 else:
                     info['amplifier_gain'] = float(tline)
                 i += 1

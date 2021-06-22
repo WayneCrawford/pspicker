@@ -9,6 +9,7 @@ import warnings
 # import warnings
 # from logging import info
 from datetime import datetime
+from fnmatch import fnmatch
 # import sys
 
 # Publicly available libraries
@@ -199,8 +200,14 @@ class PSPicker():
         for sta, chan_map in self.run.channel_maps.items():
             # Reject stations not listed in parameter file
             if sta not in self.param.stations:
-                log(f'{sta} not in self.param.stations, ignored', 'warning')
-                continue
+                found_sta=False
+                for pattern in self.param.stations:
+                    if fnmatch(sta, pattern):
+                        found_sta = True
+                        break
+                if not found_sta:
+                    log(f'{sta} not in self.param.stations, ignored', 'warning')
+                    continue
             # with Timer(text="Pick one station: {:0.4f}s"):
             p, c = self._pick_one_station(sta, chan_map, plotter)
             picks.extend(p)
@@ -322,7 +329,13 @@ class PSPicker():
         """
         # make shortened reference to often-used station_parameters
         # with Timer(text="  pick_one_station(): setup {:0.4f}s"):
-        station_params = self.param.station_parameters[station_name]
+        if station_name in self.param.station_parameters:
+            station_params = self.param.station_parameters[station_name]
+        else:
+            for pattern in self.param.station_parameters.keys():
+                if fnmatch(station_name, pattern):
+                    station_params = self.param.station_parameters[pattern]
+                    break
         self.loop = PickerStationParameters(station=station_name,
                                             station_params=station_params,
                                             channel_map=chan_map,
@@ -677,14 +690,22 @@ class PSPicker():
             sta_picks = [p.copy() for p in picks
                          if p.waveform_id.station_code == station]
             # Inefficient way to get dat_noH
+            # MAKE THIS INTO A METHOD!!!
+            if station in self.param.station_parameters:
+                station_params = self.param.station_parameters[station]
+            else:
+                for pattern in self.param.station_parameters.keys():
+                    if fnmatch(station, pattern):
+                        station_params = self.param.station_parameters[pattern]
+                        break
             temp = PickerStationParameters(
                 station=station,
-                station_params=self.param.station_parameters[station],
+                station_params=station_params,
                 channel_map=self.run.channel_maps[station],
                 stream=self.run.stream)
             la = LocalAmplitude(
                 temp.dat_noH, sta_picks,
-                self.param.station_parameters[station].resp_file,
+                station_params.resp_file,
                 self.param.response_file_type)
             # log(la, 'debug')
             amp, pick = la.get_iaml(method='wood_calc')

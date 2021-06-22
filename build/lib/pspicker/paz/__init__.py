@@ -23,5 +23,25 @@ as per the SEED recommendation
 The user can also change the input_units after creating the class, in which
 case the poles, zeros and gain will  be modified if the starting and ending
 units are in self.known_units().
+
+Creators:
+    PAZ(gain, poles=[], zeros=[], ref_freq=1., ...)
+    PAZ.from_refgain(ref_gain, poles=[], zeros=[], ref_freq=1., ...)
+    PAZ.from_obspy_PoleZeroResponseStage(stage)
+    PAZ.from_obspy_response(resp)
+    PAZ.read_json_pz(filename)
+    PAZ.read_stationxml(filename, channel, station='*')
+    PAZ.read_sac_pz(filename)
+    PAZ.read_gse_response(filename)
+    PAZ.read_baillard_pz(filename)
+    
+Outputers:
+    PAZ.to_obspy()  # returns obspy paz dict
+    PAZ.write_json_pz(filename) # most useful for pspicker
+    PAZ.write_sac_pz(filename) # Can be used by SEISAN
+
+Other Methods:
+    PAZ.get_response(freqs)
+    PAZ.plot(min_freq, ...)
 """
 from .paz import PAZ
