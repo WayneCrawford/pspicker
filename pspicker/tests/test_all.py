@@ -105,11 +105,11 @@ class TestADDONSMethods(unittest.TestCase):
         # Values obtained when response was mis-interpreted as nm/s
         # self.assertAlmostEqual(amp_wood_calc.generic_amplitude, 1097.55509106/1e9)
         # self.assertAlmostEqual(amp_wood_calc.period, 0.112)
-        self.assertAlmostEqual(wood_calc.generic_amplitude * 1e3, 1.769, places=3)
+        self.assertAlmostEqual(wood_calc.generic_amplitude*1e9, 378.3697813)
         self.assertAlmostEqual(wood_calc.period, 0.12)
-        self.assertAlmostEqual(wood_est.generic_amplitude * 1e3, 41.262, places=3)
+        self.assertAlmostEqual(wood_est.generic_amplitude*1e9, 140.490154756)
         self.assertAlmostEqual(wood_est.period, 0.032)
-        self.assertAlmostEqual(raw.generic_amplitude * 1e3, 2.152, places=3)
+        self.assertAlmostEqual(raw.generic_amplitude*1e9, 460.35018097)
         self.assertAlmostEqual(raw.period, 0.112)
         # print('Method     | amplitude(mm) | period(s)')
         # for typ, amp in zip(['wood_calc', 'wood_est', 'raw'],
