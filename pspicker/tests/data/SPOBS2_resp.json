@@ -14,5 +14,6 @@
     [ 0.0, 0.0],
     [ 0.0, 0.0]
   ],
-  "amplifier_gain": 1165084
+  "amplifier_gain": 1165084,
+  "input_units": "nm"
 }

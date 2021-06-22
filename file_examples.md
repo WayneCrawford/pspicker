@@ -113,7 +113,7 @@ to change them, you don't have to include them in your parameter file.
                                    # if < 0:  SNR_threshold = -threshold_parameter
         max_threshold_crossings: 5 # Maximum allowed crossings of SNR threshold within global window
     channel_parameters: # Parameters affecting the choice of channels to pick on and save to
-        component orientation codes: # Component names to map to Z, N, E and H
+        component_orientation_codes: # Component names to map to Z, N, E and H
             Z: 'Z3'
             N: 'N1Y'
             E: 'E2X'

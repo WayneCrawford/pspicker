@@ -114,3 +114,6 @@ becomes
 - Changed fast_kurtosis to reduce edge effect without throwing away first
   win_samples points, by calculating using a win_secs length buffer of repeating
   first second of data_
+## v0.5.1:
+ - Fixed bugs(?) in amplitude calculation
+ 

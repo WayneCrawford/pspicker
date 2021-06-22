@@ -14,7 +14,7 @@ setuptools.setup(
     author_email="crawford@ipgp.fr",
     description="Kurtosis-based P and S wave picker",
     long_description=long_description,
-    long_description_content_type="text/x-rst; charset=UTF-8",
+    long_description_content_type="text/markdown; charset=UTF-8",
     url="https://github.com/WayneCrawford/pspicker",
     packages=setuptools.find_packages(),
     include_package_data=True,

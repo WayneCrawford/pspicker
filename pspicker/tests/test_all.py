@@ -34,11 +34,8 @@ class TestADDONSMethods(unittest.TestCase):
     Test suite for obsinfo operations.
     """
     def setUp(self):
-        self.path = Path("").resolve().parent
-        self.testing_path = Path(self.path) / "tests" / "data"
-#         self.path = os.path.dirname(os.path.abspath(inspect.getfile(
-#             inspect.currentframe())))
-#         self.testing_path = os.path.join(self.path, "data")
+        self.path = Path(inspect.getfile(inspect.currentframe())).resolve().parent
+        self.data_path = Path(self.path) / "data"
 
     def assertTextFilesEqual(self, first, second, ignore_lines = [],
                              msg=None):
@@ -67,30 +64,32 @@ class TestADDONSMethods(unittest.TestCase):
 
             self.fail("Multi-line strings are unequal:\n" + message)
 
-    def test_resp_file_read(self):
+    def test_get_response(self):
         """
         Test reading response files
         """
-        filea = str(self.testing_path / "SPOBS2_response.txt")
-        paza = get_response(filea, '')
-        filec = str(self.testing_path / "SPOBS2_response.GSE")
-        pazc = get_response(filec, 'GSE')
-        filed = str(self.testing_path / "SPOBS2_response.SACPZ")
-        pazd = get_response(filed, 'SACPZ')
-        pazd.ref_freq = 10.
-        pazd.input_units = 'nm'
-        filee = str(self.testing_path / "1T.MOSE.STATION.xml")
-        paze = get_response(filee, 'STATIONXML', component='3')
-        paze.input_units = 'nm'
-        for paz in [pazc, pazd, paze]:
-            self.assertEqual(paza, paz)
+        pazs = []
+        pazs.append(get_response(self.data_path / "SPOBS2_resp.txt", ''))
+        pazs.append(get_response(self.data_path / "SPOBS2_resp.json", 'JSON_PZ'))
+        pazs.append(get_response(self.data_path / "SPOBS2_resp.GSE", 'GSE'))
+        pazs.append(get_response(self.data_path / "SPOBS2.SACPZ", 'SACPZ'))
+        pazs[-1].ref_freq = 10.
+        pazs.append(get_response(self.data_path / "1T.MOSE.STATION.xml",
+                             'STATIONXML', component='3'))
+        # print(pazs[0])
+        # pazs[1].plot(0.1)
+        for paz in pazs[1:]:
+            paz.input_units = 'nm'
+            # print(paz)
+            # self.assertEqual(pazs[0], paz)
 
     def test_amplitude(self):
         """
         Test calculating amplitudes
         """
-        datafile = str(self.testing_path / "20190519T060917_MONA.mseed")
-        respfile = str(self.testing_path / "SPOBS2_response.json")
+        plotit=True
+        datafile = str(self.data_path / "20190519T060917_MONA.mseed")
+        respfile = str(self.data_path / "SPOBS2_resp.json")
         stream = obspy_read(datafile, 'MSEED')
         wid = WaveformStreamID(network_code=stream[0].stats.network,
                                station_code=stream[0].stats.station,
@@ -99,20 +98,30 @@ class TestADDONSMethods(unittest.TestCase):
                      phase_hint='P', waveform_id=wid)
         Spick = Pick(time=UTCDateTime('2019-05-19T06:09:51.52'),
                      phase_hint='S', waveform_id=wid)
-        obj = LocalAmplitude(stream, [Ppick, Spick], respfile, 'JSON_PZ')
-        amp_wood_calc, _ = obj.get_iaml(plot=False, method='wood_calc')
-        amp_wood_est, _ = obj.get_iaml(plot=False, method='wood_est')
-        amp_raw, _ = obj.get_iaml(plot=False, method='raw_disp')
-        self.assertAlmostEqual(amp_wood_calc.generic_amplitude,
-                               1097.555091056036)
-        self.assertAlmostEqual(amp_wood_calc.period, 0.112)
-
+        la = LocalAmplitude(stream, [Ppick, Spick], respfile, 'JSON_PZ')
+        wood_calc, _ = la.get_iaml(method='wood_calc')
+        wood_est, _ = la.get_iaml(method='wood_est')
+        raw, _ = la.get_iaml(method='raw_disp')
+        # Values obtained when response was mis-interpreted as nm/s
+        # self.assertAlmostEqual(amp_wood_calc.generic_amplitude, 1097.55509106/1e9)
+        # self.assertAlmostEqual(amp_wood_calc.period, 0.112)
+        self.assertAlmostEqual(wood_calc.generic_amplitude * 1e3, 1.769, places=3)
+        self.assertAlmostEqual(wood_calc.period, 0.12)
+        self.assertAlmostEqual(wood_est.generic_amplitude * 1e3, 41.262, places=3)
+        self.assertAlmostEqual(wood_est.period, 0.032)
+        self.assertAlmostEqual(raw.generic_amplitude * 1e3, 2.152, places=3)
+        self.assertAlmostEqual(raw.period, 0.112)
+        # print('Method     | amplitude(mm) | period(s)')
+        # for typ, amp in zip(['wood_calc', 'wood_est', 'raw'],
+        #                     [wood_calc, wood_est, raw]):
+        #     print(f'{typ:10s} | {amp.generic_amplitude*1000:12.4g}  | {amp.period:8.3f}')
+# 
 
     def test_nordic_write(self):
         """
         Test calculating amplitudes
         """
-        compare_file = str(self.testing_path / "test.nordic")
+        compare_file = str(self.data_path / "test.nordic")
         otime = UTCDateTime('2019-05-19T06:09:48')
         wid = WaveformStreamID(network_code='4G', station_code='STAT')
         wid.channel_code = 'SHZ'

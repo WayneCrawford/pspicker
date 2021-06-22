@@ -1,6 +1,7 @@
 # import os.path
 #
 # import json
+from dataclasses import dataclass
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -14,6 +15,7 @@ from .logger import log
 from .paz import PAZ
 
 
+#@dataclass
 class Amp():
     """Mini class to hold and print amplitude values"""
     def __init__(self, value=0, period=0, time=None, channel=None):
@@ -53,7 +55,6 @@ class LocalAmplitude():
         self.S_pick_window = S_pick_window
         self.win_start, self.win_end, self.ref_pick, self.station =\
             self._set_ampl_window()
-        # Should take advantage of obspy to read all standard formats
         self.paz = get_response(response_file, response_file_type)
         self.paz.input_units = 'nm'
         self.traces = traces
@@ -109,17 +110,24 @@ class LocalAmplitude():
         WA seismometer free period = 0.8 s
         WA damping constant = 0.7
         A0 = 0.97866 @ 4 Hz
-        :param plot: plot the result
-        :param method:
-            "wood_calc": calculate amplitude on the signal transformed to
-                         simulate a unity gain Wood-Anderson filter
-            "wood_est": calculate amplitude on the original signal and use
-                        obspy.signal.invsim.estimate_wood_anderson_amplitude()
-            "raw_disp": calculate amplitude on the signal transformed to
-                        displacement in nm
-        :returns: amplitude in meters (type=IAML), associated Pick
-        :rtype: ~class obspy.core.event.magnitude.Amplitude,
-                ~class obspy.core.event.origin.Pick
+        
+        Arguments:
+            plot (bool): plot the result
+            method (str): method used to calculate the amplitude.  Values are:
+                "wood_calc": use the signal transformed to simulate a unity
+                             gain Wood-Anderson filter
+                "raw_disp": use the signal transformed to displacement.  For
+                            periods > 0.25s this value can be significantly
+                            higher than that given by wood_calc
+                "wood_est": use the digital signal and obspy's
+                            estimate_wood_anderson_amplitude(). Can be
+                            trouble if the original signal was not proportional
+                            to displacement
+
+        Returns:
+            tuple containing:
+                (obspy Amplitude): amplitude in meters, type=IAML
+                (obspy Pick): pick associated with the amplitude
         """
         if self.ref_pick is None:
             log('No ref_pick!', 'debug')
@@ -135,13 +143,14 @@ class LocalAmplitude():
             plot_units = 'Original (counts)'
         else:
             if method == 'wood_calc':
+                # From Bormann & Dewey 2014, WA is flat w.r.t. displacement
                 paz_simulate = PAZ.from_refgain(
                     1,
                     poles=[(-5.49779 - 5.60886j), (-5.49779 + 5.60886j)],
                     zeros=[(0+0j), (0+0j)],
                     ref_freq=4.0,
                     input_units='nm', output_units='counts')
-                plot_units = 'Wood-And (nm)'
+                plot_units = 'WA (nm)'
                 paz_simulate_obspy = paz_simulate.to_obspy()
             elif method == 'raw_disp':
                 paz_simulate = None
@@ -152,17 +161,23 @@ class LocalAmplitude():
                             paz_simulate=paz_simulate_obspy,
                             water_level=60.0)
         amp = pk2pk(signal, self.win_start, self.win_end)
+        amp.value /= 2  # Convert to zero-to-peak
         if amp is None:
             return None, None
         if method == 'wood_est':
-            amp.value = estimate_wood_anderson_amplitude(paz_remove.to_obspy(),
-                                                         amp.value, amp.period)
-            # estimate...() gives displacement amplitude ON a Wood-Anderson
-            # seismometer, divide by 2080 then multiply by 1e6 to get ground
-            # motion in nm?
-            amp.value /= 2080./1e6
+            # simulated zero to peak disp amplitude on WA seismometer(mm)
+            amp.value = estimate_wood_anderson_amplitude(
+                paz_remove.to_obspy(), 2*amp.value, amp.period)
+            # Divide by 2080 then multiply by 1e6 to get ground motion in nm?
+            # amp.value /= 2080./1e6
+            # Divide by 2080 then remove seismometer gain?
+            amp.value /= 2080.  # Remove obspy's WA seismometer sensitivity
+            amp.value *= 1e6   # convert mm to nm
+        # print(f'{plot=}')
         if plot:
-            self.plot(signal, amp, plot_units)
+            # print(amp)
+            self.plot(signal, amp, method, plot_units)
+            plt.show()
         waveform_id = self.ref_pick.waveform_id
         waveform_id.channel_code = amp.channel
         pick = Pick(time=amp.time,
@@ -171,7 +186,7 @@ class LocalAmplitude():
                     phase_hint='IAML',
                     evaluation_mode='automatic',
                     evaluation_status='preliminary')
-        obspy_amp = Amplitude(generic_amplitude=amp.value/(2. * 1.e9),
+        obspy_amp = Amplitude(generic_amplitude=amp.value/1.e9,
                               type='IAML',
                               unit='m',
                               period=amp.period,
@@ -210,25 +225,28 @@ class LocalAmplitude():
                     .format(len(pick), pick[0].phase_hint[0], pick), 'error')
             return pick[0]
 
-    def plot(self, transformed, Amp, trans_units):
+    def plot(self, transformed, amp, method, trans_units):
         """
         Plot the amplitude pick
 
         Top plot: all traces, colored by type
         Middle trace: Wood-Anderson traces, colored by type, with ampl pick
         Bottom trace: zoom on amplitude region, with max pick for max trace
-        :param transformed: transformed traces
-        :param Amp: pk2pk output
-        :param trans_units: y-axis label for the transformed traces
+        
+        Arguments:
+            transformed (Stream): transformed traces
+            amp (Amp): pk2pk output
+            method (str): method used
+            trans_units (str): y-axis label for transformed traces
         """
-        fig, axs = plt.subplots(3, 1, num=f'LocalAmplitude {self.station}')
+        fig, axs = plt.subplots(3, 1, num=f'{method} Local Amplitude {self.station}')
         traces = self.traces.slice(self.win_start, self.win_end)
         transcut = transformed.slice(self.win_start, self.win_end)
-        imin = transcut[0].times('utcdatetime').searchsorted(Amp.time)
+        imin = transcut[0].times('utcdatetime').searchsorted(amp.time)
         imax = transcut[0].times('utcdatetime')\
-                          .searchsorted(Amp.time + Amp.period) - 1
-        zoom_start = Amp.time - 2*Amp.period
-        zoom_end = Amp.time + 4*Amp.period
+                          .searchsorted(amp.time + amp.period) - 1
+        zoom_start = amp.time - 2*amp.period
+        zoom_end = amp.time + 4*amp.period
 
         # Top axis: plot all traces
         axs[0].set_xlim(self.win_start.matplotlib_date,
@@ -246,7 +264,7 @@ class LocalAmplitude():
             axs[0].axvline(self.pick_P.time.matplotlib_date, color='b')
         if self.pick_S:
             axs[0].axvline(self.pick_S.time.matplotlib_date, color='r')
-        axs[0].set_ylabel(self.station)
+        axs[0].set_ylabel(f'{self.station} (COUNTS)')
         axs[0].legend(loc='center left')
 
         # Middle axis: plot transformed traces
@@ -267,7 +285,7 @@ class LocalAmplitude():
         axs[1].legend(loc='center left')
 
         axs[2].set_xlim(zoom_start.matplotlib_date, zoom_end.matplotlib_date)
-        tr = transcut.select(channel=Amp.channel)[0]
+        tr = transcut.select(channel=amp.channel)[0]
         color, label = self._choose_color(tr)
         axs[2].plot_date(tr.times(type="matplotlib"), tr.data, color + '-',
                          label=label)
@@ -352,9 +370,10 @@ def get_response(filename, format=None, component=None):
     """
     Read response file and output PoleZeros object
 
-    :param filename: name of the file to read
-    :param format: 'GSE', 'JSON_PZ, 'SACPZ', 'STATIONXML' or None
-    :param component: component to read, if STATIONXML
+    Arguments:
+        filename (str or Path) file to read
+        format (str): 'GSE', 'JSON_PZ, 'SACPZ', 'STATIONXML' or ''
+        component: component to read, if STATIONXML
     """
     if format.upper() == 'GSE':
         paz = PAZ.read_gse_response(filename)
@@ -364,116 +383,7 @@ def get_response(filename, format=None, component=None):
         paz = PAZ.read_sac_pz(filename)
     elif format.upper() == 'STATIONXML':
         assert component is not None
-        paz = PAZ.read_stationxml(filename, '*' + component)
+        paz = PAZ.read_stationxml(str(filename), '*' + component)
     else:
         paz = PAZ.read_baillard_pz(filename)
     return paz
-
-
-# def _read_JSON_PZ(filename):
-#     """
-#     read JSON paz format
-#     """
-#     with open(filename) as f:
-#         paz = json.read(f)
-#     A0 = 1
-#     for p in paz.poles:
-#         p = np.complex(p[0], p[1])
-#         A0 *= (2*np.pi*paz['f_ref'] - p)
-#     for z in paz.zeros:
-#         z = np.complex(z[0], z[1])
-#         A0 /= (2*np.pi*paz['f_ref'] - z)
-#     A0 = _calc_A0(paz['poles'], paz['zeros'], paz['f_ref'],
-#                   paz.get('A0', None))
-#     paz['A0'] = A0
-#     return paz
-#
-#
-# def _calc_A0(poles, zeros, f_ref, proposed_A0=None):
-#     """ Calculation normalization factor """
-#     A0 = 1
-#     for p in poles:
-#         A0 *= (2*np.pi*f_ref - p)
-#     for z in zeros:
-#         A0 /= (2*np.pi*f_ref - z)
-#     A0 = abs(A0)
-#     if proposed_A0 is not None:
-#         if A0/proposed_A0 < 0.99 or A0/proposed_A0 > 1.01:
-#             log('file said A0 at {:.3g} Hz = {:.3g}, calculated {:.3g}'
-#                 .format(f_ref, proposed_A0, A0), 'warning')
-#     return A0
-#
-#
-# def _read_Baillard_PZ(filename):
-#     """
-#     read Baillard PZ format
-#     """
-#     info = {}
-#     with open(filename, 'r') as foc:
-#         i = 0
-#         a, info['poles'], info['zeros'] = [], [], []
-#         for tline in foc:
-#             if i < 4:
-#                 a.append(float(tline))
-#             elif i == 4:
-#                 n_poles = float(tline)
-#             elif i == 5:
-#                 n_zeros = float(tline)
-#             elif i >= 6 and i < (6 + n_poles):
-#                 A = tline.split()
-#                 info['poles'].append(np.complex(float(A[0]), float(A[1])))
-#             elif i >= 6 + n_poles and i < 6 + n_poles + n_zeros:
-#                 A = tline.split()
-#                 info['zeros'].append(np.complex(float(A[0]), float(A[1])))
-#             else:
-#                 info['amplifier_gain'] = float(tline)
-#             i += 1
-#     info['sensor_gain'] = a[0]
-#     info['f_ref'] = 1 / a[1]
-#     info['sampling_rate'] = a[2]
-#     info['A0'] = a[3]
-#     _calc_A0(info['poles'], info['zeros'], info['f_ref'], info['A0'])
-#     return info
-#
-#
-# # read_GSE.m
-# def _read_GSE(name=None):
-#     """
-#     read a GSE response file
-#
-#     :param name:    Name of GSE2 response file
-#     :returns: Structure with all parameters
-#     """
-# # read_GSE.m:6
-#     info = dict()
-#     with open(name, 'r') as fic:
-#         for line in fic:
-#             if 'CAL' == line[:3]:
-#                 info['station'] = line[6:10]
-#                 info['type'] = line[20:29].trim()
-#                 info['sensor_gain'] = float(line[29:40])
-#                 info['sampling_rate'] = float(line[46:56])
-#             else:
-#                 if 'PAZ' == line[:3]:
-#                     info['A0'] = float(line[11:25])
-#                     num_poles = float(line[41:43])
-#                     num_zeros = float(line[45])
-#                     info['poles'] = []
-#                     info['zeros'] = []
-#                     for p in np.arange(num_poles):
-#                         A = next(fic).split()
-#                         info['poles'].extend(np.complex(float(A[0]),
-#                                                         float(A[1])))
-#                     for z in np.arange(num_zeros):
-#                         A = next(fic).split()
-#                         info['zeros'].extend(np.complex(float(A[0]),
-#                                                         float(A[1])))
-#                 else:
-#                     if 'DIG' == line[:3]:
-#                         info['amplifier_gain'] = float(line[9:23])
-#                         info['digitizer'] = line[36:42].trim()
-#                     else:
-#                         continue
-#     info['f_ref'] = 1
-#     _calc_A0(info['poles'], info['zeros'], info['f_ref'], info['A0'])
-#     return info
