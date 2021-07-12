@@ -82,6 +82,7 @@ class PSPicker():
         """
         str = "PSPicker\n"
         str += f"    wav_base: {self.wav_base_path}\n"
+        str += f"    input db directory: {self.database_path_in}\n"
         str += f"    output db directory: {self.database_path_out}\n"
         str += f"    parameters: {self.param}\n"
         return str
@@ -110,7 +111,7 @@ class PSPicker():
                                            end_dt.strftime("%Y%m%d-%H%M")))
 
         # Print parameter information
-        log(str(self.param), 'verbose')
+        log(str(self), 'verbose')
 
         def _date_match(y, m, d, ref):
             return y == ref.year and m == ref.month and d == ref.day
@@ -149,18 +150,17 @@ class PSPicker():
         Picks P and S arrivals on one waveform, using the Kurtosis
 
         Information in the database file will be appended with the picks.
-        :param database_filename: database file to read
-        :param plot_global: show global and overall pick plots
-        :param plot_stations: show individual station plots
-        :param assoc: Associator object (used for multiple runs with same
-            Associator)
-        :param log_level: console log level (choices = 'debug', 'verbose',
-            'info', 'warning', 'error', 'critical').  If None, do not setup log
-        :param plot_debug: plot some "debugging" plots
+        
+        Arguments:
+            database_filename (str): database file to read
+            plot_global (bool): show global and overall pick plots
+            plot_stations (bool): show individual station plots
+            assoc (Associator): Associator to use.  None = calculate Associator
+            log_level (str): console log level (choices = 'debug', 'verbose',
+                             'info', 'warning', 'error', 'critical').
+                             If None, do not setup log
+            plot_debug (bool): plot some "debugging" plots
         """
-        # if not self.log_level:
-        #     setup_log(log_level)
-        #     self.log_level = log_level
         if log_level is not None:
             setup_log(log_level)
         if self.assoc is None:
@@ -170,12 +170,10 @@ class PSPicker():
         log(f'running {database_filename}', 'debug')
         timer = Timer(logger=None)
         timer.start()
-        # Run basic Kurtosis and assoc to find most likely window for picks
-        # with Timer(text="Setup Plotter: {:0.4f}s"):
-        plotter = Plotter(plot_global, plot_stations)
 
+        # Run basic Kurtosis/Associator to find most likely pick window
+        plotter = Plotter(plot_global, plot_stations)
         # Read in data and select global pick window
-        # with Timer(text="Read waveforms: {:0.4f}s"):
         st, wavefile = self._read_waveforms(
             self._full_nordic_database_filename(database_filename))
         # print(st.__str__(extended=True))
@@ -229,8 +227,13 @@ class PSPicker():
         obspy_picks.extend(amp_picks)
         self._save_event(obspy_picks, amplitudes, obspy_arrivals)
         elapsed_time = timer.stop()
+        try:
+            dbfname = str(Path(database_filename)
+                         .relative_to(self.database_path_in))
+        except Exception:
+            dpfname = database_filename
         log('    {}: {:2d} Picks and {:2d} Amplitudes on {:2d} stations in '
-            '{:0.2f} seconds'.format(database_filename,
+            '{:0.2f} seconds'.format(dbfname,
                                      len(obspy_picks) - len(amplitudes),
                                      len(amplitudes), len(cmaps),
                                      elapsed_time))

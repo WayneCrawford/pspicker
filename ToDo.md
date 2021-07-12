@@ -9,20 +9,23 @@ Critical
 Non-critical
 ------------------------
 
-- Allow read from SDS (or other client) rather than SEISAN structure
+- Allow read from SDS (or other client) rather than SEISAN structure.  Changes
+  PSPicker arguments:
+    - rename:
+        - ``database_path_in`` to ``catalog_in`` (file rather than directory)
+        - ``database_path_out`` to ``catalog_out`` (file appended to after each
+          event?, or stick with a directory?)
+        - ``wav_base_path`` to ``wave_db_base``. Can be a URL or string
+          (for FDSN) or a path (for SEISAN or SDS)
+    - add:
+        - catalog_in_format (allow read_events arguments)
+        - catalog_out_format (allow Catalog.write arguments)
+        - wave_db_format ('SEISAN', 'SDS', 'FDSN')
+
+- Integrate station name wildcard search into station_parameters list object
+  (currently runs search each time, in pspicker.py)
 
 - Read responses before running (instead of each time and at the end)
-
-- Make converter to different PAZ formats
-
-- Make run_many create a single log file (looks like run_one makes a new one
-  each time)
-
-- Allow wildcards in station names (would simplify Mayotte to ``MO*``, ``MOOH``,
-  ``IF*``, ``IF*E``, ``KNKL``, ``PMZI``, ``MTSB``)
-
-  - Needs to intelligently handle conflicting station names (taking the most
-    specific)
 
 - Allow catalog reads (automatically link station names to their responses)
 
@@ -44,8 +47,6 @@ Code cleanup
 ------------------------
 
 - Clean up picker_parameters.from_yaml_file()!
-
-- Replace os.path calls with pathlib
 
 -  Get rid of all "isnan" parts in code (remnant of Matlab version that didn't
    cut traces but just set values to NaN
