@@ -3,9 +3,9 @@ The parameter file
 ========================================
 
 The parameter file is written in 
-`YAML <https://tools.ietf.org/id/draft-pbryan-zyp-json-ref-03.html>`_
+[YAML](https://tools.ietf.org/id/draft-pbryan-zyp-json-ref-03.html)
 If the program can't read your's, try using an online YAML validator, like
-`this one <https://codebeautify.org/yaml-validator>`_
+[this one](https://codebeautify.org/yaml-validator)
 
 Example file
 -------------------------------
@@ -61,28 +61,8 @@ Example file
                 extrema_smoothings: [2, 4, 6, 8, 10, 20, 30, 40, 50]
             use_polarity: true
     stations:
-        MOCA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        MOFA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        MONA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        MODA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        MOSA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        MOVA: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
-        IF1A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF2A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF3A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF4A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF5A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF6A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF7A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF8A: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF1B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF2B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF3B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF4B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF5B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF6B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF7B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
-        IF8B: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
+        MO*: {parameters: 'SPOBS', resp_file: 'SPOBS2_response.txt'}
+        IF*: {parameters: 'SPOBS', resp_file: 'micrOBS_G1_response.txt'}
         KNKL: {parameters: 'BBLAND', resp_file: 'KNKL_BBOBS1_1.response.txt'}
 ```
 
@@ -164,6 +144,7 @@ to change them, you don't have to include them in your parameter file.
           ...
         ...
     stations:  # List of stations with their station_parameters and responsefiles
+			   # If no direct match to station name, will try station names containing UNIX wildcards
         station1_name: {parameters: "station_typeN", response: "responsefilename"}
         station2_name: {parameters: "station_typeM", response: "responsefilename"}
         station2_name: {parameters: "station_typeM", response: "responsefilename"}
